@@ -48,6 +48,7 @@
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="notes">Notes</a></li>
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="url">URL</a></li>
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="bookmarks">Bookmarks</a></li>
+        <li><a href="#tools" class="nav__link nav-tool-link" data-tab="pomodoro">Pomodoro</a></li>
         <li><a href="#about" class="nav__link">About</a></li>
       </ul>
     </div>
@@ -86,6 +87,9 @@
         </button>
         <button class="tab" role="tab" aria-selected="false" aria-controls="panel-bookmarks" id="tab-bookmarks" data-panel="bookmarks" tabindex="-1">
           <span class="tab__icon" aria-hidden="true">🔖</span> Bookmarks
+        </button>
+        <button class="tab" role="tab" aria-selected="false" aria-controls="panel-pomodoro" id="tab-pomodoro" data-panel="pomodoro" tabindex="-1">
+          <span class="tab__icon" aria-hidden="true">🍅</span> Pomodoro
         </button>
       </div>
     </div>
@@ -472,6 +476,56 @@
               <span class="notes__count" id="bookmarksCount" aria-live="polite">0 bookmarks</span>
             </div>
             <ul class="bookmarks__list" id="bookmarksList" role="list" aria-label="Bookmarks list"></ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════════════════════════
+           Pomodoro Timer
+           ═══════════════════════════════ -->
+      <section
+        id="panel-pomodoro"
+        class="panel"
+        role="tabpanel"
+        aria-labelledby="tab-pomodoro"
+        hidden
+      >
+        <div class="tool">
+          <div class="tool__header">
+            <div>
+              <h2 class="tool__title">Pomodoro Timer</h2>
+              <p class="tool__desc">Focus in 25-minute sessions with 5-minute breaks. Sessions are counted automatically.</p>
+            </div>
+          </div>
+          <div class="tool__body pomodoro-tool">
+
+            <!-- Ring + time display -->
+            <div class="pomodoro-ring-wrap" role="timer">
+              <svg class="pomodoro-ring" viewBox="0 0 120 120" aria-hidden="true">
+                <circle class="pomodoro-ring__track"    cx="60" cy="60" r="54"/>
+                <circle class="pomodoro-ring__progress" cx="60" cy="60" r="54" id="pomodoroRingProgress"/>
+              </svg>
+              <div class="pomodoro-ring-content" aria-live="polite" aria-atomic="true">
+                <span class="pomodoro-mode" id="pomodoroMode">Work</span>
+                <span class="pomodoro-time" id="pomodoroTime" aria-label="25:00 remaining">25:00</span>
+                <span class="pomodoro-session" id="pomodoroSession">Session 1</span>
+              </div>
+            </div>
+
+            <!-- Controls -->
+            <div class="pomodoro-controls">
+              <button class="btn pomodoro-btn--primary" id="pomodoroStart" aria-label="Start timer">Start</button>
+              <button class="btn btn--ghost pomodoro-btn--secondary" id="pomodoroReset" aria-label="Reset timer">Reset</button>
+            </div>
+
+            <!-- Settings -->
+            <div class="pomodoro-settings">
+              <label class="pomodoro-sound-label">
+                <input type="checkbox" id="pomodoroSound" checked aria-label="Play audio cue at session end">
+                <span>Audio cue at session end</span>
+              </label>
+            </div>
+
           </div>
         </div>
       </section>
