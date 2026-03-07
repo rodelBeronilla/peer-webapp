@@ -21,7 +21,10 @@ function activateTab(panelId) {
 }
 
 tabs.forEach(tab => {
-  tab.addEventListener('click', () => activateTab(tab.dataset.panel));
+  tab.addEventListener('click', () => {
+    activateTab(tab.dataset.panel);
+    history.replaceState(null, '', `#${tab.dataset.panel}`);
+  });
 
   // Keyboard navigation: arrow keys cycle tabs
   tab.addEventListener('keydown', (e) => {
@@ -52,14 +55,32 @@ document.querySelectorAll('.nav-tool-link').forEach(link => {
   link.addEventListener('click', (e) => {
     e.preventDefault();
     activateTab(link.dataset.tab);
+    history.replaceState(null, '', `#${link.dataset.tab}`);
     document.getElementById('tools').scrollIntoView({ behavior: 'smooth' });
   });
 });
 
-// Restore last-used tab
+// Restore tab from URL hash, sessionStorage fallback, else 'json'
 (function restoreTab() {
-  const saved = sessionStorage.getItem('devtools-tab');
-  if (saved && document.getElementById(`panel-${saved}`)) {
-    activateTab(saved);
+  const validIds = new Set([...panels].map(p => p.id.replace('panel-', '')));
+
+  function tabFromHash() {
+    const hash = window.location.hash.slice(1);
+    return validIds.has(hash) ? hash : null;
   }
+
+  function activate(id) {
+    activateTab(id);
+    history.replaceState(null, '', `#${id}`);
+  }
+
+  const initial = tabFromHash()
+    || sessionStorage.getItem('devtools-tab')
+    || 'json';
+  activate(validIds.has(initial) ? initial : 'json');
+
+  window.addEventListener('popstate', () => {
+    const id = tabFromHash() || 'json';
+    activateTab(id);
+  });
 })();
