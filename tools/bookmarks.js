@@ -187,7 +187,7 @@ bookmarksImportFile.addEventListener('change', () => {
       const imported = JSON.parse(reader.result);
       if (!Array.isArray(imported)) throw new Error('Expected a JSON array.');
       if (imported.some(b => typeof b.url !== 'string')) throw new Error('Each bookmark must have a "url" field.');
-      const existingUrls = new Set(bookmarks.map(b => b.url));
+      const existingUrls = new Set(bookmarks.map(b => normalizeUrl(b.url)));
       const newBookmarks = imported.filter(b => !existingUrls.has(normalizeUrl(b.url)));
       newBookmarks.forEach(b => {
         b.url = normalizeUrl(b.url);
