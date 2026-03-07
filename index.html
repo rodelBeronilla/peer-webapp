@@ -52,6 +52,7 @@
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="jwt">JWT</a></li>
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="timestamp">Timestamp</a></li>
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="base">Base</a></li>
+        <li><a href="#tools" class="nav__link nav-tool-link" data-tab="hash">Hash</a></li>
         <li><a href="#about" class="nav__link">About</a></li>
       </ul>
     </div>
@@ -102,6 +103,9 @@
         </button>
         <button class="tab" role="tab" aria-selected="false" aria-controls="panel-base" id="tab-base" data-panel="base" tabindex="-1">
           <span class="tab__icon" aria-hidden="true">01</span> Base
+        </button>
+        <button class="tab" role="tab" aria-selected="false" aria-controls="panel-hash" id="tab-hash" data-panel="hash" tabindex="-1">
+          <span class="tab__icon" aria-hidden="true">#</span> Hash
         </button>
       </div>
     </div>
@@ -839,6 +843,96 @@
 
             <div class="status-bar" id="baseStatus" aria-live="polite" role="status"></div>
             <p class="base-bits" id="baseBits" aria-live="polite"></p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════════════════════════
+           SHA Hash Generator
+           ═══════════════════════════════ -->
+      <section
+        id="panel-hash"
+        class="panel"
+        role="tabpanel"
+        aria-labelledby="tab-hash"
+        hidden
+      >
+        <div class="tool">
+          <div class="tool__header">
+            <div>
+              <h2 class="tool__title">SHA Hash Generator</h2>
+              <p class="tool__desc">Compute SHA-256, SHA-384, and SHA-512 hashes of any text. Uses the browser's built-in Web Crypto API — nothing leaves your device.</p>
+            </div>
+          </div>
+          <div class="tool__body tool__body--split">
+
+            <div class="tool__pane">
+              <div class="pane__header">
+                <span class="pane__label">Input</span>
+                <div class="pane__actions">
+                  <button class="btn btn--sm btn--ghost" id="hashCasing" aria-pressed="false" title="Toggle output case">lower</button>
+                  <button class="btn btn--sm btn--ghost" id="hashClear">Clear</button>
+                </div>
+              </div>
+              <textarea
+                class="code-area"
+                id="hashInput"
+                placeholder="Type or paste text to hash…"
+                spellcheck="false"
+                autocomplete="off"
+                aria-label="Text to hash"
+              ></textarea>
+              <div class="status-bar" id="hashStatus" aria-live="polite" role="status"></div>
+            </div>
+
+            <div class="tool__pane">
+              <div class="pane__header">
+                <span class="pane__label">Hashes</span>
+              </div>
+              <div class="base-grid" role="group" aria-label="Hash outputs">
+
+                <div class="base-row">
+                  <label class="base-label" for="hashOut256">SHA-256</label>
+                  <input
+                    type="text"
+                    id="hashOut256"
+                    class="base-input"
+                    readonly
+                    spellcheck="false"
+                    aria-label="SHA-256 hash output"
+                  >
+                  <button class="btn btn--sm btn--ghost" id="hashCopy256" disabled>Copy</button>
+                </div>
+
+                <div class="base-row">
+                  <label class="base-label" for="hashOut384">SHA-384</label>
+                  <input
+                    type="text"
+                    id="hashOut384"
+                    class="base-input"
+                    readonly
+                    spellcheck="false"
+                    aria-label="SHA-384 hash output"
+                  >
+                  <button class="btn btn--sm btn--ghost" id="hashCopy384" disabled>Copy</button>
+                </div>
+
+                <div class="base-row">
+                  <label class="base-label" for="hashOut512">SHA-512</label>
+                  <input
+                    type="text"
+                    id="hashOut512"
+                    class="base-input"
+                    readonly
+                    spellcheck="false"
+                    aria-label="SHA-512 hash output"
+                  >
+                  <button class="btn btn--sm btn--ghost" id="hashCopy512" disabled>Copy</button>
+                </div>
+
+              </div>
+            </div>
+
           </div>
         </div>
       </section>

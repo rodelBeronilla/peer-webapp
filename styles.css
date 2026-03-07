@@ -1401,6 +1401,11 @@ main {
   min-height: 1.25em;
 }
 
+/* Hash panel: wider label column to fit "SHA-256" etc. */
+#panel-hash .base-row {
+  grid-template-columns: 4.5rem 1fr auto;
+}
+
 /* ============================================
    Footer
    ============================================ */
