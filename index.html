@@ -891,43 +891,97 @@
               </div>
               <div class="base-grid" role="group" aria-label="Hash outputs">
 
-                <div class="base-row">
-                  <label class="base-label" for="hashOut256">SHA-256</label>
-                  <input
-                    type="text"
-                    id="hashOut256"
-                    class="base-input"
-                    readonly
-                    spellcheck="false"
-                    aria-label="SHA-256 hash output"
-                  >
-                  <button class="btn btn--sm btn--ghost" id="hashCopy256" disabled>Copy</button>
+                <div class="hash-group">
+                  <div class="base-row">
+                    <label class="base-label" for="hashOut256">SHA-256</label>
+                    <input
+                      type="text"
+                      id="hashOut256"
+                      class="base-input"
+                      readonly
+                      spellcheck="false"
+                      aria-label="SHA-256 hash output"
+                    >
+                    <div class="hash-row-btns">
+                      <button class="btn btn--sm btn--ghost" id="hashCopy256" disabled>Copy</button>
+                      <button class="btn btn--sm btn--ghost" id="hashCompareToggle256" aria-expanded="false" aria-controls="hashCompareRow256">Compare</button>
+                    </div>
+                  </div>
+                  <div class="hash-compare-row" id="hashCompareRow256" hidden>
+                    <span class="base-label" aria-hidden="true"></span>
+                    <input
+                      type="text"
+                      id="hashExpected256"
+                      class="base-input"
+                      placeholder="Paste expected SHA-256…"
+                      spellcheck="false"
+                      autocomplete="off"
+                      aria-label="Expected SHA-256 hash to compare"
+                    >
+                    <span class="hash-match" id="hashMatch256" aria-live="polite"></span>
+                  </div>
                 </div>
 
-                <div class="base-row">
-                  <label class="base-label" for="hashOut384">SHA-384</label>
-                  <input
-                    type="text"
-                    id="hashOut384"
-                    class="base-input"
-                    readonly
-                    spellcheck="false"
-                    aria-label="SHA-384 hash output"
-                  >
-                  <button class="btn btn--sm btn--ghost" id="hashCopy384" disabled>Copy</button>
+                <div class="hash-group">
+                  <div class="base-row">
+                    <label class="base-label" for="hashOut384">SHA-384</label>
+                    <input
+                      type="text"
+                      id="hashOut384"
+                      class="base-input"
+                      readonly
+                      spellcheck="false"
+                      aria-label="SHA-384 hash output"
+                    >
+                    <div class="hash-row-btns">
+                      <button class="btn btn--sm btn--ghost" id="hashCopy384" disabled>Copy</button>
+                      <button class="btn btn--sm btn--ghost" id="hashCompareToggle384" aria-expanded="false" aria-controls="hashCompareRow384">Compare</button>
+                    </div>
+                  </div>
+                  <div class="hash-compare-row" id="hashCompareRow384" hidden>
+                    <span class="base-label" aria-hidden="true"></span>
+                    <input
+                      type="text"
+                      id="hashExpected384"
+                      class="base-input"
+                      placeholder="Paste expected SHA-384…"
+                      spellcheck="false"
+                      autocomplete="off"
+                      aria-label="Expected SHA-384 hash to compare"
+                    >
+                    <span class="hash-match" id="hashMatch384" aria-live="polite"></span>
+                  </div>
                 </div>
 
-                <div class="base-row">
-                  <label class="base-label" for="hashOut512">SHA-512</label>
-                  <input
-                    type="text"
-                    id="hashOut512"
-                    class="base-input"
-                    readonly
-                    spellcheck="false"
-                    aria-label="SHA-512 hash output"
-                  >
-                  <button class="btn btn--sm btn--ghost" id="hashCopy512" disabled>Copy</button>
+                <div class="hash-group">
+                  <div class="base-row">
+                    <label class="base-label" for="hashOut512">SHA-512</label>
+                    <input
+                      type="text"
+                      id="hashOut512"
+                      class="base-input"
+                      readonly
+                      spellcheck="false"
+                      aria-label="SHA-512 hash output"
+                    >
+                    <div class="hash-row-btns">
+                      <button class="btn btn--sm btn--ghost" id="hashCopy512" disabled>Copy</button>
+                      <button class="btn btn--sm btn--ghost" id="hashCompareToggle512" aria-expanded="false" aria-controls="hashCompareRow512">Compare</button>
+                    </div>
+                  </div>
+                  <div class="hash-compare-row" id="hashCompareRow512" hidden>
+                    <span class="base-label" aria-hidden="true"></span>
+                    <input
+                      type="text"
+                      id="hashExpected512"
+                      class="base-input"
+                      placeholder="Paste expected SHA-512…"
+                      spellcheck="false"
+                      autocomplete="off"
+                      aria-label="Expected SHA-512 hash to compare"
+                    >
+                    <span class="hash-match" id="hashMatch512" aria-live="polite"></span>
+                  </div>
                 </div>
 
               </div>

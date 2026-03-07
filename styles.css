@@ -1406,6 +1406,37 @@ main {
   grid-template-columns: 4.5rem 1fr auto;
 }
 
+/* Hash compare mode */
+.hash-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.hash-row-btns {
+  display: flex;
+  gap: 0.375rem;
+}
+
+.hash-compare-row {
+  display: grid;
+  grid-template-columns: 4.5rem 1fr auto;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.hash-match {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+  min-width: 5.5rem;
+  text-align: center;
+}
+
+.hash-match--ok  { color: var(--color-ok); }
+.hash-match--err { color: var(--color-danger); }
+
 /* ============================================
    Footer
    ============================================ */
