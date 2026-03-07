@@ -29,8 +29,108 @@ const customFields  = document.getElementById('pomodoroCustomFields');
 const customWork    = document.getElementById('pomodoroCustomWork');
 const customShort   = document.getElementById('pomodoroCustomShort');
 const customLong    = document.getElementById('pomodoroCustomLong');
+const todayCountEl  = document.getElementById('pomodoroTodayCount');
+const streakEl      = document.getElementById('pomodoroStreak');
 
 const ORIGINAL_TITLE = document.title;
+
+// ---------------------------------------------------------------------------
+// Notification API
+// ---------------------------------------------------------------------------
+function requestNotifPermission() {
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission().catch(() => {});
+  }
+}
+
+function fireNotif(title, body) {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  try {
+    new Notification(title, { body, icon: 'favicon.ico', tag: 'pomodoro' });
+  } catch {
+    // Notifications may be blocked by OS or browser settings
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Session history log
+// ---------------------------------------------------------------------------
+const LS_HISTORY_KEY   = 'pomodoro_history_v1';
+const MAX_HISTORY      = 50;
+
+function todayStr() {
+  return new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+}
+
+function loadHistory() {
+  try {
+    const raw = localStorage.getItem(LS_HISTORY_KEY);
+    if (!raw) return [];
+    const arr = JSON.parse(raw);
+    return Array.isArray(arr) ? arr : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveHistory(arr) {
+  try {
+    // Cap at MAX_HISTORY — drop oldest
+    const trimmed = arr.slice(-MAX_HISTORY);
+    localStorage.setItem(LS_HISTORY_KEY, JSON.stringify(trimmed));
+  } catch {
+    // storage may be unavailable
+  }
+}
+
+function recordWorkSession() {
+  const history = loadHistory();
+  history.push({ date: todayStr(), ts: Date.now() });
+  saveHistory(history);
+}
+
+function todayCount() {
+  const today = todayStr();
+  return loadHistory().filter(e => e.date === today).length;
+}
+
+function currentStreak() {
+  const history = loadHistory();
+  if (!history.length) return 0;
+
+  // Build a Set of unique dates that have at least one session
+  const days = new Set(history.map(e => e.date));
+
+  let streak = 0;
+  const d = new Date();
+  // Walk backwards from today; allow today to count even if no session yet
+  // (streak reflects yesterday→… continuity; today breaks it only if it's past midnight and no session)
+  while (true) {
+    const key = d.toISOString().slice(0, 10);
+    if (days.has(key)) {
+      streak++;
+      d.setDate(d.getDate() - 1);
+    } else if (key === todayStr()) {
+      // Today hasn't had a session yet — skip it without breaking streak
+      d.setDate(d.getDate() - 1);
+    } else {
+      break;
+    }
+  }
+  return streak;
+}
+
+function renderStats() {
+  const count = todayCount();
+  if (todayCountEl) {
+    todayCountEl.textContent = count === 1 ? 'Today: 1 pomodoro' : `Today: ${count} pomodoros`;
+  }
+  if (streakEl) {
+    const s = currentStreak();
+    streakEl.textContent = s > 1 ? `${s}-day streak 🔥` : '';
+    streakEl.hidden = s <= 1;
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Shared AudioContext (single instance, reused across beeps)
@@ -236,6 +336,7 @@ function tick() {
     if (state.mode === 'work') {
       // Work session complete
       playBeep(880, 0.8);
+      recordWorkSession();
       state.workDoneInCycle++;
 
       if (state.workDoneInCycle >= p.longEvery) {
@@ -244,11 +345,13 @@ function tick() {
         state.mode      = 'longBreak';
         state.totalTime = p.longBreak * 60;
         state.timeLeft  = p.longBreak * 60;
+        fireNotif('Pomodoro complete!', `Great work! Take a ${p.longBreak}-min long break.`);
       } else {
         // Short break
         state.mode      = 'shortBreak';
         state.totalTime = p.shortBreak * 60;
         state.timeLeft  = p.shortBreak * 60;
+        fireNotif('Pomodoro complete!', `Great work! Take a ${p.shortBreak}-min break.`);
       }
     } else {
       // Break complete → next work session
@@ -257,7 +360,10 @@ function tick() {
       state.mode      = 'work';
       state.totalTime = p.work * 60;
       state.timeLeft  = p.work * 60;
+      fireNotif('Break over!', `Time to focus. Session ${state.session} starting.`);
     }
+
+    renderStats();
   }
 
   saveState();
@@ -269,8 +375,9 @@ function tick() {
 // ---------------------------------------------------------------------------
 function startTimer() {
   if (state.running) return;
-  // Resume AudioContext on first user gesture
+  // Resume AudioContext and request notification permission on first user gesture
   getAudioCtx();
+  requestNotifPermission();
   state.running = true;
   startBtn.textContent = 'Pause';
   startBtn.setAttribute('aria-label', 'Pause timer');
@@ -359,3 +466,4 @@ ringEl.style.strokeDashoffset = 0;
 
 restoreState();
 render();
+renderStats();
