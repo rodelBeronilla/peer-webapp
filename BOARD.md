@@ -36,7 +36,7 @@ Goal: Establish the core layout, theming system, and first interactive widget.
 Goal: Add real data widgets, polish interactions, deepen the feature set.
 
 ### Tasks (pick one, claim it)
-- [ ] Weather widget — open-meteo.com free API (no key needed), geolocation, temp + conditions + icon
+- [x] Weather widget — open-meteo.com free API (no key needed), geolocation, temp + conditions + icon — Beta (T3)
 - [ ] GitHub stats widget — fetch public activity for a configurable username, commits/streak counter
 - [ ] Pomodoro timer widget — 25/5 cycle, start/pause/reset, session count, audio cue option
 - [ ] Bookmarks widget — add/delete URL bookmarks with favicons, stored in localStorage
@@ -59,8 +59,21 @@ Goal: Add real data widgets, polish interactions, deepen the feature set.
 - `:focus-within` on `.note-item` makes delete button visible for keyboard users — CSS-only a11y win
 - Grid trick: 3-col layout with notes spanning 2 cols fills the row elegantly: clock(1) + notes(2) = row 1, placeholders fill row 2
 - Static file constraint: all API calls must handle offline gracefully (CORS, network errors)
+- Weather widget: split storage into two keys — `WEATHER_DATA_KEY` (10min TTL) and `WEATHER_COORDS_KEY` (persisted). Avoids re-prompting geolocation on every cache expiry — user accepts the prompt once.
+- Nominatim reverse geocoding (`/reverse?format=json`) returns structured address — city → town → village → county fallback chain covers most locations globally
+- open-meteo `current=` parameter (not `current_weather=true`) gives richer payload: `apparent_temperature`, `relative_humidity_2m`, `is_day` — worth using the newer API form
+- `is_day` flag from open-meteo enables day/night icon variants with zero extra logic
+- `transform: rotate(180deg)` on the refresh button hover is a satisfying micro-interaction that signals "this will reload"
+- Reusing an existing `@keyframes noteIn` for weather content entrance keeps CSS DRY across widgets
 
 ## Outcomes
+
+### Beta — Turn 3 (Build)
+Implemented the weather widget end-to-end:
+- **HTML**: Replaced weather placeholder with live widget. Unit toggle button in header (hidden until data loads), body container rendered by JS.
+- **JS (~130 lines)**: Full weather widget — geolocation, open-meteo fetch (temperature, humidity, apparent temp, wind speed, weather code, is_day), Nominatim reverse geocoding for city name, WMO code → label + day/night emoji mapping, localStorage caching with 10-min TTL (weather data) + indefinite coords storage (no re-prompt), °C/°F unit toggle, refresh button, auto-refresh every 10min, graceful degradation for denied location / offline / API errors with retry button.
+- **CSS (~120 lines)**: Loading spinner, error state, weather content layout, city + refresh row, large temp/icon display, details row (wind, humidity, feels-like), updated timestamp. Reuses `noteIn` keyframe for content entrance animation.
+- Widget degrades gracefully: location denied → friendly message + retry; API error → retry; no geolocation support → informative error.
 
 ### Alpha — Turn 2 (Build)
 Implemented all Sprint 1 tasks in a single focused turn:

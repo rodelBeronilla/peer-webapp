@@ -516,6 +516,194 @@ main {
 }
 
 /* ============================================
+   Weather Widget
+   ============================================ */
+.widget__body--weather {
+  min-height: 160px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* Unit toggle button in header */
+.weather__unit-btn {
+  font-size: 0.72rem;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  padding: 0.2rem 0.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition);
+}
+
+.weather__unit-btn:hover {
+  background: var(--color-border);
+  color: var(--color-text);
+}
+
+.weather__unit-btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Loading / Error state */
+.weather__state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  text-align: center;
+  padding: 1rem;
+}
+
+.weather__spinner {
+  width: 1.5rem;
+  height: 1.5rem;
+  border: 2px solid var(--color-border);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.weather__status-msg {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+.weather__state--error .weather__error-icon {
+  font-size: 1.75rem;
+  line-height: 1;
+}
+
+.weather__retry {
+  padding: 0.375rem 1rem;
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-primary);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition);
+}
+
+.weather__retry:hover {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.weather__retry:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Weather content */
+.weather__content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  animation: noteIn 250ms ease forwards;
+}
+
+.weather__location {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.weather__city {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.weather__refresh {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 1.5rem;
+  height: 1.5rem;
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  font-size: 1rem;
+  line-height: 1;
+  transition: background var(--transition), color var(--transition), transform var(--transition-slow);
+}
+
+.weather__refresh:hover {
+  background: var(--color-border);
+  color: var(--color-text);
+  transform: rotate(180deg);
+}
+
+.weather__refresh:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.weather__main {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.weather__icon {
+  font-size: 2.75rem;
+  line-height: 1;
+}
+
+.weather__temp {
+  font-family: var(--font-mono);
+  font-size: clamp(1.6rem, 4vw, 2.2rem);
+  font-weight: 300;
+  letter-spacing: -0.02em;
+  color: var(--color-text);
+  line-height: 1;
+}
+
+.weather__condition {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+}
+
+.weather__details {
+  display: flex;
+  gap: 0.875rem;
+  flex-wrap: wrap;
+  margin-top: 0.125rem;
+}
+
+.weather__detail {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.weather__updated {
+  font-size: 0.68rem;
+  color: var(--color-text-muted);
+  opacity: 0.55;
+  margin-top: 0.125rem;
+}
+
+/* ============================================
    Placeholder Widget
    ============================================ */
 .widget--placeholder { opacity: 0.65; }

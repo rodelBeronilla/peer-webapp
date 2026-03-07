@@ -101,16 +101,22 @@
         </div>
       </article>
 
-      <!-- Placeholder widget (Sprint 2 candidate) -->
-      <article class="widget widget--placeholder" aria-label="Coming soon">
+      <!-- Weather widget -->
+      <article class="widget widget--weather" aria-label="Weather">
         <header class="widget__header">
           <h2 class="widget__title">
             <span aria-hidden="true">🌤</span> Weather
           </h2>
+          <button
+            class="weather__unit-btn"
+            id="weatherUnitBtn"
+            title="Toggle °C / °F"
+            aria-label="Toggle temperature unit"
+            hidden
+          >°C</button>
         </header>
-        <div class="widget__body widget__body--center">
-          <p class="placeholder__text">Coming in Sprint 2</p>
-          <p class="placeholder__sub">Live weather via open-meteo API</p>
+        <div class="widget__body widget__body--weather" id="weatherBody">
+          <!-- Rendered by JS -->
         </div>
       </article>
 
