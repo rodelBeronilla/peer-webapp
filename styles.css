@@ -1455,3 +1455,69 @@ main {
   align-items: center;
   word-break: break-all;
 }
+
+/* ============================================
+   UUID Generator
+   ============================================ */
+.uuid-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.875rem;
+  margin-bottom: 1.25rem;
+}
+
+.uuid-control-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.uuid-control-group--toggle {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+  padding-bottom: 0.1rem;
+}
+
+.uuid-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.uuid-select {
+  padding: 0.45rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-size: 0.875rem;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: border-color var(--transition-fast);
+  min-width: 9rem;
+}
+
+.uuid-select:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.uuid-toggle {
+  width: 1.1rem;
+  height: 1.1rem;
+  cursor: pointer;
+  accent-color: var(--color-primary);
+}
+
+.uuid-output-header {
+  margin-bottom: 0.5rem;
+}
+
+.uuid-output {
+  min-height: 7rem;
+  resize: vertical;
+}

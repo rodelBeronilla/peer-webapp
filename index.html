@@ -52,6 +52,7 @@
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="jwt">JWT</a></li>
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="timestamp">Timestamp</a></li>
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="base">Base</a></li>
+        <li><a href="#tools" class="nav__link nav-tool-link" data-tab="uuid">UUID</a></li>
         <li><a href="#about" class="nav__link">About</a></li>
       </ul>
     </div>
@@ -102,6 +103,9 @@
         </button>
         <button class="tab" role="tab" aria-selected="false" aria-controls="panel-base" id="tab-base" data-panel="base" tabindex="-1">
           <span class="tab__icon" aria-hidden="true">01</span> Base
+        </button>
+        <button class="tab" role="tab" aria-selected="false" aria-controls="panel-uuid" id="tab-uuid" data-panel="uuid" tabindex="-1">
+          <span class="tab__icon" aria-hidden="true">ID</span> UUID
         </button>
       </div>
     </div>
@@ -839,6 +843,63 @@
 
             <div class="status-bar" id="baseStatus" aria-live="polite" role="status"></div>
             <p class="base-bits" id="baseBits" aria-live="polite"></p>
+          </div>
+        </div>
+      </section>
+
+      <section
+        id="panel-uuid"
+        class="panel"
+        role="tabpanel"
+        aria-labelledby="tab-uuid"
+        hidden
+      >
+        <div class="tool">
+          <div class="tool__header">
+            <div>
+              <h2 class="tool__title">UUID Generator</h2>
+              <p class="tool__desc">Generate RFC 4122 v4 (random) or v7 (time-ordered, sortable) UUIDs using the browser's built-in Web Crypto API. No server, no dependencies.</p>
+            </div>
+          </div>
+          <div class="tool__body">
+            <div class="uuid-controls">
+              <div class="uuid-control-group">
+                <label class="uuid-label" for="uuidVersion">Version</label>
+                <select id="uuidVersion" class="uuid-select" aria-label="UUID version">
+                  <option value="v4">v4 — random</option>
+                  <option value="v7">v7 — time-ordered</option>
+                </select>
+              </div>
+              <div class="uuid-control-group">
+                <label class="uuid-label" for="uuidCount">Count</label>
+                <select id="uuidCount" class="uuid-select" aria-label="Number of UUIDs to generate">
+                  <option value="1">1</option>
+                  <option value="10">10</option>
+                  <option value="100">100</option>
+                </select>
+              </div>
+              <div class="uuid-control-group uuid-control-group--toggle">
+                <label class="uuid-label" for="uuidCasing">Uppercase</label>
+                <input type="checkbox" id="uuidCasing" class="uuid-toggle" aria-label="Toggle uppercase output">
+              </div>
+              <button class="btn" id="uuidGenerate" aria-label="Generate UUIDs">Generate</button>
+            </div>
+
+            <div class="pane__header uuid-output-header">
+              <span class="pane__label">Output</span>
+              <div class="pane__actions">
+                <button class="btn btn--sm btn--ghost" id="uuidCopy" disabled>Copy All</button>
+              </div>
+            </div>
+            <textarea
+              class="code-area uuid-output"
+              id="uuidOutput"
+              readonly
+              spellcheck="false"
+              aria-label="Generated UUIDs"
+              aria-live="polite"
+            ></textarea>
+            <div class="status-bar" id="uuidStatus" aria-live="polite" role="status"></div>
           </div>
         </div>
       </section>
