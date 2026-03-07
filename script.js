@@ -647,9 +647,10 @@ function renderNotes() {
     return;
   }
 
-  notes.forEach((note, index) => {
+  notes.forEach((note) => {
     const li = document.createElement('li');
     li.className = 'note-item';
+    li.dataset.id = note.id;
 
     const text = document.createElement('span');
     text.className = 'note-item__text';
@@ -660,7 +661,7 @@ function renderNotes() {
     del.setAttribute('aria-label', `Delete note: ${note.text}`);
     del.setAttribute('type', 'button');
     del.textContent = '×';
-    del.addEventListener('click', () => deleteNote(index));
+    del.addEventListener('click', () => deleteNote(note.id));
 
     li.appendChild(text);
     li.appendChild(del);
@@ -679,16 +680,15 @@ function addNote(text) {
   renderNotes();
 }
 
-function deleteNote(index) {
-  const items = notesList.querySelectorAll('.note-item');
-  const li = items[index];
+function deleteNote(id) {
+  const li = notesList.querySelector(`.note-item[data-id="${id}"]`);
   if (li) {
     li.style.transition = 'opacity 150ms ease, transform 150ms ease';
     li.style.opacity = '0';
     li.style.transform = 'translateX(10px)';
   }
   setTimeout(() => {
-    notes.splice(index, 1);
+    notes = notes.filter(n => n.id !== id);
     saveNotes();
     renderNotes();
   }, 150);
