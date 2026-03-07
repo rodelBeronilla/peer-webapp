@@ -177,3 +177,111 @@ clearBtn.addEventListener('click', () => {
 copyBtn256.addEventListener('click', () => copyText(out256.value, copyBtn256));
 copyBtn384.addEventListener('click', () => copyText(out384.value, copyBtn384));
 copyBtn512.addEventListener('click', () => copyText(out512.value, copyBtn512));
+
+// ---------------------------------------------------------------------------
+// HMAC section
+// ---------------------------------------------------------------------------
+
+const hmacKey     = document.getElementById('hmacKey');
+const hmacMessage = document.getElementById('hmacMessage');
+const hmacStatus  = document.getElementById('hmacStatus');
+const hmacOut256  = document.getElementById('hmacOut256');
+const hmacOut384  = document.getElementById('hmacOut384');
+const hmacOut512  = document.getElementById('hmacOut512');
+const hmacCopy256 = document.getElementById('hmacCopy256');
+const hmacCopy384 = document.getElementById('hmacCopy384');
+const hmacCopy512 = document.getElementById('hmacCopy512');
+const hmacClearBtn = document.getElementById('hmacClear');
+
+function setHmacStatus(msg, type = '') {
+  hmacStatus.textContent = msg;
+  hmacStatus.className = 'status-bar' + (type ? ` status-bar--${type}` : '');
+}
+
+async function hmacDigest(algorithm, keyStr, messageStr) {
+  const enc = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    'raw',
+    enc.encode(keyStr),
+    { name: 'HMAC', hash: algorithm },
+    false,
+    ['sign']
+  );
+  const sig = await crypto.subtle.sign('HMAC', key, enc.encode(messageStr));
+  return Array.from(new Uint8Array(sig))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+async function computeHmac() {
+  const keyStr = hmacKey.value;
+  const msgStr = hmacMessage.value;
+
+  if (!keyStr && !msgStr) {
+    hmacOut256.value = '';
+    hmacOut384.value = '';
+    hmacOut512.value = '';
+    hmacCopy256.disabled = true;
+    hmacCopy384.disabled = true;
+    hmacCopy512.disabled = true;
+    setHmacStatus('');
+    return;
+  }
+
+  if (!keyStr) {
+    setHmacStatus('Enter a secret key.', 'error');
+    return;
+  }
+
+  if (!msgStr) {
+    hmacOut256.value = '';
+    hmacOut384.value = '';
+    hmacOut512.value = '';
+    hmacCopy256.disabled = true;
+    hmacCopy384.disabled = true;
+    hmacCopy512.disabled = true;
+    setHmacStatus('');
+    return;
+  }
+
+  try {
+    const [h256, h384, h512] = await Promise.all([
+      hmacDigest('SHA-256', keyStr, msgStr),
+      hmacDigest('SHA-384', keyStr, msgStr),
+      hmacDigest('SHA-512', keyStr, msgStr),
+    ]);
+
+    hmacOut256.value = applyCase(h256);
+    hmacOut384.value = applyCase(h384);
+    hmacOut512.value = applyCase(h512);
+
+    hmacCopy256.disabled = false;
+    hmacCopy384.disabled = false;
+    hmacCopy512.disabled = false;
+
+    const msgBytes = new TextEncoder().encode(msgStr).byteLength;
+    setHmacStatus(`${msgBytes} byte${msgBytes !== 1 ? 's' : ''} · key: ${keyStr.length} char${keyStr.length !== 1 ? 's' : ''}`, 'ok');
+  } catch {
+    setHmacStatus('HMAC failed — Web Crypto API not available.', 'error');
+  }
+}
+
+let hmacDebounceTimer;
+function scheduleHmac() {
+  clearTimeout(hmacDebounceTimer);
+  hmacDebounceTimer = setTimeout(computeHmac, 200);
+}
+
+hmacKey.addEventListener('input', scheduleHmac);
+hmacMessage.addEventListener('input', scheduleHmac);
+
+hmacClearBtn.addEventListener('click', () => {
+  hmacKey.value = '';
+  hmacMessage.value = '';
+  computeHmac();
+  hmacKey.focus();
+});
+
+hmacCopy256.addEventListener('click', () => copyText(hmacOut256.value, hmacCopy256));
+hmacCopy384.addEventListener('click', () => copyText(hmacOut384.value, hmacCopy384));
+hmacCopy512.addEventListener('click', () => copyText(hmacOut512.value, hmacCopy512));

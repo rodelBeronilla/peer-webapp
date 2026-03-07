@@ -1437,6 +1437,39 @@ main {
 .hash-match--ok  { color: var(--color-ok); }
 .hash-match--err { color: var(--color-danger); }
 
+/* Hash tool section divider (SHA / HMAC) */
+.tool__divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem 0;
+  color: var(--color-text-muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.tool__divider::before,
+.tool__divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--color-border);
+}
+
+/* HMAC key input — full-width editable field */
+.hmac-key-input {
+  width: 100%;
+  box-sizing: border-box;
+  display: block;
+}
+
+/* Secondary pane header with top spacing */
+.pane__header--mt {
+  margin-top: 0.75rem;
+}
+
 /* ============================================
    Footer
    ============================================ */
