@@ -860,8 +860,8 @@
         <div class="tool">
           <div class="tool__header">
             <div>
-              <h2 class="tool__title">SHA Hash Generator</h2>
-              <p class="tool__desc">Compute SHA-256, SHA-384, and SHA-512 hashes of any text. Uses the browser's built-in Web Crypto API — nothing leaves your device.</p>
+              <h2 class="tool__title">Hash &amp; HMAC</h2>
+              <p class="tool__desc">Compute SHA-256/384/512 hashes or HMAC digests for webhook signature debugging. Uses the browser's built-in Web Crypto API — nothing leaves your device.</p>
             </div>
           </div>
           <div class="tool__body tool__body--split">
@@ -982,6 +982,90 @@
                     >
                     <span class="hash-match" id="hashMatch512" aria-live="polite"></span>
                   </div>
+                </div>
+
+              </div>
+            </div>
+
+          </div>
+
+          <!-- HMAC section -->
+          <div class="tool__divider"><span>HMAC</span></div>
+          <div class="tool__body tool__body--split">
+
+            <div class="tool__pane">
+              <div class="pane__header">
+                <span class="pane__label">Secret Key</span>
+                <div class="pane__actions">
+                  <button class="btn btn--sm btn--ghost" id="hmacClear">Clear</button>
+                </div>
+              </div>
+              <input
+                type="text"
+                class="base-input hmac-key-input"
+                id="hmacKey"
+                placeholder="Enter secret key…"
+                spellcheck="false"
+                autocomplete="off"
+                aria-label="HMAC secret key"
+              >
+              <div class="pane__header pane__header--mt">
+                <span class="pane__label">Message</span>
+              </div>
+              <textarea
+                class="code-area"
+                id="hmacMessage"
+                placeholder="Enter message to authenticate…"
+                spellcheck="false"
+                autocomplete="off"
+                aria-label="Message to authenticate"
+              ></textarea>
+              <div class="status-bar" id="hmacStatus" aria-live="polite" role="status"></div>
+            </div>
+
+            <div class="tool__pane">
+              <div class="pane__header">
+                <span class="pane__label">HMAC Digests</span>
+              </div>
+              <div class="base-grid" role="group" aria-label="HMAC digest outputs">
+
+                <div class="base-row">
+                  <label class="base-label" for="hmacOut256">SHA-256</label>
+                  <input
+                    type="text"
+                    id="hmacOut256"
+                    class="base-input"
+                    readonly
+                    spellcheck="false"
+                    aria-label="HMAC-SHA256 digest output"
+                  >
+                  <button class="btn btn--sm btn--ghost" id="hmacCopy256" disabled>Copy</button>
+                </div>
+
+                <div class="base-row">
+                  <label class="base-label" for="hmacOut384">SHA-384</label>
+                  <input
+                    type="text"
+                    id="hmacOut384"
+                    class="base-input"
+                    readonly
+                    spellcheck="false"
+                    aria-label="HMAC-SHA384 digest output"
+                  >
+                  <button class="btn btn--sm btn--ghost" id="hmacCopy384" disabled>Copy</button>
+                </div>
+
+                <div class="base-row">
+                  <label class="base-label" for="hmacOut512">SHA-512</label>
+                  <input
+                    type="text"
+                    id="hmacOut512"
+                    class="base-input"
+                    readonly
+                    spellcheck="false"
+                    aria-label="HMAC-SHA512 digest output"
+                  >
+                  <button class="btn btn--sm btn--ghost" id="hmacCopy512" disabled>Copy</button>
                 </div>
 
               </div>
