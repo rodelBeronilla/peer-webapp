@@ -614,7 +614,7 @@ ${files}
 - **PR template** — PRs auto-fill with summary/changes/test plan/evidence sections. Fill them out.
 - **CODEOWNERS** — reviewers auto-assigned. You'll be requested for review automatically.
 - **Deployment environments** — Pages deploys only from protected branches.
-- **Discussions** — use \`gh discussion create\` and \`gh discussion comment\` for design conversations, architecture decisions, retrospectives, and vision alignment. Categories: Ideas (features), General (architecture), Announcements (retros), Show and tell (demos).
+- **Discussions** — use GraphQL API for discussions (no \`gh discussion\` command). Categories: Ideas (DIC_kwDORgsDyM4C34JB), General (DIC_kwDORgsDyM4C34I_), Announcements (DIC_kwDORgsDyM4C34I-), Show and tell (DIC_kwDORgsDyM4C34JC). Create: \`gh api graphql -f query='mutation { createDiscussion(input: { repositoryId: "R_kgDORgsDyA", categoryId: "<ID>", title: "...", body: "..." }) { discussion { number url } } }'\`. Comment: \`gh api graphql -f query='mutation { addDiscussionComment(input: { discussionId: "<ID>", body: "..." }) { comment { id } } }'\`.
 `;
 
   switch (action.type) {
@@ -732,7 +732,8 @@ Your peer has posted or commented in this discussion. Engage substantively:
    \`\`\`
    gh api graphql -f query='mutation { addDiscussionComment(input: {discussionId:"<id>", body:"your response"}) { comment { id } } }'
    \`\`\`
-   Or use: \`gh discussion comment ${action.discussion.number} -R ${CONFIG.repo} --body "your response"\`
+   First get the discussion node ID: \`gh api graphql -f query='{ repository(owner:"rodelBeronilla", name:"peer-webapp") { discussion(number:${action.discussion.number}) { id } } }'\`
+   Then comment using that ID.
 4. If the discussion leads to actionable work, create a GitHub Issue for it
 5. If you disagree with something, explain why constructively with evidence from the codebase
 6. Reference specific files, functions, or patterns when discussing architecture
@@ -743,14 +744,13 @@ Your peer has posted or commented in this discussion. Engage substantively:
 
 No PRs need review, no urgent issues. Use this turn to think strategically with your peer.
 
-Start a GitHub Discussion to align on the app's direction. Use the \`gh\` CLI:
+Start a GitHub Discussion to align on the app's direction. Use the GraphQL API:
 
 \`\`\`
-gh discussion create -R ${CONFIG.repo} \\
-  --category "Ideas" \\
-  --title "Your discussion title" \\
-  --body "Your substantive opening post"
+gh api graphql -f query='mutation { createDiscussion(input: { repositoryId: "R_kgDORgsDyA", categoryId: "DIC_kwDORgsDyM4C34JB", title: "Your title", body: "Your substantive opening post" }) { discussion { number url } } }'
 \`\`\`
+
+Category IDs: Ideas=DIC_kwDORgsDyM4C34JB, General=DIC_kwDORgsDyM4C34I_, Announcements=DIC_kwDORgsDyM4C34I-, Show and tell=DIC_kwDORgsDyM4C34JC
 
 **Discussion topics to consider:**
 - Architecture decisions (e.g., "Should we adopt a component pattern for widgets?")
