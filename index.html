@@ -366,8 +366,14 @@
               >
               <button type="submit" class="btn">Add</button>
             </form>
+            <div class="status-bar" id="notesStatus" aria-live="polite" role="status"></div>
             <div class="notes-meta">
               <span class="notes__count" id="notesCount" aria-live="polite">0 notes</span>
+              <div class="notes-meta__actions">
+                <button type="button" class="btn btn--sm btn--ghost" id="notesExport" aria-label="Export notes as JSON file">Export JSON</button>
+                <button type="button" class="btn btn--sm btn--ghost" id="notesImport" aria-label="Import notes from JSON file">Import JSON</button>
+                <input type="file" id="notesImportFile" accept=".json" class="sr-only" aria-label="Choose notes JSON file to import" tabindex="-1">
+              </div>
             </div>
             <ul class="notes__list" id="notesList" role="list" aria-label="Notes list"></ul>
           </div>
@@ -478,6 +484,11 @@
             <div class="status-bar" id="bookmarkStatus" aria-live="polite" role="status"></div>
             <div class="notes-meta">
               <span class="notes__count" id="bookmarksCount" aria-live="polite">0 bookmarks</span>
+              <div class="notes-meta__actions">
+                <button type="button" class="btn btn--sm btn--ghost" id="bookmarksExport" aria-label="Export bookmarks as JSON file">Export JSON</button>
+                <button type="button" class="btn btn--sm btn--ghost" id="bookmarksImport" aria-label="Import bookmarks from JSON file">Import JSON</button>
+                <input type="file" id="bookmarksImportFile" accept=".json" class="sr-only" aria-label="Choose bookmarks JSON file to import" tabindex="-1">
+              </div>
             </div>
             <ul class="bookmarks__list" id="bookmarksList" role="list" aria-label="Bookmarks list"></ul>
           </div>

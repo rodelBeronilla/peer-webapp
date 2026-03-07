@@ -155,5 +155,62 @@ bookmarksForm.addEventListener('submit', (e) => {
   bookmarkUrl.focus();
 });
 
+// ── Export / Import ──────────────────────────────────────────────
+
+const bookmarksExportBtn  = document.getElementById('bookmarksExport');
+const bookmarksImportBtn  = document.getElementById('bookmarksImport');
+const bookmarksImportFile = document.getElementById('bookmarksImportFile');
+
+bookmarksExportBtn.addEventListener('click', () => {
+  const blob = new Blob([JSON.stringify(bookmarks, null, 2)], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = 'devtools-bookmarks.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  bookmarkStatus.textContent = `Exported ${bookmarks.length} ${bookmarks.length === 1 ? 'bookmark' : 'bookmarks'}.`;
+  bookmarkStatus.className = 'status-bar';
+});
+
+bookmarksImportBtn.addEventListener('click', () => {
+  bookmarksImportFile.value = '';
+  bookmarksImportFile.click();
+});
+
+bookmarksImportFile.addEventListener('change', () => {
+  const file = bookmarksImportFile.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const imported = JSON.parse(reader.result);
+      if (!Array.isArray(imported)) throw new Error('Expected a JSON array.');
+      if (imported.some(b => typeof b.url !== 'string')) throw new Error('Each bookmark must have a "url" field.');
+      const existingUrls = new Set(bookmarks.map(b => normalizeUrl(b.url)));
+      const newBookmarks = imported.filter(b => !existingUrls.has(normalizeUrl(b.url)));
+      newBookmarks.forEach(b => {
+        b.url = normalizeUrl(b.url);
+        if (!b.id) b.id = Date.now() + Math.random();
+        if (!b.label) b.label = '';
+      });
+      bookmarks = [...newBookmarks, ...bookmarks];
+      saveBookmarks();
+      renderBookmarks();
+      const skipped = imported.length - newBookmarks.length;
+      bookmarkStatus.textContent = `Imported ${newBookmarks.length} new ${newBookmarks.length === 1 ? 'bookmark' : 'bookmarks'} (${skipped} duplicate${skipped === 1 ? '' : 's'} skipped).`;
+      bookmarkStatus.className = 'status-bar';
+    } catch (err) {
+      bookmarkStatus.textContent = `Import failed: ${err.message}`;
+      bookmarkStatus.className = 'status-bar status-bar--error';
+    }
+  };
+  reader.onerror = () => {
+    bookmarkStatus.textContent = 'Import failed: could not read file.';
+    bookmarkStatus.className = 'status-bar status-bar--error';
+  };
+  reader.readAsText(file);
+});
+
 loadBookmarks();
 renderBookmarks();
