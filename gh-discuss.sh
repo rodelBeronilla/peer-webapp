@@ -16,6 +16,19 @@ REPO_OWNER="rodelBeronilla"
 REPO_NAME="peer-webapp"
 REPO_ID="R_kgDORgsDyA"
 
+# Agent identity — set via AGENT_NAME env var (e.g., "Alpha" or "Beta")
+# When set, all posts are prefixed with **[AgentName]** for traceability
+AGENT_NAME="${AGENT_NAME:-}"
+
+prefix_body() {
+  local body="$1"
+  if [ -n "$AGENT_NAME" ]; then
+    echo "**[${AGENT_NAME}]** ${body}"
+  else
+    echo "$body"
+  fi
+}
+
 declare -A CATEGORIES=(
   ["general"]="DIC_kwDORgsDyM4C34I_"
   ["ideas"]="DIC_kwDORgsDyM4C34JB"
@@ -56,7 +69,7 @@ case "${1:-}" in
       echo "ERROR: Unknown category '$CATEGORY'. Use: general, ideas, announcements, show-and-tell" >&2
       exit 1
     fi
-    BODY="$(cat)"
+    BODY="$(prefix_body "$(cat)")"
     # Escape for JSON
     BODY_ESCAPED="$(echo "$BODY" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read())[1:-1])' 2>/dev/null || echo "$BODY" | sed 's/\\/\\\\/g; s/"/\\"/g; s/\n/\\n/g')"
     TITLE_ESCAPED="$(echo "$TITLE" | sed 's/"/\\"/g')"
@@ -71,7 +84,7 @@ case "${1:-}" in
 
   comment)
     NUMBER="${2:?Usage: gh-discuss.sh comment <number>}"
-    BODY="$(cat)"
+    BODY="$(prefix_body "$(cat)")"
     # First verify this discussion belongs to our repo and get its node ID
     DISC_ID="$(gh api graphql -f query="
       { repository(owner:\"$REPO_OWNER\", name:\"$REPO_NAME\") {

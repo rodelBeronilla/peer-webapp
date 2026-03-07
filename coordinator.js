@@ -43,8 +43,24 @@ const COOLDOWNS = {
 };
 
 const AGENTS = {
-  alpha: { name: 'Alpha', peer: 'Beta', label: 'agent:alpha' },
-  beta:  { name: 'Beta',  peer: 'Alpha', label: 'agent:beta' },
+  alpha: {
+    name: 'Alpha',
+    peer: 'Beta',
+    label: 'agent:alpha',
+    gitName: 'Alpha (peer-webapp)',
+    gitEmail: 'alpha@peer-webapp.dev',
+    // Set GH_TOKEN_ALPHA env var to use a separate GitHub account
+    token: process.env.GH_TOKEN_ALPHA || null,
+  },
+  beta: {
+    name: 'Beta',
+    peer: 'Alpha',
+    label: 'agent:beta',
+    gitName: 'Beta (peer-webapp)',
+    gitEmail: 'beta@peer-webapp.dev',
+    // Set GH_TOKEN_BETA env var to use a separate GitHub account
+    token: process.env.GH_TOKEN_BETA || null,
+  },
 };
 
 // ─── HTTP helpers ───────────────────────────────────────────────────────────
@@ -538,10 +554,18 @@ async function invokeRLM(agentName, action, ctx) {
 
 // ─── Worker spawn + poll ────────────────────────────────────────────────────
 
-async function spawnWorker(task) {
-  const { ok, id } = await apiPost('/api/worker/spawn', { task, model: CONFIG.workerModel });
+async function spawnWorker(task, agentKey = null) {
+  const spawnBody = { task, model: CONFIG.workerModel };
+  // Pass agent-specific environment if available
+  if (agentKey) {
+    const agent = AGENTS[agentKey];
+    const env = { AGENT_NAME: agent.name };
+    if (agent.token) env.GH_TOKEN = agent.token;
+    spawnBody.env = env;
+  }
+  const { ok, id } = await apiPost('/api/worker/spawn', spawnBody);
   if (!ok) throw new Error('Worker spawn rejected');
-  log(`Worker ${id} spawned`);
+  log(`Worker ${id} spawned${agentKey ? ` (as ${AGENTS[agentKey].name})` : ''}`);
   return id;
 }
 
@@ -569,6 +593,18 @@ function buildPrompt(agentKey, action, ghContext, rlmContext) {
 **Mission:** Build something genuinely useful for the general public — a tool that meets a real need with high opportunity and value. Not a demo or toy. Think: what would people actually use daily?
 
 **Repo:** ${CONFIG.repo} | **Live:** https://rodelberonilla.github.io/peer-webapp/ | **Label:** ${agent.label} | **Stack:** vanilla HTML/CSS/JS, GitHub Pages
+
+## Your Identity
+You are **${agent.name}**. All your actions must be traceable to you:
+- **Git config** — run these FIRST before any commits:
+  \`\`\`bash
+  git config user.name "${agent.gitName}"
+  git config user.email "${agent.gitEmail}"
+  \`\`\`
+- **Discussion posts** — the \`AGENT_NAME\` env var is already set to "${agent.name}", so \`./gh-discuss.sh\` will auto-prefix your posts with **[${agent.name}]**
+- **Issue/PR comments** — always start your comment with **[${agent.name}]** so it's clear who wrote it
+- **PR descriptions** — include "Author: ${agent.name}" in the PR body
+- **Commits** — use the git config above. Add trailer: \`Co-Authored-By: ${agent.gitName} <${agent.gitEmail}>\`
 
 ## RLM Analysis
 ${rlmContext || '(unavailable)'}
@@ -721,7 +757,7 @@ Your PR #${action.pr.pr}: "${action.pr.title}" has received comments/reviews.
 4. Implement — read existing code first, make focused changes
 5. Commit with conventional messages
 6. Push: \`git push -u origin ${agent.name.toLowerCase()}/issue-${action.issue.number}\`
-7. PR: \`gh pr create -R ${CONFIG.repo} --title "type(scope): description" --body "Closes #${action.issue.number}\\n\\n## Changes\\n- ...\\n\\n## Test Plan\\n- ..." --label "${agent.label}" --label "release:feature"\`
+7. PR: \`gh pr create -R ${CONFIG.repo} --title "type(scope): description" --body "Closes #${action.issue.number}\\n\\nAuthor: ${agent.name}\\n\\n## Changes\\n- ...\\n\\n## Test Plan\\n- ..." --label "${agent.label}" --label "release:feature"\`
 8. Add the PR to the project board and assign it to the current milestone
 9. \`git checkout main\`
 
@@ -944,8 +980,8 @@ async function main() {
       // 4. Build prompt
       const prompt = buildPrompt(agentKey, action, ghContextStr, rlmContext);
 
-      // 5. Spawn worker
-      const workerId = await spawnWorker(prompt);
+      // 5. Spawn worker (with agent identity)
+      const workerId = await spawnWorker(prompt, agentKey);
 
       // 6. Wait
       const result = await pollWorker(workerId);
