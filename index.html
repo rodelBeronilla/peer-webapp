@@ -52,6 +52,7 @@
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="jwt">JWT</a></li>
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="timestamp">Timestamp</a></li>
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="base">Base</a></li>
+        <li><a href="#tools" class="nav__link nav-tool-link" data-tab="cron">Cron</a></li>
         <li><a href="#about" class="nav__link">About</a></li>
       </ul>
     </div>
@@ -102,6 +103,9 @@
         </button>
         <button class="tab" role="tab" aria-selected="false" aria-controls="panel-base" id="tab-base" data-panel="base" tabindex="-1">
           <span class="tab__icon" aria-hidden="true">01</span> Base
+        </button>
+        <button class="tab" role="tab" aria-selected="false" aria-controls="panel-cron" id="tab-cron" data-panel="cron" tabindex="-1">
+          <span class="tab__icon" aria-hidden="true">⏰</span> Cron
         </button>
       </div>
     </div>
@@ -839,6 +843,86 @@
 
             <div class="status-bar" id="baseStatus" aria-live="polite" role="status"></div>
             <p class="base-bits" id="baseBits" aria-live="polite"></p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════════════════════════
+           Cron Expression Explainer
+           ═══════════════════════════════ -->
+      <section
+        id="panel-cron"
+        class="panel"
+        role="tabpanel"
+        aria-labelledby="tab-cron"
+        hidden
+      >
+        <div class="tool">
+          <div class="tool__header">
+            <div>
+              <h2 class="tool__title">Cron Expression Explainer</h2>
+              <p class="tool__desc">Paste a cron expression to see it in plain English and preview the next 5 run times. Supports <code>*</code>, ranges (<code>1-5</code>), lists (<code>1,3,5</code>), steps (<code>*/15</code>), and named months/days.</p>
+            </div>
+          </div>
+          <div class="tool__body">
+
+            <!-- Input -->
+            <div class="tool__pane">
+              <div class="pane__header">
+                <span class="pane__label">Expression</span>
+                <div class="pane__actions">
+                  <button class="btn btn--sm btn--ghost" id="cronCopy" disabled>Copy description</button>
+                </div>
+              </div>
+              <input
+                type="text"
+                id="cronInput"
+                class="base-input cron-input"
+                placeholder="min  hour  dom  month  dow — e.g. 0 9 * * 1-5"
+                spellcheck="false"
+                autocomplete="off"
+                aria-label="Cron expression input"
+              >
+              <div class="status-bar" id="cronStatus" aria-live="polite" role="status"></div>
+            </div>
+
+            <!-- Presets -->
+            <div class="cron-presets" role="group" aria-label="Preset expressions">
+              <button class="btn btn--sm btn--ghost" data-cron="* * * * *">Every minute</button>
+              <button class="btn btn--sm btn--ghost" data-cron="*/15 * * * *">Every 15 min</button>
+              <button class="btn btn--sm btn--ghost" data-cron="0 * * * *">Every hour</button>
+              <button class="btn btn--sm btn--ghost" data-cron="0 9 * * 1-5">Weekdays 9 AM</button>
+              <button class="btn btn--sm btn--ghost" data-cron="0 0 * * *">Daily midnight</button>
+              <button class="btn btn--sm btn--ghost" data-cron="0 0 1 * *">Monthly</button>
+              <button class="btn btn--sm btn--ghost" data-cron="0 0 1 1 *">Yearly</button>
+            </div>
+
+            <!-- Description output -->
+            <div class="tool__pane tool__pane--top">
+              <div class="pane__header">
+                <span class="pane__label">Plain English</span>
+              </div>
+              <p
+                id="cronDesc"
+                class="cron-desc"
+                aria-live="polite"
+                role="status"
+              >Enter a cron expression above — e.g. 0 9 * * 1-5</p>
+            </div>
+
+            <!-- Next runs -->
+            <div class="tool__pane tool__pane--top">
+              <div class="pane__header">
+                <span class="pane__label">Next 5 runs</span>
+              </div>
+              <ul
+                id="cronNextRuns"
+                class="cron-runs"
+                aria-live="polite"
+                aria-label="Next scheduled run times"
+              ></ul>
+            </div>
+
           </div>
         </div>
       </section>
