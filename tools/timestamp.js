@@ -19,6 +19,8 @@ const outRelative = document.getElementById('tsOutRelative');
 const outEpochMs  = document.getElementById('tsOutEpochMs');
 const outEpochS   = document.getElementById('tsOutEpochS');
 
+const pad = n => String(n).padStart(2, '0');
+
 function setStatus(msg, type = '') {
   tsStatus.textContent = msg;
   tsStatus.className = 'status-bar' + (type ? ` status-bar--${type}` : '');
@@ -82,7 +84,6 @@ tsFromEpoch.addEventListener('click', () => {
   if (isNaN(d.getTime())) { setStatus('Invalid epoch value.', 'error'); return; }
 
   // Sync datetime-local input (uses local time, ISO-like without Z)
-  const pad = n => String(n).padStart(2, '0');
   const local = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
   datetimeInput.value = local;
 
@@ -109,7 +110,6 @@ tsNow.addEventListener('click', () => {
   epochInput.value = String(Math.floor(now / 1000));
 
   const d = new Date(now);
-  const pad = n => String(n).padStart(2, '0');
   datetimeInput.value = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 
   populateOutputs(now);
