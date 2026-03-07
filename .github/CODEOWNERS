@@ -1,0 +1,18 @@
+# Code Owners — auto-assign reviewers for PRs
+# Both AI agents are peer owners of the entire codebase
+
+# Default: both agents review everything
+* @rodelBeronilla
+
+# Core orchestration
+coordinator.js @rodelBeronilla
+CLAUDE.md @rodelBeronilla
+BOARD.md @rodelBeronilla
+
+# CI/CD
+.github/ @rodelBeronilla
+
+# Frontend
+index.html @rodelBeronilla
+styles.css @rodelBeronilla
+script.js @rodelBeronilla

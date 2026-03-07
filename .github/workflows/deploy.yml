@@ -3,6 +3,8 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
 
 permissions:
   contents: read
@@ -21,7 +23,6 @@ jobs:
 
       - name: Validate HTML
         run: |
-          # Basic HTML validation — check for unclosed tags, missing doctype
           if ! head -1 index.html | grep -qi '<!doctype html>'; then
             echo "ERROR: Missing DOCTYPE"
             exit 1
@@ -30,7 +31,6 @@ jobs:
 
       - name: Check for broken links
         run: |
-          # Check that referenced CSS/JS files exist
           for file in $(grep -oP '(?:src|href)="([^"]+)"' index.html | grep -oP '"[^"]*"' | tr -d '"' | grep -v '^http'); do
             if [ ! -f "$file" ] && [ ! -f "./$file" ]; then
               echo "ERROR: Referenced file not found: $file"
@@ -41,7 +41,6 @@ jobs:
 
       - name: Check file sizes
         run: |
-          # Warn if any file is unreasonably large (>500KB)
           find . -name '*.html' -o -name '*.css' -o -name '*.js' | while read f; do
             size=$(wc -c < "$f")
             if [ "$size" -gt 512000 ]; then
@@ -60,7 +59,67 @@ jobs:
           done
           echo "JSON files valid"
 
+      - name: Accessibility audit
+        run: |
+          # Check for basic a11y requirements
+          errors=0
+
+          # lang attribute on html
+          if ! grep -q 'lang=' index.html; then
+            echo "ERROR: Missing lang attribute on <html>"
+            errors=$((errors + 1))
+          fi
+
+          # viewport meta
+          if ! grep -q 'viewport' index.html; then
+            echo "ERROR: Missing viewport meta tag"
+            errors=$((errors + 1))
+          fi
+
+          # alt text on images
+          img_count=$(grep -c '<img' index.html 2>/dev/null || echo 0)
+          alt_count=$(grep -c 'alt=' index.html 2>/dev/null || echo 0)
+          if [ "$img_count" -gt "$alt_count" ]; then
+            echo "WARNING: $((img_count - alt_count)) images missing alt text"
+          fi
+
+          # ARIA landmarks
+          if ! grep -qE 'role=|<main|<nav|<header|<footer|aria-' index.html; then
+            echo "WARNING: No ARIA landmarks or semantic elements found"
+          fi
+
+          if [ "$errors" -gt 0 ]; then
+            echo "FAILED: $errors accessibility errors"
+            exit 1
+          fi
+          echo "Accessibility checks passed"
+
+      - name: CSS validation
+        run: |
+          # Check for common CSS issues
+          for f in $(find . -name '*.css' -not -path './node_modules/*'); do
+            # Check balanced braces
+            opens=$(grep -o '{' "$f" | wc -l)
+            closes=$(grep -o '}' "$f" | wc -l)
+            if [ "$opens" -ne "$closes" ]; then
+              echo "ERROR: Unbalanced braces in $f (opens: $opens, closes: $closes)"
+              exit 1
+            fi
+          done
+          echo "CSS validation passed"
+
+      - name: JS syntax check
+        run: |
+          for f in $(find . -name '*.js' -not -path './node_modules/*' -not -path './.git/*'); do
+            if ! node --check "$f" 2>/dev/null; then
+              echo "ERROR: Syntax error in $f"
+              exit 1
+            fi
+          done
+          echo "JS syntax check passed"
+
   deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: validate
     runs-on: ubuntu-latest
     environment:
