@@ -10,6 +10,11 @@ const BOOKMARKS_KEY  = 'peer-bookmarks';
 
 let bookmarks = [];
 
+function setBookmarkStatus(msg, isError) {
+  bookmarkStatus.textContent = msg;
+  bookmarkStatus.className = 'status-bar' + (isError ? ' status-bar--error' : '');
+}
+
 function loadBookmarks() {
   try { bookmarks = JSON.parse(localStorage.getItem(BOOKMARKS_KEY)) || []; }
   catch { bookmarks = []; }
@@ -114,23 +119,20 @@ function addBookmark(rawUrl, label) {
 
   // Basic URL validation
   try { new URL(url); } catch {
-    bookmarkStatus.textContent = 'Invalid URL — please enter a valid address.';
-    bookmarkStatus.className = 'status-bar status-bar--error';
+    setBookmarkStatus('Invalid URL — please enter a valid address.', true);
     return;
   }
 
   // Deduplicate by URL
   if (bookmarks.some(b => b.url === url)) {
-    bookmarkStatus.textContent = 'That URL is already bookmarked.';
-    bookmarkStatus.className = 'status-bar status-bar--error';
+    setBookmarkStatus('That URL is already bookmarked.', true);
     return;
   }
 
   bookmarks.unshift({ url, label: label.trim(), id: crypto.randomUUID() });
   saveBookmarks();
   renderBookmarks();
-  bookmarkStatus.textContent = '';
-  bookmarkStatus.className = 'status-bar';
+  setBookmarkStatus('', false);
 }
 
 function deleteBookmark(id) {
@@ -169,8 +171,7 @@ bookmarksExportBtn.addEventListener('click', () => {
   a.download = 'devtools-bookmarks.json';
   a.click();
   URL.revokeObjectURL(url);
-  bookmarkStatus.textContent = `Exported ${bookmarks.length} ${bookmarks.length === 1 ? 'bookmark' : 'bookmarks'}.`;
-  bookmarkStatus.className = 'status-bar';
+  setBookmarkStatus(`Exported ${bookmarks.length} ${bookmarks.length === 1 ? 'bookmark' : 'bookmarks'}.`, false);
 });
 
 bookmarksImportBtn.addEventListener('click', () => {
@@ -198,17 +199,12 @@ bookmarksImportFile.addEventListener('change', () => {
       saveBookmarks();
       renderBookmarks();
       const skipped = imported.length - newBookmarks.length;
-      bookmarkStatus.textContent = `Imported ${newBookmarks.length} new ${newBookmarks.length === 1 ? 'bookmark' : 'bookmarks'} (${skipped} duplicate${skipped === 1 ? '' : 's'} skipped).`;
-      bookmarkStatus.className = 'status-bar';
+      setBookmarkStatus(`Imported ${newBookmarks.length} new ${newBookmarks.length === 1 ? 'bookmark' : 'bookmarks'} (${skipped} duplicate${skipped === 1 ? '' : 's'} skipped).`, false);
     } catch (err) {
-      bookmarkStatus.textContent = `Import failed: ${err.message}`;
-      bookmarkStatus.className = 'status-bar status-bar--error';
+      setBookmarkStatus(`Import failed: ${err.message}`, true);
     }
   };
-  reader.onerror = () => {
-    bookmarkStatus.textContent = 'Import failed: could not read file.';
-    bookmarkStatus.className = 'status-bar status-bar--error';
-  };
+  reader.onerror = () => setBookmarkStatus('Import failed: could not read file.', true);
   reader.readAsText(file);
 });
 
