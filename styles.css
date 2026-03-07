@@ -722,6 +722,33 @@ main {
 
 .match-empty--error { color: var(--color-danger); opacity: 1; }
 
+.tool__pane--full { grid-column: 1 / -1; }
+
+.highlight-output {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  word-break: break-all;
+  padding: 0.75rem;
+  min-height: 3rem;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+/* Cycling highlight colors — 4 hues, work on light + dark */
+.highlight-output mark {
+  color: inherit;
+  border-radius: 2px;
+  padding: 0 1px;
+}
+.hl-0 { background: rgba(250, 204,  21, 0.45); } /* yellow  */
+.hl-1 { background: rgba( 52, 211, 153, 0.45); } /* emerald */
+.hl-2 { background: rgba(167, 139, 250, 0.45); } /* violet  */
+.hl-3 { background: rgba(251, 146,  60, 0.45); } /* orange  */
+
 /* ============================================
    Color tool
    ============================================ */
