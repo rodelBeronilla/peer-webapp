@@ -1,5 +1,7 @@
-// Peer Webapp — script.js
-// Alpha, Turn 2: clock, notes, theme toggle, hamburger nav
+// DevTools — script.js
+// Alpha: pivot to developer toolkit (JSON, Regex, Base64, Color, Notes)
+
+'use strict';
 
 /* ============================================
    Theme Toggle
@@ -27,7 +29,6 @@ themeToggle.addEventListener('click', () => {
   localStorage.setItem(THEME_KEY, next);
 });
 
-// Sync if OS preference changes and user has no saved choice
 window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
   if (!localStorage.getItem(THEME_KEY)) applyTheme(e.matches ? 'dark' : 'light');
 });
@@ -47,12 +48,10 @@ hamburger.addEventListener('click', () => {
   setNavOpen(hamburger.getAttribute('aria-expanded') !== 'true');
 });
 
-// Close on nav link click (mobile)
 navMenu.querySelectorAll('.nav__link').forEach(link => {
   link.addEventListener('click', () => setNavOpen(false));
 });
 
-// Close on Escape
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && navMenu.classList.contains('is-open')) {
     setNavOpen(false);
@@ -60,7 +59,6 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
-// Close if clicking outside nav on mobile
 document.addEventListener('click', (e) => {
   if (navMenu.classList.contains('is-open') &&
       !navMenu.contains(e.target) &&
@@ -70,41 +68,489 @@ document.addEventListener('click', (e) => {
 });
 
 /* ============================================
-   Clock Widget
+   Tab System
    ============================================ */
-const clockTime = document.getElementById('clockTime');
-const clockDate = document.getElementById('clockDate');
-const clockTz   = document.getElementById('clockTz');
+const tabs = document.querySelectorAll('.tab');
+const panels = document.querySelectorAll('.panel');
 
-function updateClock() {
-  const now = new Date();
-
-  const h = String(now.getHours()).padStart(2, '0');
-  const m = String(now.getMinutes()).padStart(2, '0');
-  const s = String(now.getSeconds()).padStart(2, '0');
-  clockTime.textContent = `${h}:${m}:${s}`;
-  clockTime.setAttribute('datetime', now.toISOString());
-
-  clockDate.textContent = now.toLocaleDateString(undefined, {
-    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+function activateTab(panelId) {
+  tabs.forEach(t => {
+    const active = t.dataset.panel === panelId;
+    t.classList.toggle('tab--active', active);
+    t.setAttribute('aria-selected', String(active));
+    t.tabIndex = active ? 0 : -1;
   });
-
-  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  const offset = now.toTimeString().match(/GMT[+-]\d{4}/)?.[0] ?? '';
-  clockTz.textContent = `${tz} ${offset}`;
+  panels.forEach(p => {
+    const active = p.id === `panel-${panelId}`;
+    p.classList.toggle('panel--active', active);
+    if (active) p.removeAttribute('hidden');
+    else p.setAttribute('hidden', '');
+  });
+  // Persist active tab
+  sessionStorage.setItem('devtools-tab', panelId);
 }
 
-updateClock();
-setInterval(updateClock, 1000);
+tabs.forEach(tab => {
+  tab.addEventListener('click', () => activateTab(tab.dataset.panel));
+
+  // Keyboard navigation: arrow keys cycle tabs
+  tab.addEventListener('keydown', (e) => {
+    const tabList = [...tabs];
+    const idx = tabList.indexOf(tab);
+    if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      tabList[(idx + 1) % tabList.length].focus();
+      tabList[(idx + 1) % tabList.length].click();
+    } else if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      tabList[(idx - 1 + tabList.length) % tabList.length].focus();
+      tabList[(idx - 1 + tabList.length) % tabList.length].click();
+    } else if (e.key === 'Home') {
+      e.preventDefault();
+      tabList[0].focus();
+      tabList[0].click();
+    } else if (e.key === 'End') {
+      e.preventDefault();
+      tabList[tabList.length - 1].focus();
+      tabList[tabList.length - 1].click();
+    }
+  });
+});
+
+// Nav links that target specific tools
+document.querySelectorAll('.nav-tool-link').forEach(link => {
+  link.addEventListener('click', (e) => {
+    e.preventDefault();
+    activateTab(link.dataset.tab);
+    document.getElementById('tools').scrollIntoView({ behavior: 'smooth' });
+  });
+});
+
+// Restore last-used tab
+(function restoreTab() {
+  const saved = sessionStorage.getItem('devtools-tab');
+  if (saved && document.getElementById(`panel-${saved}`)) {
+    activateTab(saved);
+  }
+})();
 
 /* ============================================
-   Notes Widget
+   Utility: copy to clipboard with feedback
    ============================================ */
-const notesForm   = document.getElementById('notesForm');
-const noteInput   = document.getElementById('noteInput');
-const notesList   = document.getElementById('notesList');
-const notesCount  = document.getElementById('notesCount');
-const NOTES_KEY   = 'peer-notes';
+function copyText(text, btn) {
+  navigator.clipboard.writeText(text).then(() => {
+    const orig = btn.textContent;
+    btn.textContent = 'Copied!';
+    btn.classList.add('btn--success');
+    setTimeout(() => {
+      btn.textContent = orig;
+      btn.classList.remove('btn--success');
+    }, 1500);
+  }).catch(() => {
+    // Fallback
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+  });
+}
+
+/* ============================================
+   JSON Formatter
+   ============================================ */
+const jsonInput  = document.getElementById('jsonInput');
+const jsonOutput = document.getElementById('jsonOutput');
+const jsonStatus = document.getElementById('jsonStatus');
+const jsonCopy   = document.getElementById('jsonCopy');
+let   jsonFormatted = '';
+
+function jsonSyntaxHighlight(str) {
+  // Escape HTML first
+  str = str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+
+  return str.replace(
+    /("(\\u[a-fA-F0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,
+    (match) => {
+      let cls = 'json-num';
+      if (/^"/.test(match)) {
+        cls = /:$/.test(match) ? 'json-key' : 'json-str';
+      } else if (/true|false/.test(match)) {
+        cls = 'json-bool';
+      } else if (/null/.test(match)) {
+        cls = 'json-null';
+      }
+      return `<span class="${cls}">${match}</span>`;
+    }
+  );
+}
+
+function setJsonStatus(msg, type = '') {
+  jsonStatus.textContent = msg;
+  jsonStatus.className = 'status-bar' + (type ? ` status-bar--${type}` : '');
+}
+
+function runJsonFormat(indent = 2) {
+  const raw = jsonInput.value.trim();
+  if (!raw) {
+    jsonOutput.innerHTML = '<span class="code-placeholder">Output will appear here</span>';
+    jsonCopy.disabled = true;
+    setJsonStatus('');
+    return;
+  }
+  try {
+    const parsed = JSON.parse(raw);
+    jsonFormatted = JSON.stringify(parsed, null, indent);
+    jsonOutput.innerHTML = jsonSyntaxHighlight(jsonFormatted);
+    setJsonStatus(`Valid JSON · ${raw.length} chars in, ${jsonFormatted.length} chars out`, 'ok');
+    jsonCopy.disabled = false;
+  } catch (err) {
+    jsonFormatted = '';
+    jsonOutput.innerHTML = `<span class="json-error">${escapeHtml(String(err))}</span>`;
+    setJsonStatus(String(err), 'error');
+    jsonCopy.disabled = true;
+  }
+}
+
+function escapeHtml(str) {
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+document.getElementById('jsonFormat').addEventListener('click', () => runJsonFormat(2));
+document.getElementById('jsonMinify').addEventListener('click', () => runJsonFormat(0));
+document.getElementById('jsonClear').addEventListener('click', () => {
+  jsonInput.value = '';
+  jsonOutput.innerHTML = '<span class="code-placeholder">Output will appear here</span>';
+  jsonCopy.disabled = true;
+  setJsonStatus('');
+  jsonInput.focus();
+});
+jsonCopy.addEventListener('click', () => copyText(jsonFormatted, jsonCopy));
+
+// Auto-format on input (debounced)
+let jsonDebounce;
+jsonInput.addEventListener('input', () => {
+  clearTimeout(jsonDebounce);
+  jsonDebounce = setTimeout(() => runJsonFormat(2), 400);
+});
+
+/* ============================================
+   Regex Tester
+   ============================================ */
+const regexPattern   = document.getElementById('regexPattern');
+const regexFlags     = document.getElementById('regexFlags');
+const regexText      = document.getElementById('regexText');
+const regexStatus    = document.getElementById('regexStatus');
+const regexMatchCount = document.getElementById('regexMatchCount');
+const matchListBody  = document.getElementById('matchListBody');
+
+function setRegexStatus(msg, type = '') {
+  regexStatus.textContent = msg;
+  regexStatus.className = 'status-bar' + (type ? ` status-bar--${type}` : '');
+}
+
+function runRegex() {
+  const pattern = regexPattern.value;
+  const flags   = regexFlags.value.replace(/[^gimsuy]/g, '');
+  const text    = regexText.value;
+
+  if (!pattern) {
+    regexMatchCount.textContent = '';
+    matchListBody.innerHTML = '<p class="match-empty">Enter a pattern and test string to see matches.</p>';
+    setRegexStatus('');
+    // Clear highlight class
+    regexText.classList.remove('has-matches', 'no-matches');
+    return;
+  }
+
+  let rx;
+  try {
+    rx = new RegExp(pattern, flags.includes('g') ? flags : flags + 'g');
+    setRegexStatus(`/${pattern}/${flags}`, 'ok');
+  } catch (err) {
+    regexMatchCount.textContent = '';
+    matchListBody.innerHTML = `<p class="match-empty match-empty--error">${escapeHtml(String(err))}</p>`;
+    setRegexStatus(String(err), 'error');
+    regexText.classList.remove('has-matches', 'no-matches');
+    return;
+  }
+
+  if (!text) {
+    regexMatchCount.textContent = '';
+    matchListBody.innerHTML = '<p class="match-empty">Enter a test string above.</p>';
+    regexText.classList.remove('has-matches', 'no-matches');
+    return;
+  }
+
+  const matches = [...text.matchAll(rx)];
+
+  if (matches.length === 0) {
+    regexMatchCount.textContent = 'No matches';
+    matchListBody.innerHTML = '<p class="match-empty">No matches found.</p>';
+    regexText.classList.remove('has-matches');
+    regexText.classList.add('no-matches');
+    return;
+  }
+
+  regexText.classList.add('has-matches');
+  regexText.classList.remove('no-matches');
+  regexMatchCount.textContent = `${matches.length} match${matches.length !== 1 ? 'es' : ''}`;
+
+  // Build match list
+  const frag = document.createDocumentFragment();
+  matches.forEach((m, i) => {
+    const item = document.createElement('div');
+    item.className = 'match-item';
+
+    const idx = document.createElement('span');
+    idx.className = 'match-idx';
+    idx.textContent = `#${i + 1}`;
+
+    const val = document.createElement('code');
+    val.className = 'match-val';
+    val.textContent = m[0];
+
+    const pos = document.createElement('span');
+    pos.className = 'match-pos';
+    pos.textContent = `index ${m.index}`;
+
+    item.appendChild(idx);
+    item.appendChild(val);
+    item.appendChild(pos);
+
+    // Groups
+    if (m.length > 1) {
+      m.slice(1).forEach((g, gi) => {
+        const grp = document.createElement('div');
+        grp.className = 'match-group';
+        grp.textContent = `Group ${gi + 1}: ${g === undefined ? '(unmatched)' : g}`;
+        item.appendChild(grp);
+      });
+    }
+
+    frag.appendChild(item);
+  });
+
+  matchListBody.innerHTML = '';
+  matchListBody.appendChild(frag);
+}
+
+let regexDebounce;
+function scheduleRegex() {
+  clearTimeout(regexDebounce);
+  regexDebounce = setTimeout(runRegex, 200);
+}
+
+regexPattern.addEventListener('input', scheduleRegex);
+regexFlags.addEventListener('input', scheduleRegex);
+regexText.addEventListener('input', scheduleRegex);
+
+/* ============================================
+   Base64
+   ============================================ */
+const b64Input  = document.getElementById('b64Input');
+const b64Output = document.getElementById('b64Output');
+const b64Status = document.getElementById('b64Status');
+const b64Copy   = document.getElementById('b64Copy');
+
+function setB64Status(msg, type = '') {
+  b64Status.textContent = msg;
+  b64Status.className = 'status-bar' + (type ? ` status-bar--${type}` : '');
+}
+
+function b64EncodeUnicode(str) {
+  // Handle Unicode by encoding to UTF-8 bytes first
+  return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, (_, p1) =>
+    String.fromCharCode(parseInt(p1, 16))
+  ));
+}
+
+function b64DecodeUnicode(str) {
+  return decodeURIComponent(
+    atob(str).split('').map(c =>
+      '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)
+    ).join('')
+  );
+}
+
+document.getElementById('b64Encode').addEventListener('click', () => {
+  const text = b64Input.value;
+  if (!text) { setB64Status('Nothing to encode.', 'error'); return; }
+  try {
+    const encoded = b64EncodeUnicode(text);
+    b64Output.value = encoded;
+    b64Copy.disabled = false;
+    setB64Status(`Encoded · ${text.length} chars → ${encoded.length} chars`, 'ok');
+  } catch (err) {
+    setB64Status(`Encode error: ${err.message}`, 'error');
+  }
+});
+
+document.getElementById('b64Decode').addEventListener('click', () => {
+  const text = b64Input.value.trim();
+  if (!text) { setB64Status('Nothing to decode.', 'error'); return; }
+  try {
+    const decoded = b64DecodeUnicode(text);
+    b64Output.value = decoded;
+    b64Copy.disabled = false;
+    setB64Status(`Decoded · ${text.length} chars → ${decoded.length} chars`, 'ok');
+  } catch {
+    setB64Status('Invalid Base64 string.', 'error');
+  }
+});
+
+document.getElementById('b64Clear').addEventListener('click', () => {
+  b64Input.value = '';
+  b64Output.value = '';
+  b64Copy.disabled = true;
+  setB64Status('');
+  b64Input.focus();
+});
+
+b64Copy.addEventListener('click', () => copyText(b64Output.value, b64Copy));
+
+document.getElementById('b64Swap').addEventListener('click', () => {
+  const tmp = b64Input.value;
+  b64Input.value = b64Output.value;
+  b64Output.value = tmp;
+  b64Copy.disabled = !b64Output.value;
+  setB64Status('Swapped.');
+});
+
+/* ============================================
+   Color Converter
+   ============================================ */
+const colorPicker  = document.getElementById('colorPicker');
+const colorSwatch  = document.getElementById('colorSwatch');
+const colorHexIn   = document.getElementById('colorHex');
+const colorRgbIn   = document.getElementById('colorRgb');
+const colorHslIn   = document.getElementById('colorHsl');
+const tabColorSwatch = document.getElementById('tabColorSwatch');
+
+const COLOR_HISTORY_KEY = 'devtools-color-history';
+let colorHistory = [];
+
+function hexToRgb(hex) {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return { r, g, b };
+}
+
+function rgbToHsl(r, g, b) {
+  r /= 255; g /= 255; b /= 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  let h, s, l = (max + min) / 2;
+
+  if (max === min) {
+    h = s = 0;
+  } else {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch (max) {
+      case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+      case g: h = ((b - r) / d + 2) / 6; break;
+      case b: h = ((r - g) / d + 4) / 6; break;
+    }
+  }
+  return {
+    h: Math.round(h * 360),
+    s: Math.round(s * 100),
+    l: Math.round(l * 100),
+  };
+}
+
+function updateColorDisplay(hex) {
+  colorSwatch.style.background = hex;
+  // Update tab swatch
+  if (tabColorSwatch) tabColorSwatch.style.background = hex;
+
+  colorHexIn.value = hex.toUpperCase();
+
+  const { r, g, b } = hexToRgb(hex);
+  colorRgbIn.value = `rgb(${r}, ${g}, ${b})`;
+
+  const { h, s, l } = rgbToHsl(r, g, b);
+  colorHslIn.value = `hsl(${h}, ${s}%, ${l}%)`;
+}
+
+function loadColorHistory() {
+  try { colorHistory = JSON.parse(localStorage.getItem(COLOR_HISTORY_KEY)) || []; }
+  catch { colorHistory = []; }
+}
+
+function saveColorHistory() {
+  localStorage.setItem(COLOR_HISTORY_KEY, JSON.stringify(colorHistory.slice(0, 24)));
+}
+
+function renderColorHistory() {
+  const el = document.getElementById('colorHistory');
+  if (colorHistory.length === 0) {
+    el.innerHTML = '<p class="match-empty">Pick a color to add it here.</p>';
+    return;
+  }
+  el.innerHTML = '';
+  colorHistory.forEach(hex => {
+    const btn = document.createElement('button');
+    btn.className = 'color-history-swatch';
+    btn.style.background = hex;
+    btn.title = hex.toUpperCase();
+    btn.setAttribute('role', 'listitem');
+    btn.setAttribute('aria-label', `Select color ${hex.toUpperCase()}`);
+    btn.addEventListener('click', () => {
+      colorPicker.value = hex;
+      updateColorDisplay(hex);
+    });
+    el.appendChild(btn);
+  });
+}
+
+function addToHistory(hex) {
+  colorHistory = [hex, ...colorHistory.filter(h => h !== hex)].slice(0, 24);
+  saveColorHistory();
+  renderColorHistory();
+}
+
+colorPicker.addEventListener('input', () => {
+  updateColorDisplay(colorPicker.value);
+});
+
+colorPicker.addEventListener('change', () => {
+  addToHistory(colorPicker.value);
+});
+
+document.querySelectorAll('.copy-color-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const val = document.getElementById(btn.dataset.target).value;
+    copyText(val, btn);
+  });
+});
+
+document.getElementById('clearColorHistory').addEventListener('click', () => {
+  colorHistory = [];
+  saveColorHistory();
+  renderColorHistory();
+});
+
+// Init color tool
+loadColorHistory();
+updateColorDisplay(colorPicker.value);
+renderColorHistory();
+
+/* ============================================
+   Notes
+   ============================================ */
+const notesForm  = document.getElementById('notesForm');
+const noteInput  = document.getElementById('noteInput');
+const notesList  = document.getElementById('notesList');
+const notesCount = document.getElementById('notesCount');
+const NOTES_KEY  = 'peer-notes';
 
 let notes = [];
 
@@ -123,7 +569,6 @@ function renderNotes() {
   if (notes.length === 0) {
     const empty = document.createElement('li');
     empty.className = 'notes__empty';
-    empty.setAttribute('aria-live', 'polite');
     empty.textContent = 'No notes yet. Add one above.';
     notesList.appendChild(empty);
     notesCount.textContent = '0 notes';
@@ -163,7 +608,6 @@ function addNote(text) {
 }
 
 function deleteNote(index) {
-  // Animate out, then remove
   const items = notesList.querySelectorAll('.note-item');
   const li = items[index];
   if (li) {
@@ -187,233 +631,3 @@ notesForm.addEventListener('submit', (e) => {
 
 loadNotes();
 renderNotes();
-
-/* ============================================
-   Weather Widget
-   ============================================ */
-const WEATHER_DATA_KEY   = 'peer-weather-data';   // {data, ts} — 10min TTL
-const WEATHER_COORDS_KEY = 'peer-weather-coords';  // {lat, lon, city} — persisted
-const WEATHER_UNIT_KEY   = 'peer-weather-unit';
-const WEATHER_TTL        = 10 * 60 * 1000;
-
-const WMO_CODES = {
-  0:  { label: 'Clear sky',           day: '☀️',  night: '🌙' },
-  1:  { label: 'Mainly clear',        day: '🌤️', night: '🌙' },
-  2:  { label: 'Partly cloudy',       day: '⛅',  night: '🌙' },
-  3:  { label: 'Overcast',            day: '☁️',  night: '☁️' },
-  45: { label: 'Fog',                 day: '🌫️', night: '🌫️' },
-  48: { label: 'Icy fog',             day: '🌫️', night: '🌫️' },
-  51: { label: 'Light drizzle',       day: '🌦️', night: '🌧️' },
-  53: { label: 'Drizzle',             day: '🌧️', night: '🌧️' },
-  55: { label: 'Heavy drizzle',       day: '🌧️', night: '🌧️' },
-  61: { label: 'Light rain',          day: '🌧️', night: '🌧️' },
-  63: { label: 'Rain',                day: '🌧️', night: '🌧️' },
-  65: { label: 'Heavy rain',          day: '🌧️', night: '🌧️' },
-  71: { label: 'Light snow',          day: '🌨️', night: '🌨️' },
-  73: { label: 'Snow',                day: '❄️',  night: '❄️' },
-  75: { label: 'Heavy snow',          day: '❄️',  night: '❄️' },
-  77: { label: 'Snow grains',         day: '🌨️', night: '🌨️' },
-  80: { label: 'Light showers',       day: '🌦️', night: '🌧️' },
-  81: { label: 'Showers',             day: '🌦️', night: '🌧️' },
-  82: { label: 'Heavy showers',       day: '⛈️',  night: '⛈️' },
-  85: { label: 'Snow showers',        day: '🌨️', night: '🌨️' },
-  86: { label: 'Heavy snow showers',  day: '❄️',  night: '❄️' },
-  95: { label: 'Thunderstorm',        day: '⛈️',  night: '⛈️' },
-  96: { label: 'Thunderstorm + hail', day: '⛈️',  night: '⛈️' },
-  99: { label: 'Thunderstorm + hail', day: '⛈️',  night: '⛈️' },
-};
-
-let weatherUnit = localStorage.getItem(WEATHER_UNIT_KEY) || 'C';
-let weatherData = null;
-let currentCity = null;
-
-const weatherBody    = document.getElementById('weatherBody');
-const weatherUnitBtn = document.getElementById('weatherUnitBtn');
-
-function formatTemp(degC) {
-  if (weatherUnit === 'F') {
-    return `${(degC * 9 / 5 + 32).toFixed(1)}°F`;
-  }
-  return `${degC.toFixed(1)}°C`;
-}
-
-function renderWeatherLoading(msg = 'Getting location…') {
-  weatherBody.innerHTML = `
-    <div class="weather__state">
-      <div class="weather__spinner" aria-hidden="true"></div>
-      <span class="weather__status-msg">${msg}</span>
-    </div>`;
-}
-
-function renderWeatherError(msg) {
-  weatherUnitBtn.hidden = true;
-  weatherBody.innerHTML = `
-    <div class="weather__state weather__state--error" role="alert">
-      <span class="weather__error-icon" aria-hidden="true">⚠️</span>
-      <p class="weather__status-msg">${msg}</p>
-      <button class="weather__retry" id="weatherRetry">Retry</button>
-    </div>`;
-  document.getElementById('weatherRetry').addEventListener('click', initWeather);
-}
-
-function renderWeatherData(data, city) {
-  const c    = data.current;
-  const code = WMO_CODES[c.weather_code] || { label: 'Unknown', day: '🌡️', night: '🌡️' };
-  const icon = c.is_day ? code.day : code.night;
-
-  let updatedStr = '';
-  try {
-    updatedStr = new Date(c.time).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
-  } catch { /* best-effort */ }
-
-  weatherUnitBtn.hidden = false;
-  weatherUnitBtn.textContent = weatherUnit === 'C' ? '°C' : '°F';
-
-  weatherBody.innerHTML = `
-    <div class="weather__content">
-      <div class="weather__location">
-        <span class="weather__city">${city || 'Unknown location'}</span>
-        <button class="weather__refresh" id="weatherRefresh" aria-label="Refresh weather" title="Refresh weather">↻</button>
-      </div>
-      <div class="weather__main">
-        <span class="weather__icon" aria-hidden="true">${icon}</span>
-        <span class="weather__temp">${formatTemp(c.temperature_2m)}</span>
-      </div>
-      <div class="weather__condition">${code.label}</div>
-      <div class="weather__details">
-        <div class="weather__detail">
-          <span aria-hidden="true">💨</span>
-          <span>${Math.round(c.wind_speed_10m)} km/h</span>
-        </div>
-        <div class="weather__detail">
-          <span aria-hidden="true">💧</span>
-          <span>${c.relative_humidity_2m}%</span>
-        </div>
-        <div class="weather__detail">
-          <span aria-hidden="true">🌡️</span>
-          <span>Feels ${formatTemp(c.apparent_temperature)}</span>
-        </div>
-      </div>
-      ${updatedStr ? `<div class="weather__updated">Updated ${updatedStr}</div>` : ''}
-    </div>`;
-
-  document.getElementById('weatherRefresh').addEventListener('click', refreshWeather);
-}
-
-function getSavedCoords() {
-  try { return JSON.parse(localStorage.getItem(WEATHER_COORDS_KEY)); }
-  catch { return null; }
-}
-
-function saveCoords(lat, lon, city) {
-  localStorage.setItem(WEATHER_COORDS_KEY, JSON.stringify({ lat, lon, city }));
-}
-
-function getCachedData() {
-  try {
-    const raw = JSON.parse(localStorage.getItem(WEATHER_DATA_KEY));
-    if (raw && Date.now() - raw.ts < WEATHER_TTL) return raw.data;
-  } catch { /* ignore */ }
-  return null;
-}
-
-function cacheData(data) {
-  localStorage.setItem(WEATHER_DATA_KEY, JSON.stringify({ data, ts: Date.now() }));
-}
-
-async function fetchWeatherAPI(lat, lon) {
-  const params = [
-    `latitude=${lat.toFixed(4)}`,
-    `longitude=${lon.toFixed(4)}`,
-    'current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,is_day',
-    'temperature_unit=celsius',
-    'windspeed_unit=kmh',
-    'timezone=auto',
-  ].join('&');
-  const res = await fetch(`https://api.open-meteo.com/v1/forecast?${params}`);
-  if (!res.ok) throw new Error(`Weather API ${res.status}`);
-  return res.json();
-}
-
-async function fetchCityName(lat, lon) {
-  try {
-    const res = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`,
-      { headers: { 'Accept-Language': 'en' } }
-    );
-    if (!res.ok) return null;
-    const json = await res.json();
-    const a = json.address || {};
-    return a.city || a.town || a.village || a.county || a.state || null;
-  } catch { return null; }
-}
-
-async function loadWeather(lat, lon, city) {
-  renderWeatherLoading('Fetching weather…');
-  try {
-    const data = await fetchWeatherAPI(lat, lon);
-    weatherData  = data;
-    currentCity  = city;
-    cacheData(data);
-    renderWeatherData(data, city);
-  } catch {
-    renderWeatherError('Weather data unavailable. Check your connection.');
-  }
-}
-
-async function initWeather() {
-  const cached = getCachedData();
-  const coords = getSavedCoords();
-
-  if (cached && coords) {
-    weatherData = cached;
-    currentCity = coords.city;
-    renderWeatherData(cached, coords.city);
-    return;
-  }
-
-  if (coords) {
-    await loadWeather(coords.lat, coords.lon, coords.city);
-    return;
-  }
-
-  if (!navigator.geolocation) {
-    renderWeatherError('Geolocation is not supported by your browser.');
-    return;
-  }
-
-  renderWeatherLoading('Getting location…');
-  navigator.geolocation.getCurrentPosition(
-    async (pos) => {
-      const { latitude: lat, longitude: lon } = pos.coords;
-      const city = await fetchCityName(lat, lon);
-      saveCoords(lat, lon, city);
-      await loadWeather(lat, lon, city);
-    },
-    (err) => {
-      const msgs = {
-        1: 'Location access denied. Enable it in browser settings.',
-        2: 'Location unavailable.',
-        3: 'Location request timed out.',
-      };
-      renderWeatherError(msgs[err.code] || 'Could not get location.');
-    },
-    { timeout: 10000 }
-  );
-}
-
-function refreshWeather() {
-  localStorage.removeItem(WEATHER_DATA_KEY);
-  initWeather();
-}
-
-weatherUnitBtn.addEventListener('click', () => {
-  weatherUnit = weatherUnit === 'C' ? 'F' : 'C';
-  localStorage.setItem(WEATHER_UNIT_KEY, weatherUnit);
-  if (weatherData) renderWeatherData(weatherData, currentCity);
-});
-
-// Auto-refresh every 10 minutes
-setInterval(initWeather, WEATHER_TTL);
-
-initWeather();
