@@ -112,8 +112,8 @@ function renderExpiry(payload) {
 }
 
 function clearOutput() {
-  jwtHeader.textContent = '';
-  jwtPayload.textContent = '';
+  jwtHeader.innerHTML = '<span class="code-placeholder">Header will appear here</span>';
+  jwtPayload.innerHTML = '<span class="code-placeholder">Payload will appear here</span>';
   jwtExpiry.textContent = '';
   jwtExpiry.hidden = true;
   jwtExpiryWrap.hidden = true;
@@ -134,7 +134,12 @@ function copyText(text, btn) {
     const orig = btn.textContent;
     btn.textContent = 'Copied!';
     setTimeout(() => { btn.textContent = orig; }, 1500);
-  }).catch(() => {});
+  }).catch(() => {
+    const orig = btn.textContent;
+    btn.textContent = 'Failed!';
+    setTimeout(() => { btn.textContent = orig; }, 1500);
+    setStatus('Copy failed — check clipboard permissions.', 'error');
+  });
 }
 
 // ---------------------------------------------------------------------------
