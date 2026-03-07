@@ -1,0 +1,159 @@
+// Bookmarks
+
+const bookmarksForm  = document.getElementById('bookmarksForm');
+const bookmarkUrl    = document.getElementById('bookmarkUrl');
+const bookmarkLabel  = document.getElementById('bookmarkLabel');
+const bookmarksList  = document.getElementById('bookmarksList');
+const bookmarksCount = document.getElementById('bookmarksCount');
+const bookmarkStatus = document.getElementById('bookmarkStatus');
+const BOOKMARKS_KEY  = 'peer-bookmarks';
+
+let bookmarks = [];
+
+function loadBookmarks() {
+  try { bookmarks = JSON.parse(localStorage.getItem(BOOKMARKS_KEY)) || []; }
+  catch { bookmarks = []; }
+}
+
+function saveBookmarks() {
+  localStorage.setItem(BOOKMARKS_KEY, JSON.stringify(bookmarks));
+}
+
+function faviconUrl(url) {
+  try {
+    const domain = new URL(url).hostname;
+    return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=16`;
+  } catch {
+    return '';
+  }
+}
+
+function renderBookmarks() {
+  bookmarksList.innerHTML = '';
+
+  if (bookmarks.length === 0) {
+    const empty = document.createElement('li');
+    empty.className = 'bookmark-empty';
+    empty.textContent = 'No bookmarks yet. Add a URL above.';
+    bookmarksList.appendChild(empty);
+    bookmarksCount.textContent = '0 bookmarks';
+    return;
+  }
+
+  bookmarks.forEach((bm) => {
+    const li = document.createElement('li');
+    li.className = 'bookmark-item';
+    li.dataset.id = bm.id;
+
+    const favicon = document.createElement('img');
+    favicon.className = 'bookmark-item__favicon';
+    favicon.width = 16;
+    favicon.height = 16;
+    favicon.alt = '';
+    favicon.setAttribute('aria-hidden', 'true');
+    const src = faviconUrl(bm.url);
+    if (src) {
+      favicon.src = src;
+      favicon.onerror = () => { favicon.replaceWith(makeFaviconFallback()); };
+    } else {
+      favicon.replaceWith(makeFaviconFallback());
+    }
+
+    const link = document.createElement('a');
+    link.className = 'bookmark-item__link';
+    link.href = bm.url;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    link.textContent = bm.label || bm.url;
+    link.title = bm.url;
+
+    const urlSpan = document.createElement('span');
+    urlSpan.className = 'bookmark-item__url';
+    urlSpan.textContent = bm.url;
+
+    const info = document.createElement('div');
+    info.className = 'bookmark-item__info';
+    info.appendChild(link);
+    if (bm.label) info.appendChild(urlSpan);
+
+    const del = document.createElement('button');
+    del.className = 'bookmark-item__delete';
+    del.setAttribute('aria-label', `Delete bookmark: ${bm.label || bm.url}`);
+    del.setAttribute('type', 'button');
+    del.textContent = '×';
+    del.addEventListener('click', () => deleteBookmark(bm.id));
+
+    li.appendChild(favicon);
+    li.appendChild(info);
+    li.appendChild(del);
+    bookmarksList.appendChild(li);
+  });
+
+  const count = bookmarks.length;
+  bookmarksCount.textContent = `${count} ${count === 1 ? 'bookmark' : 'bookmarks'}`;
+}
+
+function makeFaviconFallback() {
+  const span = document.createElement('span');
+  span.className = 'bookmark-item__favicon bookmark-item__favicon--fallback';
+  span.setAttribute('aria-hidden', 'true');
+  span.textContent = '🔖';
+  return span;
+}
+
+function normalizeUrl(raw) {
+  const trimmed = raw.trim();
+  if (!trimmed) return '';
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  return 'https://' + trimmed;
+}
+
+function addBookmark(rawUrl, label) {
+  const url = normalizeUrl(rawUrl);
+  if (!url) return;
+
+  // Basic URL validation
+  try { new URL(url); } catch {
+    bookmarkStatus.textContent = 'Invalid URL — please enter a valid address.';
+    bookmarkStatus.className = 'status-bar status-bar--error';
+    return;
+  }
+
+  // Deduplicate by URL
+  if (bookmarks.some(b => b.url === url)) {
+    bookmarkStatus.textContent = 'That URL is already bookmarked.';
+    bookmarkStatus.className = 'status-bar status-bar--error';
+    return;
+  }
+
+  bookmarks.unshift({ url, label: label.trim(), id: Date.now() });
+  saveBookmarks();
+  renderBookmarks();
+  bookmarkStatus.textContent = '';
+  bookmarkStatus.className = 'status-bar';
+}
+
+function deleteBookmark(id) {
+  const li = bookmarksList.querySelector(`.bookmark-item[data-id="${id}"]`);
+  if (li) {
+    li.style.transition = 'opacity 150ms ease, transform 150ms ease';
+    li.style.opacity = '0';
+    li.style.transform = 'translateX(10px)';
+  }
+  setTimeout(() => {
+    bookmarks = bookmarks.filter(b => b.id !== id);
+    saveBookmarks();
+    renderBookmarks();
+  }, 150);
+}
+
+bookmarksForm.addEventListener('submit', (e) => {
+  e.preventDefault();
+  addBookmark(bookmarkUrl.value, bookmarkLabel.value);
+  bookmarkUrl.value = '';
+  bookmarkLabel.value = '';
+  bookmarkUrl.focus();
+});
+
+loadBookmarks();
+renderBookmarks();
