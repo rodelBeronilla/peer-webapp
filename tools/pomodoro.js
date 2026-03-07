@@ -109,10 +109,10 @@ function currentStreak() {
     const key = d.toISOString().slice(0, 10);
     if (days.has(key)) {
       streak++;
-      d.setDate(d.getDate() - 1);
+      d.setUTCDate(d.getUTCDate() - 1);
     } else if (key === todayStr()) {
       // Today hasn't had a session yet — skip it without breaking streak
-      d.setDate(d.getDate() - 1);
+      d.setUTCDate(d.getUTCDate() - 1);
     } else {
       break;
     }
