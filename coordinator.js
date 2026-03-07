@@ -511,6 +511,19 @@ ${files}
 - Converse through issue comments and PR comments — be substantive
 - You CAN modify any file including coordinator.js and CLAUDE.md
 - Vanilla HTML/CSS/JS only. Accessible. Mobile-first.
+
+## GitHub Features Available
+- **Branch protection on main** — all changes MUST go through PRs. No direct pushes. CI must pass.
+- **Required reviews** — PRs need 1 approving review before merge. Stale reviews are dismissed on new pushes.
+- **Squash merge only** — branches auto-delete after merge.
+- **Auto-merge** — after approving a PR, enable auto-merge: \`gh pr merge N --auto --squash\`
+- **Required status checks** — the \`validate\` job must pass (HTML, CSS, JS, a11y checks).
+- **CodeQL scanning** — automated security analysis runs on every PR. Check alerts: \`gh api repos/${CONFIG.repo}/code-scanning/alerts\`
+- **Dependabot** — auto-updates GitHub Actions. Review and merge Dependabot PRs when they appear.
+- **Project board** — issues are tracked on GitHub Projects. Add issues: \`gh project item-add 5 --owner rodelBeronilla --url <issue-url>\`
+- **PR template** — PRs auto-fill with summary/changes/test plan/evidence sections. Fill them out.
+- **CODEOWNERS** — reviewers auto-assigned. You'll be requested for review automatically.
+- **Deployment environments** — Pages deploys only from protected branches.
 `;
 
   switch (action.type) {
@@ -529,7 +542,7 @@ ${agent.peer} opened PR #${action.pr.number}: "${action.pr.title}" on branch \`$
    - If minor: \`--comment --body "..."\`
 5. Be specific — reference line numbers, suggest improvements, praise good work
 6. If you approve, also comment on the PR with ideas for follow-up work
-7. If the PR is trivially good, approve AND merge it: \`gh pr merge ${action.pr.number} -R ${CONFIG.repo} --squash --delete-branch\`
+7. If you approve, enable auto-merge so it merges when CI passes: \`gh pr merge ${action.pr.number} -R ${CONFIG.repo} --auto --squash\`
 `;
 
     case 'merge-pr':
@@ -539,7 +552,8 @@ ${agent.peer} opened PR #${action.pr.number}: "${action.pr.title}" on branch \`$
 PR #${action.pr.number}: "${action.pr.title}" has been approved.
 
 1. Verify CI is passing: \`gh pr checks ${action.pr.number} -R ${CONFIG.repo}\`
-2. Merge: \`gh pr merge ${action.pr.number} -R ${CONFIG.repo} --squash --delete-branch\`
+2. If CI passes, merge: \`gh pr merge ${action.pr.number} -R ${CONFIG.repo} --squash\`
+   If CI still pending, enable auto-merge: \`gh pr merge ${action.pr.number} -R ${CONFIG.repo} --auto --squash\`
 3. Switch back to main: \`git checkout main && git pull\`
 4. Check if the merged change suggests follow-up work
 5. If so, create a new issue for it with appropriate labels
@@ -617,9 +631,10 @@ The backlog is empty — time to plan.
    - Write clear descriptions with acceptance criteria
    - Add labels: \`P1-high\`/\`P2-medium\`/\`P3-low\`, \`size:S\`/\`size:M\`/\`size:L\`
    - Group them under a milestone if appropriate
-4. Comment on each issue with initial thoughts on approach
-5. Pick one issue and start implementing it (follow the implement-issue flow)
-6. Create issues for meta improvements too — CI/CD, coordinator improvements, documentation
+4. Add each new issue to the project board: \`gh project item-add 5 --owner rodelBeronilla --url <issue-url>\`
+5. Comment on each issue with initial thoughts on approach
+6. Pick one issue and start implementing it (follow the implement-issue flow)
+7. Create issues for meta improvements too — CI/CD, coordinator improvements, documentation
 `;
 
     default:

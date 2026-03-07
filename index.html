@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Peer Dashboard</title>
+  <meta name="description" content="Free browser-based developer utilities. JSON formatter, Regex tester, Base64 encoder, Color converter. No login, no tracking.">
+  <title>DevTools — Free Browser Utilities for Developers</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -11,9 +12,9 @@
   <!-- Navigation -->
   <nav class="nav" aria-label="Main navigation">
     <div class="nav__inner">
-      <a href="#" class="nav__brand" aria-label="Peer Dashboard home">
+      <a href="#" class="nav__brand" aria-label="DevTools home">
         <span class="nav__logo" aria-hidden="true">⬡</span>
-        Peer Dashboard
+        DevTools
       </a>
 
       <div class="nav__actions">
@@ -40,98 +41,384 @@
       </div>
 
       <ul class="nav__menu" id="navMenu" role="list">
-        <li><a href="#dashboard" class="nav__link">Dashboard</a></li>
-        <li><a href="#notes" class="nav__link">Notes</a></li>
+        <li><a href="#tools" class="nav__link nav-tool-link" data-tab="json">JSON</a></li>
+        <li><a href="#tools" class="nav__link nav-tool-link" data-tab="regex">Regex</a></li>
+        <li><a href="#tools" class="nav__link nav-tool-link" data-tab="base64">Base64</a></li>
+        <li><a href="#tools" class="nav__link nav-tool-link" data-tab="color">Color</a></li>
+        <li><a href="#tools" class="nav__link nav-tool-link" data-tab="notes">Notes</a></li>
+        <li><a href="#tools" class="nav__link nav-tool-link" data-tab="url">URL</a></li>
         <li><a href="#about" class="nav__link">About</a></li>
       </ul>
     </div>
   </nav>
 
-  <!-- Main content -->
-  <main id="dashboard">
+  <!-- Hero -->
+  <header class="hero">
+    <div class="hero__inner">
+      <h1 class="hero__title">Developer Utilities,<br>Right in Your Browser</h1>
+      <p class="hero__sub">Format JSON. Test regex. Encode Base64. Convert colors.<br>Free, private, offline-capable. Zero login required.</p>
+      <a href="#tools" class="hero__cta">Open Tools</a>
+    </div>
+  </header>
 
-    <!-- Widget grid -->
-    <div class="dashboard-grid">
+  <!-- Tool tabs + panels -->
+  <main id="tools">
+    <div class="tabs-wrapper">
+      <div class="tabs" role="tablist" aria-label="Developer tools">
+        <button class="tab tab--active" role="tab" aria-selected="true" aria-controls="panel-json" id="tab-json" data-panel="json">
+          <span class="tab__icon" aria-hidden="true">{ }</span> JSON
+        </button>
+        <button class="tab" role="tab" aria-selected="false" aria-controls="panel-regex" id="tab-regex" data-panel="regex" tabindex="-1">
+          <span class="tab__icon" aria-hidden="true">.*</span> Regex
+        </button>
+        <button class="tab" role="tab" aria-selected="false" aria-controls="panel-base64" id="tab-base64" data-panel="base64" tabindex="-1">
+          <span class="tab__icon" aria-hidden="true">64</span> Base64
+        </button>
+        <button class="tab" role="tab" aria-selected="false" aria-controls="panel-color" id="tab-color" data-panel="color" tabindex="-1">
+          <span class="tab__icon tab__icon--color" id="tabColorSwatch" aria-hidden="true"></span> Color
+        </button>
+        <button class="tab" role="tab" aria-selected="false" aria-controls="panel-notes" id="tab-notes" data-panel="notes" tabindex="-1">
+          <span class="tab__icon" aria-hidden="true">📝</span> Notes
+        </button>
+        <button class="tab" role="tab" aria-selected="false" aria-controls="panel-url" id="tab-url" data-panel="url" tabindex="-1">
+          <span class="tab__icon" aria-hidden="true">%</span> URL
+        </button>
+      </div>
+    </div>
 
-      <!-- Clock widget -->
-      <article class="widget widget--clock" aria-label="Clock">
-        <header class="widget__header">
-          <h2 class="widget__title">
-            <span aria-hidden="true">🕐</span> Clock
-          </h2>
-        </header>
-        <div class="widget__body">
-          <time
-            class="clock__time"
-            id="clockTime"
-            aria-live="polite"
-            aria-atomic="true"
-          >--:--:--</time>
-          <div class="clock__date" id="clockDate" aria-live="polite"></div>
-          <div class="clock__tz" id="clockTz"></div>
+    <div class="panels-wrapper">
+
+      <!-- ═══════════════════════════════
+           JSON Formatter
+           ═══════════════════════════════ -->
+      <section
+        id="panel-json"
+        class="panel panel--active"
+        role="tabpanel"
+        aria-labelledby="tab-json"
+      >
+        <div class="tool">
+          <div class="tool__header">
+            <div>
+              <h2 class="tool__title">JSON Formatter &amp; Validator</h2>
+              <p class="tool__desc">Paste JSON to format, minify, or validate it. Errors are highlighted inline.</p>
+            </div>
+          </div>
+          <div class="tool__body tool__body--split">
+            <div class="tool__pane">
+              <div class="pane__header">
+                <span class="pane__label">Input</span>
+                <div class="pane__actions">
+                  <button class="btn btn--sm" id="jsonFormat">Format</button>
+                  <button class="btn btn--sm btn--secondary" id="jsonMinify">Minify</button>
+                  <button class="btn btn--sm btn--ghost" id="jsonClear">Clear</button>
+                </div>
+              </div>
+              <textarea
+                class="code-area"
+                id="jsonInput"
+                placeholder='Paste JSON here…&#10;&#10;{"name": "Alice", "age": 30}'
+                spellcheck="false"
+                autocomplete="off"
+                aria-label="JSON input"
+              ></textarea>
+              <div class="status-bar" id="jsonStatus" aria-live="polite" role="status"></div>
+            </div>
+            <div class="tool__pane">
+              <div class="pane__header">
+                <span class="pane__label">Output</span>
+                <div class="pane__actions">
+                  <button class="btn btn--sm btn--ghost" id="jsonCopy" disabled>Copy</button>
+                </div>
+              </div>
+              <pre class="code-preview" id="jsonOutput" aria-label="Formatted JSON output" aria-live="polite" tabindex="0"><span class="code-placeholder">Output will appear here</span></pre>
+            </div>
+          </div>
         </div>
-      </article>
+      </section>
 
-      <!-- Notes widget -->
-      <article class="widget widget--notes" id="notes" aria-label="Quick notes">
-        <header class="widget__header">
-          <h2 class="widget__title">
-            <span aria-hidden="true">📝</span> Quick Notes
-          </h2>
-          <span class="notes__count" id="notesCount" aria-live="polite">0 notes</span>
-        </header>
-        <div class="widget__body">
-          <form class="notes__form" id="notesForm" aria-label="Add a note">
-            <label for="noteInput" class="sr-only">New note</label>
-            <input
-              type="text"
-              id="noteInput"
-              class="notes__input"
-              placeholder="Add a note…"
-              maxlength="200"
-              autocomplete="off"
-            >
-            <button type="submit" class="notes__add-btn" aria-label="Add note">
-              <span aria-hidden="true">+</span>
-            </button>
-          </form>
-          <ul class="notes__list" id="notesList" role="list" aria-label="Notes list">
-            <!-- Notes rendered by JS -->
-          </ul>
+      <!-- ═══════════════════════════════
+           Regex Tester
+           ═══════════════════════════════ -->
+      <section
+        id="panel-regex"
+        class="panel"
+        role="tabpanel"
+        aria-labelledby="tab-regex"
+        hidden
+      >
+        <div class="tool">
+          <div class="tool__header">
+            <div>
+              <h2 class="tool__title">Regex Tester</h2>
+              <p class="tool__desc">Write a pattern, enter test text, and see matches highlighted in real time.</p>
+            </div>
+          </div>
+          <div class="tool__body">
+            <div class="regex-controls">
+              <div class="regex-pattern-row">
+                <label for="regexPattern" class="sr-only">Regex pattern</label>
+                <span class="regex-delim" aria-hidden="true">/</span>
+                <input
+                  type="text"
+                  id="regexPattern"
+                  class="regex-input"
+                  placeholder="e.g. \b\w+@\w+\.\w+\b"
+                  spellcheck="false"
+                  autocomplete="off"
+                  aria-label="Regex pattern"
+                >
+                <span class="regex-delim" aria-hidden="true">/</span>
+                <input
+                  type="text"
+                  id="regexFlags"
+                  class="regex-flags-input"
+                  placeholder="gim"
+                  value="g"
+                  maxlength="6"
+                  spellcheck="false"
+                  autocomplete="off"
+                  aria-label="Regex flags (g, i, m, s, u, y)"
+                >
+              </div>
+              <div class="status-bar" id="regexStatus" aria-live="polite" role="status"></div>
+            </div>
+            <div class="tool__body--split">
+              <div class="tool__pane">
+                <div class="pane__header">
+                  <span class="pane__label">Test string</span>
+                  <span class="match-badge" id="regexMatchCount" aria-live="polite"></span>
+                </div>
+                <textarea
+                  class="code-area"
+                  id="regexText"
+                  placeholder="Enter test string here…"
+                  spellcheck="false"
+                  autocomplete="off"
+                  aria-label="Regex test string"
+                ></textarea>
+              </div>
+              <div class="tool__pane">
+                <div class="pane__header">
+                  <span class="pane__label">Matches</span>
+                </div>
+                <div class="match-list" id="matchListBody" aria-live="polite" aria-label="Match results">
+                  <p class="match-empty">Enter a pattern and test string to see matches.</p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-      </article>
+      </section>
 
-      <!-- Weather widget -->
-      <article class="widget widget--weather" aria-label="Weather">
-        <header class="widget__header">
-          <h2 class="widget__title">
-            <span aria-hidden="true">🌤</span> Weather
-          </h2>
-          <button
-            class="weather__unit-btn"
-            id="weatherUnitBtn"
-            title="Toggle °C / °F"
-            aria-label="Toggle temperature unit"
-            hidden
-          >°C</button>
-        </header>
-        <div class="widget__body widget__body--weather" id="weatherBody">
-          <!-- Rendered by JS -->
+      <!-- ═══════════════════════════════
+           Base64
+           ═══════════════════════════════ -->
+      <section
+        id="panel-base64"
+        class="panel"
+        role="tabpanel"
+        aria-labelledby="tab-base64"
+        hidden
+      >
+        <div class="tool">
+          <div class="tool__header">
+            <div>
+              <h2 class="tool__title">Base64 Encoder / Decoder</h2>
+              <p class="tool__desc">Encode plain text to Base64 or decode Base64 back to text. Handles Unicode safely.</p>
+            </div>
+          </div>
+          <div class="tool__body tool__body--split">
+            <div class="tool__pane">
+              <div class="pane__header">
+                <span class="pane__label">Input</span>
+                <div class="pane__actions">
+                  <button class="btn btn--sm" id="b64Encode">Encode →</button>
+                  <button class="btn btn--sm btn--secondary" id="b64Decode">← Decode</button>
+                  <button class="btn btn--sm btn--ghost" id="b64Clear">Clear</button>
+                </div>
+              </div>
+              <textarea
+                class="code-area"
+                id="b64Input"
+                placeholder="Enter plain text to encode, or Base64 to decode…"
+                spellcheck="false"
+                autocomplete="off"
+                aria-label="Base64 input"
+              ></textarea>
+              <div class="status-bar" id="b64Status" aria-live="polite" role="status"></div>
+            </div>
+            <div class="tool__pane">
+              <div class="pane__header">
+                <span class="pane__label">Output</span>
+                <div class="pane__actions">
+                  <button class="btn btn--sm btn--ghost" id="b64Copy" disabled>Copy</button>
+                  <button class="btn btn--sm btn--ghost" id="b64Swap" title="Swap input ↔ output">⇄ Swap</button>
+                </div>
+              </div>
+              <textarea
+                class="code-area"
+                id="b64Output"
+                placeholder="Result will appear here…"
+                readonly
+                spellcheck="false"
+                aria-label="Base64 output"
+              ></textarea>
+            </div>
+          </div>
         </div>
-      </article>
+      </section>
 
-      <!-- Placeholder widget -->
-      <article class="widget widget--placeholder" aria-label="Coming soon">
-        <header class="widget__header">
-          <h2 class="widget__title">
-            <span aria-hidden="true">📊</span> Stats
-          </h2>
-        </header>
-        <div class="widget__body widget__body--center">
-          <p class="placeholder__text">Coming in Sprint 2</p>
-          <p class="placeholder__sub">GitHub activity, commits, streaks</p>
+      <!-- ═══════════════════════════════
+           Color Converter
+           ═══════════════════════════════ -->
+      <section
+        id="panel-color"
+        class="panel"
+        role="tabpanel"
+        aria-labelledby="tab-color"
+        hidden
+      >
+        <div class="tool">
+          <div class="tool__header">
+            <div>
+              <h2 class="tool__title">Color Converter</h2>
+              <p class="tool__desc">Pick a color and instantly get HEX, RGB, and HSL values. Click any format to copy.</p>
+            </div>
+          </div>
+          <div class="tool__body color-tool">
+            <div class="color-main">
+              <label class="color-picker-wrap" title="Click to pick a color">
+                <input type="color" id="colorPicker" class="color-picker" value="#4f46e5" aria-label="Color picker">
+                <div class="color-swatch" id="colorSwatch"></div>
+                <span class="color-swatch-label">Click to pick</span>
+              </label>
+              <div class="color-values">
+                <div class="color-value-row">
+                  <span class="color-format-label">HEX</span>
+                  <input type="text" class="color-value-input" id="colorHex" readonly aria-label="HEX color value">
+                  <button class="btn btn--sm btn--ghost copy-color-btn" data-target="colorHex" aria-label="Copy HEX">Copy</button>
+                </div>
+                <div class="color-value-row">
+                  <span class="color-format-label">RGB</span>
+                  <input type="text" class="color-value-input" id="colorRgb" readonly aria-label="RGB color value">
+                  <button class="btn btn--sm btn--ghost copy-color-btn" data-target="colorRgb" aria-label="Copy RGB">Copy</button>
+                </div>
+                <div class="color-value-row">
+                  <span class="color-format-label">HSL</span>
+                  <input type="text" class="color-value-input" id="colorHsl" readonly aria-label="HSL color value">
+                  <button class="btn btn--sm btn--ghost copy-color-btn" data-target="colorHsl" aria-label="Copy HSL">Copy</button>
+                </div>
+              </div>
+            </div>
+            <div class="color-history-section">
+              <div class="pane__header">
+                <span class="pane__label">Recent colors</span>
+                <button class="btn btn--sm btn--ghost" id="clearColorHistory">Clear</button>
+              </div>
+              <div class="color-history" id="colorHistory" role="list" aria-label="Recent colors">
+                <p class="match-empty">Pick a color to add it here.</p>
+              </div>
+            </div>
+          </div>
         </div>
-      </article>
+      </section>
+
+      <!-- ═══════════════════════════════
+           Notes
+           ═══════════════════════════════ -->
+      <section
+        id="panel-notes"
+        class="panel"
+        role="tabpanel"
+        aria-labelledby="tab-notes"
+        hidden
+      >
+        <div class="tool">
+          <div class="tool__header">
+            <div>
+              <h2 class="tool__title">Notes</h2>
+              <p class="tool__desc">Quick scratch pad. Notes persist in your browser's local storage.</p>
+            </div>
+          </div>
+          <div class="tool__body">
+            <form class="notes__form" id="notesForm" aria-label="Add a note">
+              <label for="noteInput" class="sr-only">New note</label>
+              <input
+                type="text"
+                id="noteInput"
+                class="notes__input"
+                placeholder="Add a note…"
+                maxlength="200"
+                autocomplete="off"
+              >
+              <button type="submit" class="btn">Add</button>
+            </form>
+            <div class="notes-meta">
+              <span class="notes__count" id="notesCount" aria-live="polite">0 notes</span>
+            </div>
+            <ul class="notes__list" id="notesList" role="list" aria-label="Notes list"></ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════════════════════════
+           URL Encoder / Decoder
+           ═══════════════════════════════ -->
+      <section
+        id="panel-url"
+        class="panel"
+        role="tabpanel"
+        aria-labelledby="tab-url"
+        hidden
+      >
+        <div class="tool">
+          <div class="tool__header">
+            <div>
+              <h2 class="tool__title">URL Encoder / Decoder</h2>
+              <p class="tool__desc">Encode text for use in URLs or decode percent-encoded strings back to plain text.</p>
+            </div>
+          </div>
+          <div class="tool__body tool__body--split">
+            <div class="tool__pane">
+              <div class="pane__header">
+                <span class="pane__label">Input</span>
+                <div class="pane__actions">
+                  <button class="btn btn--sm" id="urlEncode">Encode →</button>
+                  <button class="btn btn--sm btn--secondary" id="urlDecode">← Decode</button>
+                  <button class="btn btn--sm btn--ghost" id="urlClear">Clear</button>
+                </div>
+              </div>
+              <textarea
+                class="code-area"
+                id="urlInput"
+                placeholder="Enter plain text to encode, or a percent-encoded URL to decode…"
+                spellcheck="false"
+                autocomplete="off"
+                aria-label="URL input"
+              ></textarea>
+              <div class="status-bar" id="urlStatus" aria-live="polite" role="status"></div>
+            </div>
+            <div class="tool__pane">
+              <div class="pane__header">
+                <span class="pane__label">Output</span>
+                <div class="pane__actions">
+                  <button class="btn btn--sm btn--ghost" id="urlCopy" disabled>Copy</button>
+                  <button class="btn btn--sm btn--ghost" id="urlSwap" title="Swap input ↔ output">⇄ Swap</button>
+                </div>
+              </div>
+              <textarea
+                class="code-area"
+                id="urlOutput"
+                placeholder="Result will appear here…"
+                readonly
+                spellcheck="false"
+                aria-label="URL output"
+              ></textarea>
+            </div>
+          </div>
+        </div>
+      </section>
 
     </div>
   </main>
@@ -139,8 +426,9 @@
   <!-- About section -->
   <section id="about" class="about">
     <div class="about__inner">
-      <h2>About</h2>
-      <p>Built collaboratively by two AI peer developers — Alpha and Beta — using vanilla HTML, CSS, and JavaScript. No frameworks, no build tools, just the web platform.</p>
+      <h2>About DevTools</h2>
+      <p>A free, open-source collection of browser-based developer utilities. No servers, no tracking, no account required. Works offline once loaded.</p>
+      <p class="about__meta">Built collaboratively by two AI peer developers — Alpha and Beta — using vanilla HTML, CSS, and JavaScript on GitHub Pages. Source: <a href="https://github.com/rodelBeronilla/peer-webapp" target="_blank" rel="noopener noreferrer">rodelBeronilla/peer-webapp</a></p>
     </div>
   </section>
 
