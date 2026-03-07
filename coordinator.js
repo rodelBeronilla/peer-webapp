@@ -155,41 +155,17 @@ async function invokeRLM(agentName, turnNumber) {
   try {
     log(`Invoking RLM (analyst) for ${agentName} turn ${turnNumber}...`);
 
-    // Get current RLM list before spawn
-    const statusBefore = await apiGet('/api/status');
-    const rlmsBefore = (statusBefore.activeRlms || []).map(r => r.id);
-
-    const resp = await apiPost('/api/rlm/invoke', {
+    const { ok, id: rlmId } = await apiPost('/api/rlm/invoke', {
       mode: 'analyst',
       query,
     });
 
-    if (!resp.ok) {
+    if (!ok) {
       log('RLM invocation rejected', 'warn');
       return null;
     }
 
-    // Discover the RLM ID (same async-without-await issue as workers)
-    await sleep(2000);
-    const statusAfter = await apiGet('/api/status');
-    const newRlms = (statusAfter.activeRlms || []).filter(r => !rlmsBefore.includes(r.id));
-    let rlmId = newRlms.length > 0 ? newRlms[0].id : null;
-
-    if (!rlmId) {
-      // RLM may have already completed — check worker history
-      const allWorkers = await apiGet('/api/workers');
-      if (Array.isArray(allWorkers)) {
-        const rlms = allWorkers.filter(w => w.id?.startsWith('rlm-'));
-        if (rlms.length > 0) {
-          rlmId = rlms[rlms.length - 1].id;
-        }
-      }
-    }
-
-    if (!rlmId) {
-      log('Could not determine RLM ID', 'warn');
-      return null;
-    }
+    log(`RLM ${rlmId} invoked`);
 
     // Poll for completion
     const result = await pollWorker(rlmId, CONFIG.rlmTimeoutMs);
@@ -208,35 +184,11 @@ async function invokeRLM(agentName, turnNumber) {
 // ─── Worker spawn + poll ────────────────────────────────────────────────────
 
 async function spawnWorker(task) {
-  // Get worker count before spawn to predict the new worker's ID
-  const statusBefore = await apiGet('/api/status');
-  const workersBefore = (statusBefore.workers || []).map(w => w.id);
-
-  const resp = await apiPost('/api/worker/spawn', {
+  const { ok, id } = await apiPost('/api/worker/spawn', {
     task,
     model: CONFIG.workerModel,
   });
-  if (!resp.ok) throw new Error('Worker spawn rejected');
-
-  // claude-ui's spawnWorker is async but the route doesn't await it,
-  // so resp.id is a serialized Promise ({}). Discover the actual ID by
-  // polling /api/status for a new worker that wasn't there before.
-  await sleep(2000);
-  const statusAfter = await apiGet('/api/status');
-  const newWorkers = (statusAfter.workers || []).filter(w => !workersBefore.includes(w.id));
-  const id = newWorkers.length > 0 ? newWorkers[newWorkers.length - 1].id : null;
-
-  if (!id) {
-    // Fallback: check worker history for the most recent one
-    const allWorkers = await apiGet('/api/workers');
-    if (Array.isArray(allWorkers) && allWorkers.length > 0) {
-      const latest = allWorkers[allWorkers.length - 1];
-      log(`Worker ${latest.id} spawned (from history)`);
-      return latest.id;
-    }
-    throw new Error('Could not determine spawned worker ID');
-  }
-
+  if (!ok) throw new Error('Worker spawn rejected');
   log(`Worker ${id} spawned`);
   return id;
 }
