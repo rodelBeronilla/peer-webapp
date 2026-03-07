@@ -319,7 +319,9 @@ presetSel.addEventListener('change', () => {
   resetTimer();
 });
 
-// Custom field changes apply immediately via reset
+// Custom field changes apply immediately via reset.
+// Intentional: changing duration mid-session resets to session 1 —
+// safer than trying to apply new duration to an in-progress timer.
 function onCustomChange() {
   state.customWork  = Math.max(1, parseInt(customWork.value,  10) || 25);
   state.customShort = Math.max(1, parseInt(customShort.value, 10) || 5);
