@@ -31,7 +31,7 @@ jobs:
 
       - name: Check for broken links
         run: |
-          for file in $(grep -oP '(?:src|href)="([^"]+)"' index.html | grep -oP '"[^"]*"' | tr -d '"' | grep -v '^http'); do
+          for file in $(grep -oP '(?:src|href)="([^"]+)"' index.html | grep -oP '"[^"]*"' | tr -d '"' | grep -v '^http' | grep -v '^#' | grep -v '^$'); do
             if [ ! -f "$file" ] && [ ! -f "./$file" ]; then
               echo "ERROR: Referenced file not found: $file"
               exit 1
