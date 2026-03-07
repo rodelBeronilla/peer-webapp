@@ -52,6 +52,7 @@
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="jwt">JWT</a></li>
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="timestamp">Timestamp</a></li>
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="base">Base</a></li>
+        <li><a href="#tools" class="nav__link nav-tool-link" data-tab="password">Password</a></li>
         <li><a href="#about" class="nav__link">About</a></li>
       </ul>
     </div>
@@ -102,6 +103,9 @@
         </button>
         <button class="tab" role="tab" aria-selected="false" aria-controls="panel-base" id="tab-base" data-panel="base" tabindex="-1">
           <span class="tab__icon" aria-hidden="true">01</span> Base
+        </button>
+        <button class="tab" role="tab" aria-selected="false" aria-controls="panel-password" id="tab-password" data-panel="password" tabindex="-1">
+          <span class="tab__icon" aria-hidden="true">🔑</span> Password
         </button>
       </div>
     </div>
@@ -839,6 +843,91 @@
 
             <div class="status-bar" id="baseStatus" aria-live="polite" role="status"></div>
             <p class="base-bits" id="baseBits" aria-live="polite"></p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════════════════════════
+           Password Generator
+           ═══════════════════════════════ -->
+      <section
+        id="panel-password"
+        class="panel"
+        role="tabpanel"
+        aria-labelledby="tab-password"
+        hidden
+      >
+        <div class="tool">
+          <div class="tool__header">
+            <div>
+              <h2 class="tool__title">Password Generator</h2>
+              <p class="tool__desc">Generate cryptographically secure passwords using <code>crypto.getRandomValues</code>. No server, no tracking — everything stays in your browser.</p>
+            </div>
+          </div>
+          <div class="tool__body">
+
+            <div class="pw-controls" role="group" aria-label="Password options">
+
+              <div class="pw-row pw-row--slider">
+                <label class="pw-label" for="pwLength">Length</label>
+                <input
+                  type="range"
+                  id="pwLength"
+                  class="pw-slider"
+                  min="8"
+                  max="64"
+                  value="16"
+                  aria-label="Password length"
+                  aria-valuemin="8"
+                  aria-valuemax="64"
+                  aria-valuenow="16"
+                >
+                <span class="pw-len-value" id="pwLenValue" aria-live="polite">16</span>
+              </div>
+
+              <fieldset class="pw-checkboxes">
+                <legend class="pw-label">Characters</legend>
+                <label class="pw-check-label">
+                  <input type="checkbox" id="pwUpper" checked>
+                  <span>A–Z uppercase</span>
+                </label>
+                <label class="pw-check-label">
+                  <input type="checkbox" id="pwLower" checked>
+                  <span>a–z lowercase</span>
+                </label>
+                <label class="pw-check-label">
+                  <input type="checkbox" id="pwDigits" checked>
+                  <span>0–9 digits</span>
+                </label>
+                <label class="pw-check-label">
+                  <input type="checkbox" id="pwSymbols">
+                  <span>!@#$ symbols</span>
+                </label>
+              </fieldset>
+
+              <div class="pw-actions">
+                <button class="btn btn--sm" id="pwGenerate">Generate</button>
+                <button class="btn btn--sm btn--ghost" id="pwCopy" disabled>Copy</button>
+              </div>
+
+            </div>
+
+            <div class="status-bar" id="pwStatus" aria-live="polite" role="status"></div>
+
+            <div class="pw-output-row">
+              <input
+                type="text"
+                id="pwOutput"
+                class="pw-output"
+                readonly
+                spellcheck="false"
+                aria-label="Generated password"
+                placeholder="Password will appear here…"
+              >
+            </div>
+
+            <p class="pw-entropy" id="pwEntropy" aria-live="polite"></p>
+
           </div>
         </div>
       </section>
