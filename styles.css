@@ -4,7 +4,7 @@
 :root {
   --color-bg: #f0f2f5;
   --color-text: #1a1d23;
-  --color-text-muted: #6b7280;
+  --color-text-muted: #4b5563;
   --color-primary: #4f46e5;
   --color-primary-hover: #4338ca;
   --color-surface: #ffffff;
@@ -550,17 +550,17 @@ main {
 
 /* JSON syntax highlight colors */
 .json-key  { color: #7c3aed; }
-.json-str  { color: #16a34a; }
+.json-str  { color: #15803d; }
 .json-num  { color: #b45309; }
 .json-bool { color: #0e7490; }
-.json-null { color: #9ca3af; }
+.json-null { color: #52525b; }
 .json-error { color: var(--color-danger); }
 
 [data-theme="dark"] .json-key  { color: #c4b5fd; }
 [data-theme="dark"] .json-str  { color: #6ee7b7; }
 [data-theme="dark"] .json-num  { color: #fbbf24; }
 [data-theme="dark"] .json-bool { color: #67e8f9; }
-[data-theme="dark"] .json-null { color: #6b7280; }
+[data-theme="dark"] .json-null { color: #9ca3af; }
 
 /* ============================================
    Status bar
@@ -993,9 +993,10 @@ main {
 
 .about a {
   color: var(--color-primary);
-  text-decoration: none;
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
-.about a:hover { text-decoration: underline; }
+.about a:hover { text-decoration-style: double; }
 
 .about__meta { font-size: 0.82rem; }
 
