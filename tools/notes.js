@@ -83,5 +83,59 @@ notesForm.addEventListener('submit', (e) => {
   noteInput.focus();
 });
 
+// ── Export / Import ──────────────────────────────────────────────
+
+const notesStatus   = document.getElementById('notesStatus');
+const notesExportBtn = document.getElementById('notesExport');
+const notesImportBtn = document.getElementById('notesImport');
+const notesImportFile = document.getElementById('notesImportFile');
+
+function setNotesStatus(msg, isError) {
+  notesStatus.textContent = msg;
+  notesStatus.className = 'status-bar' + (isError ? ' status-bar--error' : '');
+}
+
+notesExportBtn.addEventListener('click', () => {
+  const blob = new Blob([JSON.stringify(notes, null, 2)], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = 'devtools-notes.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  setNotesStatus(`Exported ${notes.length} ${notes.length === 1 ? 'note' : 'notes'}.`, false);
+});
+
+notesImportBtn.addEventListener('click', () => {
+  notesImportFile.value = '';
+  notesImportFile.click();
+});
+
+notesImportFile.addEventListener('change', () => {
+  const file = notesImportFile.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const imported = JSON.parse(reader.result);
+      if (!Array.isArray(imported)) throw new Error('Expected a JSON array.');
+      // Validate entries have a text field
+      if (imported.some(n => typeof n.text !== 'string')) throw new Error('Each note must have a "text" field.');
+      // Deduplicate by text content
+      const existingTexts = new Set(notes.map(n => n.text));
+      const newNotes = imported.filter(n => !existingTexts.has(n.text));
+      newNotes.forEach(n => { if (!n.id) n.id = Date.now() + Math.random(); });
+      notes = [...newNotes, ...notes];
+      saveNotes();
+      renderNotes();
+      setNotesStatus(`Imported ${newNotes.length} new ${newNotes.length === 1 ? 'note' : 'notes'} (${imported.length - newNotes.length} duplicate${imported.length - newNotes.length === 1 ? '' : 's'} skipped).`, false);
+    } catch (err) {
+      setNotesStatus(`Import failed: ${err.message}`, true);
+    }
+  };
+  reader.onerror = () => setNotesStatus('Import failed: could not read file.', true);
+  reader.readAsText(file);
+});
+
 loadNotes();
 renderNotes();
