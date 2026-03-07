@@ -17,10 +17,30 @@ const copyHex = document.getElementById('baseCopyHex');
 const MAX = Number.MAX_SAFE_INTEGER; // 2^53 - 1
 
 // ---------------------------------------------------------------------------
-// Strip common prefixes (0b, 0o, 0x) and whitespace
+// Strip common prefixes (0b, 0o, 0x), whitespace, and internal spaces
+// (internal spaces appear when grouped binary values are pasted back in)
 // ---------------------------------------------------------------------------
 function stripPrefix(raw) {
-  return raw.trim().replace(/^0[bBoOxX]/, '');
+  return raw.trim().replace(/^0[bBoOxX]/, '').replace(/\s+/g, '');
+}
+
+// ---------------------------------------------------------------------------
+// Group a binary string for readability:
+//   ≤ 16 bits  → nibbles (groups of 4), e.g. "1010 1010"
+//   > 16 bits  → bytes  (groups of 8), e.g. "11001100 10101010"
+// Left-pads to the nearest group boundary so all groups are full-width.
+// ---------------------------------------------------------------------------
+function groupBinary(str) {
+  const size = str.length <= 16 ? 4 : 8;
+  const pad  = (size - (str.length % size)) % size;
+  const padded = '0'.repeat(pad) + str;
+  const groups = [];
+  for (let i = 0; i < padded.length; i += size) {
+    groups.push(padded.slice(i, i + size));
+  }
+  // Keep all groups including zero-padded leading ones — consistent group widths
+  // aid readability even when the leading group is all zeros.
+  return groups.join(' ');
 }
 
 // ---------------------------------------------------------------------------
@@ -50,7 +70,7 @@ function setStatus(msg, type) {
 // Update all fields from a parsed integer value
 // ---------------------------------------------------------------------------
 function fill(value, skipEl) {
-  if (skipEl !== binInput) binInput.value = value.toString(2);
+  if (skipEl !== binInput) binInput.value = groupBinary(value.toString(2));
   if (skipEl !== octInput) octInput.value = value.toString(8);
   if (skipEl !== decInput) decInput.value = value.toString(10);
   if (skipEl !== hexInput) hexInput.value = value.toString(16).toUpperCase();
@@ -145,7 +165,7 @@ octInput.addEventListener('input', () => onInput(octInput,  8,  'octal'));
 decInput.addEventListener('input', () => onInput(decInput,  10, 'decimal'));
 hexInput.addEventListener('input', () => onInput(hexInput,  16, 'hexadecimal'));
 
-copyBin.addEventListener('click', () => copyText(binInput.value, copyBin));
+copyBin.addEventListener('click', () => copyText(binInput.value.replace(/\s+/g, ''), copyBin));
 copyOct.addEventListener('click', () => copyText(octInput.value, copyOct));
 copyDec.addEventListener('click', () => copyText(decInput.value, copyDec));
 copyHex.addEventListener('click', () => copyText(hexInput.value, copyHex));
