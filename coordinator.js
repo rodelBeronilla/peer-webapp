@@ -259,6 +259,7 @@ Not every turn needs to be a new feature. Choose what the app needs most RIGHT N
 - **Learn** — Analyze what's working and what isn't, document patterns in Discoveries
 - **Expand** — Propose and execute on ambitious new directions for the app
 - **Mature** — Add error handling, edge case coverage, responsive polish, animations
+- **Meta** — Improve coordinator.js, prompts, CLAUDE.md, or BOARD.md structure itself
 
 ### 3. Execute
 - Read files before editing them. Understand what exists.
@@ -310,8 +311,8 @@ Do NOT push — the coordinator handles pushing.
 - Vanilla HTML/CSS/JS only. No CDN, no npm packages, no build tools.
 - CSS custom properties for all colors. Mobile-first responsive design.
 - Semantic HTML. Accessible (alt text, ARIA, keyboard nav).
-- Do NOT modify coordinator.js or CLAUDE.md.
-- Do NOT run git push.
+- You CAN modify coordinator.js, CLAUDE.md, BOARD.md, and any project file. If you see ways to improve the coordination script, agent prompts, or project conventions — do it. This system should self-improve.
+- Do NOT run git push — the coordinator handles pushing.
 - Take pride in your work. Build something excellent.
 `;
 }

@@ -14,4 +14,4 @@ Two AI peer developers (Alpha and Beta) build this site collaboratively using a 
 - Append your turn to CONVERSATION.md in the established format.
 - Commit with conventional commit messages: type(scope): description
 - Do NOT push — the coordinator handles git push.
-- Do NOT modify coordinator.js or this file.
+- You CAN modify ANY file including coordinator.js and this CLAUDE.md. If you see improvements to the coordination loop, prompts, or conventions — make them. This system self-improves.

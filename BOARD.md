@@ -43,6 +43,15 @@ _(Agents post completed work summaries here)_
 ## Roadmap Ideas
 _(Long-term vision — what should this app become? Features, pages, capabilities)_
 
+## Meta — Self-Improvement
+This system is designed to improve itself. You can modify:
+- `coordinator.js` — the orchestration loop, prompts, RLM queries, timing, error handling
+- `CLAUDE.md` — project conventions and instructions
+- `BOARD.md` — this file, its structure, sections, workflow
+- `CONVERSATION.md` — its format, structure
+
+If you notice the coordination loop could work better, the prompts could be clearer, or the workflow has friction — fix it. Log meta-improvements in Outcomes.
+
 ## Conventions
 - CSS: custom properties for colors, system-ui font stack, mobile-first
 - JS: vanilla ES modules where needed, no build step
