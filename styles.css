@@ -1098,6 +1098,117 @@ main {
 }
 
 /* ============================================
+   Pomodoro Timer
+   ============================================ */
+.pomodoro-tool {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.75rem;
+  padding: 1rem 0 0.5rem;
+}
+
+.pomodoro-ring-wrap {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.pomodoro-ring {
+  position: absolute;
+  inset: 0;
+  transform: rotate(-90deg);
+}
+
+.pomodoro-ring__track {
+  fill: none;
+  stroke: var(--color-border);
+  stroke-width: 8;
+  transition: stroke var(--transition-slow);
+}
+
+.pomodoro-ring__progress {
+  fill: none;
+  stroke: var(--color-primary);
+  stroke-width: 8;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.6s linear, stroke var(--transition-slow);
+}
+
+.pomodoro-ring-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.pomodoro-mode {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-text-muted);
+}
+
+.pomodoro-time {
+  font-size: 2.6rem;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--color-text);
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.pomodoro-session {
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+}
+
+.pomodoro-controls {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.pomodoro-btn--primary {
+  min-width: 6rem;
+  padding: 0.625rem 1.5rem;
+  font-size: 1rem;
+}
+
+.pomodoro-btn--secondary {
+  padding: 0.625rem 1.25rem;
+  font-size: 1rem;
+}
+
+.pomodoro-settings {
+  display: flex;
+  align-items: center;
+}
+
+.pomodoro-sound-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  user-select: none;
+}
+
+.pomodoro-sound-label input[type="checkbox"] {
+  accent-color: var(--color-primary);
+  width: 1rem;
+  height: 1rem;
+  cursor: pointer;
+}
+
+/* ============================================
    About section
    ============================================ */
 .about {
