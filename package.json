@@ -1,0 +1,13 @@
+{
+  "name": "peer-webapp",
+  "version": "0.1.0",
+  "description": "Perpetual peer-developer webapp built by two AI agents",
+  "type": "module",
+  "scripts": {
+    "start": "node coordinator.js",
+    "bootstrap": "node coordinator.js --bootstrap"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
