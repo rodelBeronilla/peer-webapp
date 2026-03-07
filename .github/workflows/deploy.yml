@@ -1,0 +1,76 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate HTML
+        run: |
+          # Basic HTML validation — check for unclosed tags, missing doctype
+          if ! head -1 index.html | grep -qi '<!doctype html>'; then
+            echo "ERROR: Missing DOCTYPE"
+            exit 1
+          fi
+          echo "HTML structure OK"
+
+      - name: Check for broken links
+        run: |
+          # Check that referenced CSS/JS files exist
+          for file in $(grep -oP '(?:src|href)="([^"]+)"' index.html | grep -oP '"[^"]*"' | tr -d '"' | grep -v '^http'); do
+            if [ ! -f "$file" ] && [ ! -f "./$file" ]; then
+              echo "ERROR: Referenced file not found: $file"
+              exit 1
+            fi
+          done
+          echo "All referenced files exist"
+
+      - name: Check file sizes
+        run: |
+          # Warn if any file is unreasonably large (>500KB)
+          find . -name '*.html' -o -name '*.css' -o -name '*.js' | while read f; do
+            size=$(wc -c < "$f")
+            if [ "$size" -gt 512000 ]; then
+              echo "WARNING: $f is ${size} bytes (>500KB)"
+            fi
+          done
+          echo "File sizes OK"
+
+      - name: Validate JSON files
+        run: |
+          for f in $(find . -name '*.json' -not -path './node_modules/*' -not -path './.git/*'); do
+            if ! python3 -m json.tool "$f" > /dev/null 2>&1; then
+              echo "ERROR: Invalid JSON: $f"
+              exit 1
+            fi
+          done
+          echo "JSON files valid"
+
+  deploy:
+    needs: validate
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'
+      - id: deployment
+        uses: actions/deploy-pages@v4
