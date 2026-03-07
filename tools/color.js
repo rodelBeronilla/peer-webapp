@@ -13,6 +13,8 @@ const tabColorSwatch = document.getElementById('tabColorSwatch');
 const contrastBgPicker = document.getElementById('contrastBgPicker');
 const contrastBgSwatch = document.getElementById('contrastBgSwatch');
 const contrastBgHex    = document.getElementById('contrastBgHex');
+const contrastFgSwatch = document.getElementById('contrastFgSwatch');
+const contrastFgHex    = document.getElementById('contrastFgHex');
 const contrastPreview  = document.getElementById('contrastPreview');
 const contrastRatio    = document.getElementById('contrastRatio');
 
@@ -222,6 +224,9 @@ function calcContrastRatio(hex1, hex2) {
 function updateContrast() {
   const fgHex = colorPicker.value;
   const bgHex = contrastBgPicker.value;
+
+  contrastFgSwatch.style.background = fgHex;
+  contrastFgHex.value = fgHex.toUpperCase();
 
   contrastPreview.style.backgroundColor = bgHex;
   contrastPreview.style.color = fgHex;

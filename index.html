@@ -346,6 +346,12 @@
                 <span class="pane__label">Contrast Checker</span>
               </div>
               <div class="contrast-pickers">
+                <div class="contrast-fg-indicator" aria-label="Foreground color (from color picker above)">
+                  <span class="contrast-picker-label" id="contrastFgLabel">Foreground</span>
+                  <div class="contrast-fg-swatch" id="contrastFgSwatch" role="img" aria-labelledby="contrastFgLabel"></div>
+                  <output class="contrast-fg-hex" id="contrastFgHex" aria-live="polite" aria-label="Foreground HEX color">—</output>
+                  <span class="contrast-fg-hint">← from picker above</span>
+                </div>
                 <div class="contrast-picker-group">
                   <label class="contrast-picker-label" for="contrastBgPicker">Background</label>
                   <label class="color-picker-wrap contrast-picker-wrap" title="Click to pick background color">
