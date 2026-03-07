@@ -12,3 +12,5 @@ import './tools/base64.js';
 import './tools/color.js';
 import './tools/notes.js';
 import './tools/url.js';
+import './tools/bookmarks.js';
+import './tools/pomodoro.js';

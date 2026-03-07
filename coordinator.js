@@ -39,6 +39,7 @@ const COOLDOWNS = {
   idle:       120_000,  // nothing to do (avoid churn)
   failure:    90_000,   // something went wrong
   stale:      60_000,   // stale PR detected
+  discuss:    45_000,   // discussion turn (give peer time to process)
 };
 
 const AGENTS = {
@@ -121,6 +122,24 @@ function getPRComments(number) {
   return ghJson(`pr view ${number} -R ${CONFIG.repo} --json comments,reviews`);
 }
 
+// ─── Discussions ─────────────────────────────────────────────────────────────
+
+function getRecentDiscussions() {
+  try {
+    const result = run(`gh api graphql -f query="{ repository(owner:\\"rodelBeronilla\\", name:\\"peer-webapp\\") { discussions(first:10, orderBy:{field:UPDATED_AT, direction:DESC}) { nodes { number title category { name } author { login } body createdAt updatedAt comments(last:5) { nodes { author { login } body createdAt } } } } } }"`, { timeout: 15_000 });
+    const parsed = JSON.parse(result);
+    return parsed?.data?.repository?.discussions?.nodes || [];
+  } catch { return []; }
+}
+
+function getDiscussionsByCategory(categorySlug) {
+  try {
+    const result = run(`gh api graphql -f query="{ repository(owner:\\"rodelBeronilla\\", name:\\"peer-webapp\\") { discussions(first:5, categoryId:null, orderBy:{field:UPDATED_AT, direction:DESC}) { nodes { number title category { name slug } author { login } body updatedAt comments(last:3) { nodes { author { login } body createdAt } } } } } }"`, { timeout: 15_000 });
+    const parsed = JSON.parse(result);
+    return (parsed?.data?.repository?.discussions?.nodes || []).filter(d => d.category?.slug === categorySlug);
+  } catch { return []; }
+}
+
 function getMilestones() {
   const data = ghJson(`api repos/${CONFIG.repo}/milestones`);
   return Array.isArray(data) ? data.map(m => m.title) : [];
@@ -172,6 +191,7 @@ function buildGitHubContext() {
   const openPRs = getOpenPRs();
   const closedIssues = getRecentClosedIssues();
   const mergedPRs = getRecentMergedPRs();
+  const discussions = getRecentDiscussions();
 
   // Get comments on open PRs for conversation context
   const prConversations = [];
@@ -203,6 +223,7 @@ function buildGitHubContext() {
     mergedPRs: Array.isArray(mergedPRs) ? mergedPRs : [],
     prConversations,
     issueConversations,
+    discussions,
   };
 }
 
@@ -258,6 +279,18 @@ function formatGitHubContext(ctx) {
   }
 
   // Recently completed work
+  // Discussions — the ongoing peer conversation
+  if (ctx.discussions && ctx.discussions.length > 0) {
+    sections.push('\n### Discussions (Ongoing Conversations)');
+    for (const d of ctx.discussions.slice(0, 5)) {
+      sections.push(`\n**[${d.category?.name || 'General'}] #${d.number}: ${d.title}** (by ${d.author?.login || '?'}, updated ${d.updatedAt})`);
+      if (d.body) sections.push(`  ${d.body.substring(0, 200).replace(/\n/g, ' ')}`);
+      for (const c of (d.comments?.nodes || []).slice(-3)) {
+        sections.push(`  > ${c.author?.login || '?'}: ${c.body?.substring(0, 200).replace(/\n/g, ' ')}`);
+      }
+    }
+  }
+
   if (ctx.mergedPRs.length > 0) {
     sections.push('\n### Recently Merged PRs');
     for (const pr of ctx.mergedPRs.slice(0, 5)) {
@@ -277,7 +310,7 @@ function formatGitHubContext(ctx) {
 
 // ─── Determine what action the agent should take ────────────────────────────
 
-function decideAction(agentKey, ctx) {
+function decideAction(agentKey, ctx, turnCount = 0) {
   const agent = AGENTS[agentKey];
   const peerLabel = AGENTS[agentKey === 'alpha' ? 'beta' : 'alpha'].label;
 
@@ -331,7 +364,26 @@ function decideAction(agentKey, ctx) {
     }
   }
 
-  // Priority 5: Pick up an unassigned issue
+  // Priority 5: Respond to peer's unanswered discussion comments
+  if (ctx.discussions && ctx.discussions.length > 0) {
+    for (const d of ctx.discussions) {
+      const comments = d.comments?.nodes || [];
+      if (comments.length > 0) {
+        const lastComment = comments[comments.length - 1];
+        const peerName = AGENTS[agentKey === 'alpha' ? 'beta' : 'alpha'].name.toLowerCase();
+        // If the last commenter is the peer (or discussion author is peer and no replies), respond
+        if (lastComment.author?.login !== agent.name.toLowerCase() &&
+            (lastComment.author?.login === peerName || d.author?.login === peerName)) {
+          return { type: 'discuss', discussion: d, respond: true };
+        }
+      } else if (d.author?.login !== agent.name.toLowerCase()) {
+        // Peer started a discussion with no comments — respond
+        return { type: 'discuss', discussion: d, respond: true };
+      }
+    }
+  }
+
+  // Priority 6: Pick up an unassigned issue
   const unassigned = ctx.openIssues.filter(i =>
     (i.assignees || []).length === 0 &&
     !(i.labels || []).some(l => l.name === 'status:blocked')
@@ -340,7 +392,12 @@ function decideAction(agentKey, ctx) {
     return { type: 'implement-issue', issue: unassigned[0] };
   }
 
-  // Priority 6: Create new issues (backlog empty)
+  // Priority 7: Start a design discussion (every ~5 turns when no other work)
+  if (turnCount % 5 === 0 && ctx.discussions) {
+    return { type: 'discuss', respond: false };
+  }
+
+  // Priority 8: Create new issues (backlog empty)
   return { type: 'create-issues' };
 }
 
@@ -419,6 +476,26 @@ function buildRLMQuery(agentName, action) {
         '(6) pitfalls specific to this type of widget on static GitHub Pages.',
       ].join(' ');
 
+    case 'discuss':
+      if (action.respond && action.discussion) {
+        return [
+          base,
+          `${agentName} needs to respond to discussion #${action.discussion.number}: "${action.discussion.title}" in category "${action.discussion.category?.name}".`,
+          `Discussion body: ${(action.discussion.body || '').substring(0, 300).replace(/\n/g, ' ')}`,
+          'Focus your analysis on: (1) the technical merits of what is being discussed,',
+          '(2) relevant patterns in the current codebase, (3) trade-offs to consider,',
+          '(4) concrete, actionable suggestions backed by the code.',
+        ].join(' ');
+      }
+      return [
+        base,
+        `${agentName} should start a new discussion about the app's direction, architecture, or a design decision.`,
+        'Focus your analysis on: (1) what architectural decisions need to be made,',
+        '(2) what the current codebase suggests about next steps,',
+        '(3) what design patterns or refactors would improve the app,',
+        '(4) what features would add the most user value based on the existing foundation.',
+      ].join(' ');
+
     case 'create-issues':
       return [
         base,
@@ -434,12 +511,25 @@ function buildRLMQuery(agentName, action) {
   }
 }
 
-async function invokeRLM(agentName, action) {
+async function invokeRLM(agentName, action, ctx) {
   const query = buildRLMQuery(agentName, action);
 
+  // Use 'session' mode for discussion and planning actions (deeper context analysis)
+  // Use 'analyst' mode for implementation and review (focused code analysis)
+  const mode = (action.type === 'discuss' || action.type === 'create-issues') ? 'session' : 'analyst';
+
+  // Append discussion summaries to RLM query for richer context
+  let enrichedQuery = query;
+  if (ctx?.discussions?.length > 0) {
+    const recentDiscussions = ctx.discussions.slice(0, 3).map(d =>
+      `Discussion #${d.number} "${d.title}" (${d.category?.name}): ${(d.body || '').substring(0, 150).replace(/\n/g, ' ')}`
+    ).join('; ');
+    enrichedQuery += ` Recent team discussions for context: ${recentDiscussions}`;
+  }
+
   try {
-    log(`Invoking RLM for ${agentName} (${action.type})...`);
-    const { ok, id } = await apiPost('/api/rlm/invoke', { mode: 'analyst', query });
+    log(`Invoking RLM for ${agentName} (${action.type}, mode: ${mode})...`);
+    const { ok, id } = await apiPost('/api/rlm/invoke', { mode, query: enrichedQuery });
     if (!ok) return null;
     const result = await pollWorker(id, CONFIG.rlmTimeoutMs);
     if (result?.outputText) {
@@ -524,6 +614,7 @@ ${files}
 - **PR template** — PRs auto-fill with summary/changes/test plan/evidence sections. Fill them out.
 - **CODEOWNERS** — reviewers auto-assigned. You'll be requested for review automatically.
 - **Deployment environments** — Pages deploys only from protected branches.
+- **Discussions** — use GraphQL API for discussions (no \`gh discussion\` command). Categories: Ideas (DIC_kwDORgsDyM4C34JB), General (DIC_kwDORgsDyM4C34I_), Announcements (DIC_kwDORgsDyM4C34I-), Show and tell (DIC_kwDORgsDyM4C34JC). Create: \`gh api graphql -f query='mutation { createDiscussion(input: { repositoryId: "R_kgDORgsDyA", categoryId: "<ID>", title: "...", body: "..." }) { discussion { number url } } }'\`. Comment: \`gh api graphql -f query='mutation { addDiscussionComment(input: { discussionId: "<ID>", body: "..." }) { comment { id } } }'\`.
 `;
 
   switch (action.type) {
@@ -616,6 +707,66 @@ Your PR #${action.pr.pr}: "${action.pr.title}" has received comments/reviews.
    \`\`\`
 8. After creating the PR, comment on it explaining your approach and asking ${agent.peer} to review
 9. Switch back to main: \`git checkout main\`
+`;
+
+    case 'discuss':
+      if (action.respond && action.discussion) {
+        return `${preamble}
+## Your Task: Respond to Discussion #${action.discussion.number}
+
+**Category:** ${action.discussion.category?.name || 'General'}
+**Title:** ${action.discussion.title}
+**Started by:** ${action.discussion.author?.login || '?'}
+
+**Discussion body:**
+${action.discussion.body || '(empty)'}
+
+**Recent comments:**
+${(action.discussion.comments?.nodes || []).map(c => `> ${c.author?.login}: ${c.body}`).join('\n') || '(no comments yet)'}
+
+Your peer has posted or commented in this discussion. Engage substantively:
+
+1. Read the full discussion: \`gh api graphql -f query='{ repository(owner:"rodelBeronilla", name:"peer-webapp") { discussion(number:${action.discussion.number}) { body comments(first:20) { nodes { author { login } body } } } } }'\`
+2. Think critically about the topic — bring your own perspective as ${agent.name}
+3. Reply with a substantive comment via:
+   \`\`\`
+   gh api graphql -f query='mutation { addDiscussionComment(input: {discussionId:"<id>", body:"your response"}) { comment { id } } }'
+   \`\`\`
+   First get the discussion node ID: \`gh api graphql -f query='{ repository(owner:"rodelBeronilla", name:"peer-webapp") { discussion(number:${action.discussion.number}) { id } } }'\`
+   Then comment using that ID.
+4. If the discussion leads to actionable work, create a GitHub Issue for it
+5. If you disagree with something, explain why constructively with evidence from the codebase
+6. Reference specific files, functions, or patterns when discussing architecture
+`;
+      }
+      return `${preamble}
+## Your Task: Start a Design Discussion
+
+No PRs need review, no urgent issues. Use this turn to think strategically with your peer.
+
+Start a GitHub Discussion to align on the app's direction. Use the GraphQL API:
+
+\`\`\`
+gh api graphql -f query='mutation { createDiscussion(input: { repositoryId: "R_kgDORgsDyA", categoryId: "DIC_kwDORgsDyM4C34JB", title: "Your title", body: "Your substantive opening post" }) { discussion { number url } } }'
+\`\`\`
+
+Category IDs: Ideas=DIC_kwDORgsDyM4C34JB, General=DIC_kwDORgsDyM4C34I_, Announcements=DIC_kwDORgsDyM4C34I-, Show and tell=DIC_kwDORgsDyM4C34JC
+
+**Discussion topics to consider:**
+- Architecture decisions (e.g., "Should we adopt a component pattern for widgets?")
+- Feature prioritization ("What's the highest-value widget we could add next?")
+- Technical debt and code quality ("Our CSS is getting large — should we split it?")
+- User experience improvements ("The mobile nav feels clunky — let's redesign it")
+- Sprint retrospective ("What went well this sprint? What should we improve?")
+- Vision alignment ("Are we building the right thing for users?")
+
+**Guidelines:**
+1. Pick ONE focused topic — don't try to cover everything
+2. Write a substantive opening post (3+ paragraphs) with your analysis
+3. Reference specific code, files, or user scenarios
+4. Propose concrete options or approaches
+5. Ask your peer specific questions to engage them
+6. Use category "Ideas" for features, "General" for architecture, "Announcements" for sprint retros, "Show and tell" for demos
 `;
 
     case 'create-issues':
@@ -773,11 +924,11 @@ async function main() {
       const ghContextStr = formatGitHubContext(ctx);
 
       // 2. Decide action
-      action = decideAction(agentKey, ctx);
-      log(`Action: ${action.type}${action.pr ? ` (PR #${action.pr.number})` : ''}${action.issue ? ` (Issue #${action.issue.number})` : ''}`);
+      action = decideAction(agentKey, ctx, turnCount);
+      log(`Action: ${action.type}${action.pr ? ` (PR #${action.pr.number})` : ''}${action.issue ? ` (Issue #${action.issue.number})` : ''}${action.discussion ? ` (Discussion #${action.discussion.number})` : ''}`);
 
       // 3. RLM analysis (action-specific query)
-      const rlmContext = await invokeRLM(agent.name, action);
+      const rlmContext = await invokeRLM(agent.name, action, ctx);
 
       // 4. Build prompt
       const prompt = buildPrompt(agentKey, action, ghContextStr, rlmContext);
@@ -801,6 +952,7 @@ async function main() {
         consecutiveFailures = 0;
         // Idle turns cool down longer to avoid churn
         if (action.type === 'create-issues') cooldown = COOLDOWNS.idle;
+        if (action.type === 'discuss') cooldown = COOLDOWNS.discuss;
         if (action.stale) cooldown = COOLDOWNS.stale;
       }
 

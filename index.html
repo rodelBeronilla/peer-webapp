@@ -47,6 +47,8 @@
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="color">Color</a></li>
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="notes">Notes</a></li>
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="url">URL</a></li>
+        <li><a href="#tools" class="nav__link nav-tool-link" data-tab="bookmarks">Bookmarks</a></li>
+        <li><a href="#tools" class="nav__link nav-tool-link" data-tab="pomodoro">Pomodoro</a></li>
         <li><a href="#about" class="nav__link">About</a></li>
       </ul>
     </div>
@@ -82,6 +84,12 @@
         </button>
         <button class="tab" role="tab" aria-selected="false" aria-controls="panel-url" id="tab-url" data-panel="url" tabindex="-1">
           <span class="tab__icon" aria-hidden="true">%</span> URL
+        </button>
+        <button class="tab" role="tab" aria-selected="false" aria-controls="panel-bookmarks" id="tab-bookmarks" data-panel="bookmarks" tabindex="-1">
+          <span class="tab__icon" aria-hidden="true">🔖</span> Bookmarks
+        </button>
+        <button class="tab" role="tab" aria-selected="false" aria-controls="panel-pomodoro" id="tab-pomodoro" data-panel="pomodoro" tabindex="-1">
+          <span class="tab__icon" aria-hidden="true">🍅</span> Pomodoro
         </button>
       </div>
     </div>
@@ -416,6 +424,138 @@
                 aria-label="URL output"
               ></textarea>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════════════════════════
+           Bookmarks
+           ═══════════════════════════════ -->
+      <section
+        id="panel-bookmarks"
+        class="panel"
+        role="tabpanel"
+        aria-labelledby="tab-bookmarks"
+        hidden
+      >
+        <div class="tool">
+          <div class="tool__header">
+            <div>
+              <h2 class="tool__title">Bookmarks</h2>
+              <p class="tool__desc">Save URLs for quick access. Bookmarks persist in your browser's local storage.</p>
+            </div>
+          </div>
+          <div class="tool__body">
+            <form class="bookmarks__form" id="bookmarksForm" aria-label="Add a bookmark">
+              <div class="bookmarks__form-row">
+                <label for="bookmarkUrl" class="sr-only">URL</label>
+                <input
+                  type="text"
+                  id="bookmarkUrl"
+                  class="bookmarks__input"
+                  placeholder="https://example.com"
+                  spellcheck="false"
+                  autocomplete="off"
+                  inputmode="url"
+                  required
+                >
+                <label for="bookmarkLabel" class="sr-only">Label (optional)</label>
+                <input
+                  type="text"
+                  id="bookmarkLabel"
+                  class="bookmarks__input bookmarks__input--label"
+                  placeholder="Label (optional)"
+                  maxlength="80"
+                  autocomplete="off"
+                >
+                <button type="submit" class="btn">Add</button>
+              </div>
+            </form>
+            <div class="status-bar" id="bookmarkStatus" aria-live="polite" role="status"></div>
+            <div class="notes-meta">
+              <span class="notes__count" id="bookmarksCount" aria-live="polite">0 bookmarks</span>
+            </div>
+            <ul class="bookmarks__list" id="bookmarksList" role="list" aria-label="Bookmarks list"></ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════════════════════════
+           Pomodoro Timer
+           ═══════════════════════════════ -->
+      <section
+        id="panel-pomodoro"
+        class="panel"
+        role="tabpanel"
+        aria-labelledby="tab-pomodoro"
+        hidden
+      >
+        <div class="tool">
+          <div class="tool__header">
+            <div>
+              <h2 class="tool__title">Pomodoro Timer</h2>
+              <p class="tool__desc">Focus in timed sessions with short and long breaks. Supports classic 25/5, sprint 15/5, deep-work 50/10, and custom durations. Session count persists across reloads.</p>
+            </div>
+          </div>
+          <div class="tool__body pomodoro-tool">
+
+            <!-- Ring + time display -->
+            <div class="pomodoro-ring-wrap" role="timer">
+              <svg class="pomodoro-ring" viewBox="0 0 120 120" aria-hidden="true">
+                <circle class="pomodoro-ring__track"    cx="60" cy="60" r="54"/>
+                <circle class="pomodoro-ring__progress" cx="60" cy="60" r="54" id="pomodoroRingProgress"/>
+              </svg>
+              <div class="pomodoro-ring-content" aria-live="polite" aria-atomic="true">
+                <span class="pomodoro-mode" id="pomodoroMode">Work</span>
+                <span class="pomodoro-time" id="pomodoroTime" aria-label="25:00 remaining">25:00</span>
+                <span class="pomodoro-session" id="pomodoroSession">Session 1</span>
+              </div>
+            </div>
+
+            <!-- Controls -->
+            <div class="pomodoro-controls">
+              <button class="btn pomodoro-btn--primary" id="pomodoroStart" aria-label="Start timer">Start</button>
+              <button class="btn btn--ghost pomodoro-btn--secondary" id="pomodoroReset" aria-label="Reset timer">Reset</button>
+            </div>
+
+            <div class="pomodoro-stats" aria-live="polite">
+              <span class="pomodoro-today" id="pomodoroTodayCount">Today: 0 pomodoros</span>
+              <span class="pomodoro-streak" id="pomodoroStreak" hidden></span>
+            </div>
+
+            <!-- Settings -->
+            <div class="pomodoro-settings">
+              <label class="pomodoro-sound-label">
+                <input type="checkbox" id="pomodoroSound" checked aria-label="Play audio cue at session end">
+                <span>Audio cue at session end</span>
+              </label>
+
+              <div class="pomodoro-preset-row">
+                <label for="pomodoroPreset" class="pomodoro-preset-label">Duration preset</label>
+                <select id="pomodoroPreset" class="pomodoro-preset-select" aria-label="Duration preset">
+                  <option value="classic">25 / 5 — Classic</option>
+                  <option value="sprint">15 / 5 — Sprint</option>
+                  <option value="deep">50 / 10 — Deep Work</option>
+                  <option value="custom">Custom…</option>
+                </select>
+              </div>
+
+              <div id="pomodoroCustomFields" class="pomodoro-custom-fields" hidden>
+                <label class="pomodoro-custom-label">
+                  Work
+                  <input type="number" id="pomodoroCustomWork" class="pomodoro-custom-input" value="25" min="1" max="120" aria-label="Custom work duration in minutes"> min
+                </label>
+                <label class="pomodoro-custom-label">
+                  Short break
+                  <input type="number" id="pomodoroCustomShort" class="pomodoro-custom-input" value="5" min="1" max="60" aria-label="Custom short break duration in minutes"> min
+                </label>
+                <label class="pomodoro-custom-label">
+                  Long break
+                  <input type="number" id="pomodoroCustomLong" class="pomodoro-custom-input" value="15" min="1" max="60" aria-label="Custom long break duration in minutes"> min
+                </label>
+              </div>
+            </div>
+
           </div>
         </div>
       </section>
