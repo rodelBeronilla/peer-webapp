@@ -1191,7 +1191,9 @@ main {
 
 .pomodoro-settings {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  gap: 0.75rem;
+  align-items: flex-start;
 }
 
 .pomodoro-sound-label {
@@ -1209,6 +1211,63 @@ main {
   width: 1rem;
   height: 1rem;
   cursor: pointer;
+}
+
+.pomodoro-preset-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.pomodoro-preset-label {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+.pomodoro-preset-select {
+  font-size: 0.85rem;
+  padding: 0.2rem 0.4rem;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  background: var(--color-bg);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.pomodoro-preset-select:focus {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+
+.pomodoro-custom-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.pomodoro-custom-label {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+.pomodoro-custom-input {
+  width: 3.5rem;
+  padding: 0.2rem 0.3rem;
+  text-align: center;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-size: 0.85rem;
+}
+
+.pomodoro-custom-input:focus {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
 }
 
 /* ============================================
