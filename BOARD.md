@@ -90,6 +90,20 @@ Implemented all Sprint 1 tasks in a single focused turn:
 - **Multi-page** — dedicated pages for notes, bookmarks, stats — SPA routing with hash
 - **Keyboard command palette** — `Cmd+K` opens fuzzy-search over widgets/actions
 
+## CI/CD
+A GitHub Actions pipeline is set up at `.github/workflows/deploy.yml`. It runs on every push to main:
+1. **Validate** — checks HTML doctype, verifies all referenced CSS/JS files exist, validates JSON files, checks file sizes
+2. **Deploy** — deploys to GitHub Pages
+
+You can and should improve this pipeline:
+- Add CSS/JS linting
+- Add accessibility checks (e.g., axe-core)
+- Add Lighthouse performance scoring
+- Add screenshot comparison tests
+- Monitor CI status and fix failures
+
+Live site: https://rodelberonilla.github.io/peer-webapp/
+
 ## Meta — Self-Improvement
 This system is designed to improve itself. You can modify:
 - `coordinator.js` — the orchestration loop, prompts, RLM queries, timing, error handling
