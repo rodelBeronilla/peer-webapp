@@ -49,6 +49,7 @@
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="url">URL</a></li>
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="bookmarks">Bookmarks</a></li>
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="pomodoro">Pomodoro</a></li>
+        <li><a href="#tools" class="nav__link nav-tool-link" data-tab="jwt">JWT</a></li>
         <li><a href="#about" class="nav__link">About</a></li>
       </ul>
     </div>
@@ -90,6 +91,9 @@
         </button>
         <button class="tab" role="tab" aria-selected="false" aria-controls="panel-pomodoro" id="tab-pomodoro" data-panel="pomodoro" tabindex="-1">
           <span class="tab__icon" aria-hidden="true">🍅</span> Pomodoro
+        </button>
+        <button class="tab" role="tab" aria-selected="false" aria-controls="panel-jwt" id="tab-jwt" data-panel="jwt" tabindex="-1">
+          <span class="tab__icon" aria-hidden="true">🔑</span> JWT
         </button>
       </div>
     </div>
@@ -557,6 +561,75 @@
               </div>
             </div>
 
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════════════════════════
+           JWT Decoder
+           ═══════════════════════════════ -->
+      <section
+        id="panel-jwt"
+        class="panel"
+        role="tabpanel"
+        aria-labelledby="tab-jwt"
+        hidden
+      >
+        <div class="tool">
+          <div class="tool__header">
+            <div>
+              <h2 class="tool__title">JWT Decoder</h2>
+              <p class="tool__desc">Paste a JSON Web Token to decode its header and payload. Expiry and timestamps are shown in human-readable form. Signature is <strong>not</strong> verified.</p>
+            </div>
+          </div>
+          <div class="tool__body">
+            <div class="tool__pane">
+              <div class="pane__header">
+                <span class="pane__label">Token</span>
+                <div class="pane__actions">
+                  <button class="btn btn--sm" id="jwtDecode">Decode</button>
+                  <button class="btn btn--sm btn--ghost" id="jwtClear">Clear</button>
+                </div>
+              </div>
+              <textarea
+                class="code-area"
+                id="jwtInput"
+                placeholder="Paste JWT here… eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.signature"
+                spellcheck="false"
+                autocomplete="off"
+                aria-label="JWT token input"
+                rows="3"
+              ></textarea>
+              <div class="status-bar" id="jwtStatus" aria-live="polite" role="status"></div>
+            </div>
+
+            <div class="tool__body--split tool__body--split--top">
+              <div class="tool__pane">
+                <div class="pane__header">
+                  <span class="pane__label">Header</span>
+                  <div class="pane__actions">
+                    <button class="btn btn--sm btn--ghost" id="jwtCopyHeader" disabled>Copy</button>
+                  </div>
+                </div>
+                <pre class="code-preview" id="jwtHeader" aria-label="Decoded JWT header" aria-live="polite" tabindex="0"><span class="code-placeholder">Header will appear here</span></pre>
+              </div>
+              <div class="tool__pane">
+                <div class="pane__header">
+                  <span class="pane__label">Payload</span>
+                  <div class="pane__actions">
+                    <button class="btn btn--sm btn--ghost" id="jwtCopyPayload" disabled>Copy</button>
+                  </div>
+                </div>
+                <pre class="code-preview" id="jwtPayload" aria-label="Decoded JWT payload" aria-live="polite" tabindex="0"><span class="code-placeholder">Payload will appear here</span></pre>
+              </div>
+            </div>
+
+            <div class="tool__pane tool__pane--top" hidden id="jwtExpiryWrap">
+              <div class="pane__header">
+                <span class="pane__label">Timestamps</span>
+              </div>
+              <pre class="code-preview" id="jwtExpiry" aria-label="JWT timestamp details" aria-live="polite" tabindex="0" hidden></pre>
+            </div>
           </div>
         </div>
       </section>
