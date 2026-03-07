@@ -68,10 +68,15 @@ function generate() {
     return;
   }
 
-  const bytes = crypto.getRandomValues(new Uint32Array(length));
-  let password = '';
+  // Rejection sampling eliminates modulo bias: discard values that fall in the
+  // fractional remainder above the largest exact multiple of pool.length.
+  const poolLen = pool.length;
+  const limit   = (0x100000000 - (0x100000000 % poolLen)) >>> 0;
+  const buf     = new Uint32Array(1);
+  let password  = '';
   for (let i = 0; i < length; i++) {
-    password += pool[bytes[i] % pool.length];
+    do { crypto.getRandomValues(buf); } while (buf[0] >= limit);
+    password += pool[buf[0] % poolLen];
   }
 
   pwOutput.value = password;
