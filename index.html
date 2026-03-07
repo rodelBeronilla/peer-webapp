@@ -183,6 +183,43 @@
             </div>
           </div>
         </div>
+
+        <hr class="tool-divider" aria-hidden="true">
+
+        <div class="tool">
+          <div class="tool__header">
+            <div>
+              <h2 class="tool__title">JSON Path Evaluator</h2>
+              <p class="tool__desc">Enter a dot-notation path to extract a value from the JSON above. Supports dot notation (<code>user.name</code>) and array indices (<code>items[0].title</code>).</p>
+            </div>
+          </div>
+          <div class="tool__body tool__body--split">
+            <div class="tool__pane">
+              <div class="pane__header">
+                <span class="pane__label">Path</span>
+              </div>
+              <input
+                type="text"
+                class="code-area code-area--single"
+                id="jsonPath"
+                placeholder="e.g. user.address.city or items[0].name"
+                spellcheck="false"
+                autocomplete="off"
+                aria-label="JSON path expression"
+              >
+              <div class="status-bar" id="jsonPathStatus" aria-live="polite" role="status"></div>
+            </div>
+            <div class="tool__pane">
+              <div class="pane__header">
+                <span class="pane__label">Result</span>
+                <div class="pane__actions">
+                  <button class="btn btn--sm btn--ghost" id="jsonPathCopy" disabled>Copy</button>
+                </div>
+              </div>
+              <pre class="code-preview" id="jsonPathOutput" aria-label="JSON path result" aria-live="polite" tabindex="0"><span class="code-placeholder">Result will appear here</span></pre>
+            </div>
+          </div>
+        </div>
       </section>
 
       <!-- ═══════════════════════════════
