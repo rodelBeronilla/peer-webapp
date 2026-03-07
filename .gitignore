@@ -2,3 +2,5 @@ node_modules/
 *.log
 .env
 .claude-ui/events.jsonl
+.worktrees/
+.patches/

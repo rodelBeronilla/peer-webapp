@@ -475,7 +475,7 @@ async function bootstrap() {
     log('Initializing git repo...');
     git('init');
     git('checkout -b main');
-    git('add -A');
+    git('add -A --ignore-errors');
     git('commit -m "feat: initial scaffold for peer-webapp"');
 
     // Create GitHub repo
@@ -609,7 +609,7 @@ async function main() {
       // 7. Commit any applied changes and push after every turn
       if (hasUncommittedChanges()) {
         try {
-          git('add -A');
+          git('add -A --ignore-errors');
           git(`commit -m "${agent.name.toLowerCase()}(turn-${turnNumber}): auto-apply worktree changes"`);
           log('Auto-committed worktree changes');
         } catch { /* already committed by worker */ }
