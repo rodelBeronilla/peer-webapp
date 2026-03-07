@@ -529,6 +529,7 @@ main {
 }
 .code-area::placeholder { color: var(--color-text-muted); opacity: 0.6; }
 .code-area[readonly] { color: var(--color-text-muted); cursor: default; }
+.code-area--single { min-height: unset; height: 2.8rem; resize: none; padding-top: 0.6rem; padding-bottom: 0.6rem; }
 
 /* ============================================
    Code preview (pre)
@@ -1411,4 +1412,46 @@ main {
   color: var(--color-text-muted);
   background: var(--color-surface);
   transition: background var(--transition-slow), border-color var(--transition-slow);
+}
+
+/* ============================================
+   Timestamp Converter
+   ============================================ */
+.ts-results {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0;
+  margin: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+.ts-result-row {
+  display: grid;
+  grid-template-columns: 9rem 1fr;
+  border-bottom: 1px solid var(--color-border);
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+}
+.ts-result-row:last-child { border-bottom: none; }
+.ts-result-row dt {
+  padding: 0.55rem 0.875rem;
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font-weight: 600;
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+  border-right: 1px solid var(--color-border);
+  white-space: nowrap;
+}
+.ts-result-row dd {
+  margin: 0;
+  padding: 0.55rem 0.875rem;
+  color: var(--color-text);
+  background: var(--color-bg);
+  display: flex;
+  align-items: center;
+  word-break: break-all;
 }

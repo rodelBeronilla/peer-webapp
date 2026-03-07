@@ -50,6 +50,7 @@
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="bookmarks">Bookmarks</a></li>
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="pomodoro">Pomodoro</a></li>
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="jwt">JWT</a></li>
+        <li><a href="#tools" class="nav__link nav-tool-link" data-tab="timestamp">Timestamp</a></li>
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="base">Base</a></li>
         <li><a href="#about" class="nav__link">About</a></li>
       </ul>
@@ -95,6 +96,9 @@
         </button>
         <button class="tab" role="tab" aria-selected="false" aria-controls="panel-jwt" id="tab-jwt" data-panel="jwt" tabindex="-1">
           <span class="tab__icon" aria-hidden="true">🔑</span> JWT
+        </button>
+        <button class="tab" role="tab" aria-selected="false" aria-controls="panel-timestamp" id="tab-timestamp" data-panel="timestamp" tabindex="-1">
+          <span class="tab__icon" aria-hidden="true">⏱</span> Timestamp
         </button>
         <button class="tab" role="tab" aria-selected="false" aria-controls="panel-base" id="tab-base" data-panel="base" tabindex="-1">
           <span class="tab__icon" aria-hidden="true">01</span> Base
@@ -645,6 +649,108 @@
               </div>
               <pre class="code-preview" id="jwtExpiry" aria-label="JWT timestamp details" aria-live="polite" tabindex="0" hidden></pre>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════════════════════════
+           Unix Timestamp Converter
+           ═══════════════════════════════ -->
+      <section
+        id="panel-timestamp"
+        class="panel"
+        role="tabpanel"
+        aria-labelledby="tab-timestamp"
+        hidden
+      >
+        <div class="tool">
+          <div class="tool__header">
+            <div>
+              <h2 class="tool__title">Unix Timestamp Converter</h2>
+              <p class="tool__desc">Convert between Unix epoch timestamps and human-readable dates. Seconds and milliseconds are auto-detected.</p>
+            </div>
+          </div>
+
+          <div class="tool__body">
+
+            <!-- Input row -->
+            <div class="tool__body--split">
+              <div class="tool__pane">
+                <div class="pane__header">
+                  <span class="pane__label">Epoch</span>
+                  <div class="pane__actions">
+                    <button class="btn btn--sm" id="tsNow">Now</button>
+                    <button class="btn btn--sm btn--secondary" id="tsFromEpoch">→ Date</button>
+                    <button class="btn btn--sm btn--ghost" id="tsClear">Clear</button>
+                  </div>
+                </div>
+                <input
+                  type="text"
+                  id="tsEpoch"
+                  class="code-area code-area--single"
+                  placeholder="e.g. 1709999999 or 1709999999000"
+                  spellcheck="false"
+                  autocomplete="off"
+                  inputmode="numeric"
+                  aria-label="Unix epoch input (seconds or milliseconds)"
+                >
+              </div>
+
+              <div class="tool__pane">
+                <div class="pane__header">
+                  <span class="pane__label">Date / Time</span>
+                  <div class="pane__actions">
+                    <button class="btn btn--sm btn--secondary" id="tsFromDate">→ Epoch</button>
+                  </div>
+                </div>
+                <input
+                  type="datetime-local"
+                  id="tsDatetime"
+                  class="code-area code-area--single"
+                  aria-label="Date and time picker"
+                >
+              </div>
+            </div>
+
+            <div class="status-bar" id="tsStatus" aria-live="polite" role="status"></div>
+
+            <!-- Output grid -->
+            <div class="tool__pane tool__pane--top">
+              <div class="pane__header">
+                <span class="pane__label">Results</span>
+                <div class="pane__actions">
+                  <button class="btn btn--sm btn--ghost" id="tsCopyEpoch" disabled>Copy Epoch</button>
+                  <button class="btn btn--sm btn--ghost" id="tsCopyDate" disabled>Copy ISO</button>
+                </div>
+              </div>
+              <dl class="ts-results" aria-live="polite">
+                <div class="ts-result-row">
+                  <dt>ISO 8601</dt>
+                  <dd id="tsOutIso">—</dd>
+                </div>
+                <div class="ts-result-row">
+                  <dt>Local time</dt>
+                  <dd id="tsOutLocal">—</dd>
+                </div>
+                <div class="ts-result-row">
+                  <dt>UTC</dt>
+                  <dd id="tsOutUtc">—</dd>
+                </div>
+                <div class="ts-result-row">
+                  <dt>Relative</dt>
+                  <dd id="tsOutRelative">—</dd>
+                </div>
+                <div class="ts-result-row">
+                  <dt>Epoch (s)</dt>
+                  <dd id="tsOutEpochS">—</dd>
+                </div>
+                <div class="ts-result-row">
+                  <dt>Epoch (ms)</dt>
+                  <dd id="tsOutEpochMs">—</dd>
+                </div>
+              </dl>
+            </div>
+
           </div>
         </div>
       </section>

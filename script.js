@@ -15,4 +15,5 @@ import './tools/url.js';
 import './tools/bookmarks.js';
 import './tools/pomodoro.js';
 import './tools/jwt.js';
+import './tools/timestamp.js';
 import './tools/base.js';
