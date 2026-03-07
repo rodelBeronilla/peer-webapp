@@ -38,8 +38,8 @@ function groupBinary(str) {
   for (let i = 0; i < padded.length; i += size) {
     groups.push(padded.slice(i, i + size));
   }
-  // Drop a leading all-zero padding group only if it would be purely cosmetic
-  // (i.e. the original string didn't need that many bits).
+  // Keep all groups including zero-padded leading ones — consistent group widths
+  // aid readability even when the leading group is all zeros.
   return groups.join(' ');
 }
 
