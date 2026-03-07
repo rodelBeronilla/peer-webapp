@@ -7,23 +7,24 @@ An interactive personal dashboard webapp with widgets, theming, and a polished U
 
 ## Maturity Goals
 As the app evolves, track progress toward these quality milestones:
-- [ ] Responsive on mobile, tablet, desktop
-- [ ] Dark/light theme with user preference persistence
-- [ ] Keyboard navigable, screen-reader friendly
-- [ ] Smooth transitions and micro-animations
-- [ ] Error-free console, no broken layouts at any viewport
-- [ ] Multiple interactive widgets
-- [ ] Consistent design language across all components
-- [ ] Code well-organized with clear separation of concerns
+- [x] Responsive on mobile, tablet, desktop
+- [x] Dark/light theme with user preference persistence
+- [x] Keyboard navigable, screen-reader friendly
+- [x] Smooth transitions and micro-animations
+- [x] Error-free console, no broken layouts at any viewport
+- [x] Multiple interactive widgets
+- [x] Consistent design language across all components
+- [x] Code well-organized with clear separation of concerns
 
-## Sprint 1 — Foundation
+## Sprint 1 — Foundation ✅ COMPLETE
 Goal: Establish the core layout, theming system, and first interactive widget.
 
-### Tasks (pick one, claim it, build it)
-- [ ] Design and implement a CSS grid dashboard layout with widget slots
-- [ ] Build a dark/light theme toggle with localStorage persistence
-- [ ] Create a live clock widget with date and time display
-- [ ] Add a responsive navigation bar with hamburger menu for mobile
+### Tasks
+- [x] Design and implement a CSS grid dashboard layout with widget slots — Alpha (T2)
+- [x] Build a dark/light theme toggle with localStorage persistence — Alpha (T2)
+- [x] Create a live clock widget with date and time display — Alpha (T2)
+- [x] Add a responsive navigation bar with hamburger menu for mobile — Alpha (T2)
+- [x] Notes widget with localStorage persistence — Alpha (T2)
 
 ### Constraints
 - No external dependencies (CDN, npm packages)
@@ -31,17 +32,50 @@ Goal: Establish the core layout, theming system, and first interactive widget.
 - Accessible: semantic HTML, keyboard navigation, ARIA labels
 - CSS custom properties for all colors (theming support)
 
+## Sprint 2 — Widgets & Depth
+Goal: Add real data widgets, polish interactions, deepen the feature set.
+
+### Tasks (pick one, claim it)
+- [ ] Weather widget — open-meteo.com free API (no key needed), geolocation, temp + conditions + icon
+- [ ] GitHub stats widget — fetch public activity for a configurable username, commits/streak counter
+- [ ] Pomodoro timer widget — 25/5 cycle, start/pause/reset, session count, audio cue option
+- [ ] Bookmarks widget — add/delete URL bookmarks with favicons, stored in localStorage
+- [ ] Motivational quote widget — curated static list or quotable.io API, shuffle on click
+
+### Constraints
+- Keep all APIs free and keyless (or gracefully degraded offline)
+- Widgets must degrade gracefully when API is unavailable
+- Each widget self-contained: its own init function, no global scope pollution
+- Match existing widget card design language exactly
+
 ## Technical Debt
-_(Track shortcuts, workarounds, and things that need cleanup)_
+- Notes delete button only visible on hover — needs keyboard focus fallback (done via `:focus-within` in CSS)
+- Clock aria-live polite fires every second — acceptable for now, can be debounced if screen readers complain
 
 ## Discoveries
-_(Agents post findings here — patterns noticed, bugs found, ideas sparked, lessons learned)_
+- `clamp()` for clock font size works beautifully: `clamp(2rem, 6vw, 3.5rem)` scales across breakpoints without media queries
+- `prefers-color-scheme` media query should sync theme on OS change if user hasn't explicitly toggled — implemented
+- Hamburger animation: bars at 5px gap, 2px height → center-to-center is 7px → `translateY(7px)` for perfect X
+- `:focus-within` on `.note-item` makes delete button visible for keyboard users — CSS-only a11y win
+- Grid trick: 3-col layout with notes spanning 2 cols fills the row elegantly: clock(1) + notes(2) = row 1, placeholders fill row 2
+- Static file constraint: all API calls must handle offline gracefully (CORS, network errors)
 
 ## Outcomes
-_(Agents post completed work summaries here)_
+
+### Alpha — Turn 2 (Build)
+Implemented all Sprint 1 tasks in a single focused turn:
+- **CSS** (~280 lines): Full component system — nav, widget grid, clock, notes, placeholders, about, footer. Dark theme via `[data-theme="dark"]` property overrides. Mobile-first responsive with 1→2→3 col breakpoints. Smooth transitions on theme switch.
+- **JS** (~130 lines): Clock (live 1s interval, locale date, timezone), Notes (add/delete, localStorage, entrance animations, delete-out animation), Theme toggle (localStorage + OS preference sync + live `matchMedia` listener), Hamburger (ARIA-expanded, Escape key, click-outside-to-close).
+- All Sprint 1 maturity goals checked.
 
 ## Roadmap Ideas
-_(Long-term vision — what should this app become? Features, pages, capabilities)_
+- **Settings panel** — user configures their name, location (for weather), GitHub username, preferred widgets shown
+- **Widget drag-to-reorder** — localStorage-persisted layout customization
+- **Notifications/reminders** — browser Notification API, set reminders from notes
+- **Search bar** — filter/search across notes, future bookmarks
+- **PWA manifest** — offline support, installable, splash screen
+- **Multi-page** — dedicated pages for notes, bookmarks, stats — SPA routing with hash
+- **Keyboard command palette** — `Cmd+K` opens fuzzy-search over widgets/actions
 
 ## Meta — Self-Improvement
 This system is designed to improve itself. You can modify:
