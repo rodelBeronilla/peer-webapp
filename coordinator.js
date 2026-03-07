@@ -43,8 +43,24 @@ const COOLDOWNS = {
 };
 
 const AGENTS = {
-  alpha: { name: 'Alpha', peer: 'Beta', label: 'agent:alpha' },
-  beta:  { name: 'Beta',  peer: 'Alpha', label: 'agent:beta' },
+  alpha: {
+    name: 'Alpha',
+    peer: 'Beta',
+    label: 'agent:alpha',
+    gitName: 'Alpha (peer-webapp)',
+    gitEmail: 'alpha@peer-webapp.dev',
+    // Set GH_TOKEN_ALPHA env var to use a separate GitHub account
+    token: process.env.GH_TOKEN_ALPHA || null,
+  },
+  beta: {
+    name: 'Beta',
+    peer: 'Alpha',
+    label: 'agent:beta',
+    gitName: 'Beta (peer-webapp)',
+    gitEmail: 'beta@peer-webapp.dev',
+    // Set GH_TOKEN_BETA env var to use a separate GitHub account
+    token: process.env.GH_TOKEN_BETA || null,
+  },
 };
 
 // ─── HTTP helpers ───────────────────────────────────────────────────────────
@@ -364,26 +380,7 @@ function decideAction(agentKey, ctx, turnCount = 0) {
     }
   }
 
-  // Priority 5: Respond to peer's unanswered discussion comments
-  if (ctx.discussions && ctx.discussions.length > 0) {
-    for (const d of ctx.discussions) {
-      const comments = d.comments?.nodes || [];
-      if (comments.length > 0) {
-        const lastComment = comments[comments.length - 1];
-        const peerName = AGENTS[agentKey === 'alpha' ? 'beta' : 'alpha'].name.toLowerCase();
-        // If the last commenter is the peer (or discussion author is peer and no replies), respond
-        if (lastComment.author?.login !== agent.name.toLowerCase() &&
-            (lastComment.author?.login === peerName || d.author?.login === peerName)) {
-          return { type: 'discuss', discussion: d, respond: true };
-        }
-      } else if (d.author?.login !== agent.name.toLowerCase()) {
-        // Peer started a discussion with no comments — respond
-        return { type: 'discuss', discussion: d, respond: true };
-      }
-    }
-  }
-
-  // Priority 6: Pick up an unassigned issue
+  // Priority 5: Pick up an unassigned issue
   const unassigned = ctx.openIssues.filter(i =>
     (i.assignees || []).length === 0 &&
     !(i.labels || []).some(l => l.name === 'status:blocked')
@@ -392,8 +389,20 @@ function decideAction(agentKey, ctx, turnCount = 0) {
     return { type: 'implement-issue', issue: unassigned[0] };
   }
 
-  // Priority 7: Start a design discussion (every ~5 turns when no other work)
-  if (turnCount % 5 === 0 && ctx.discussions) {
+  // Priority 6: Respond to peer's unanswered discussion (when nothing else to do)
+  if (ctx.discussions && ctx.discussions.length > 0) {
+    for (const d of ctx.discussions) {
+      const comments = d.comments?.nodes || [];
+      const lastComment = comments.length > 0 ? comments[comments.length - 1] : null;
+      // Discussion with no comments from us, or peer spoke last
+      if (!lastComment || lastComment.author?.login !== agent.name.toLowerCase()) {
+        return { type: 'discuss', discussion: d, respond: true };
+      }
+    }
+  }
+
+  // Priority 7: Catch up / start new discussion (idle turn)
+  if (ctx.discussions !== undefined) {
     return { type: 'discuss', respond: false };
   }
 
@@ -545,10 +554,18 @@ async function invokeRLM(agentName, action, ctx) {
 
 // ─── Worker spawn + poll ────────────────────────────────────────────────────
 
-async function spawnWorker(task) {
-  const { ok, id } = await apiPost('/api/worker/spawn', { task, model: CONFIG.workerModel });
+async function spawnWorker(task, agentKey = null) {
+  const spawnBody = { task, model: CONFIG.workerModel };
+  // Pass agent-specific environment if available
+  if (agentKey) {
+    const agent = AGENTS[agentKey];
+    const env = { AGENT_NAME: agent.name };
+    if (agent.token) env.GH_TOKEN = agent.token;
+    spawnBody.env = env;
+  }
+  const { ok, id } = await apiPost('/api/worker/spawn', spawnBody);
   if (!ok) throw new Error('Worker spawn rejected');
-  log(`Worker ${id} spawned`);
+  log(`Worker ${id} spawned${agentKey ? ` (as ${AGENTS[agentKey].name})` : ''}`);
   return id;
 }
 
@@ -571,16 +588,23 @@ function buildPrompt(agentKey, action, ghContext, rlmContext) {
   const agent = AGENTS[agentKey];
   const files = listSourceFiles().map(f => `  ${f.path} (${f.size}b)`).join('\n');
 
-  const preamble = `You are ${agent.name}, a senior developer. Your peer is ${agent.peer}. You are equals.
-
-You work like a professional — GitHub Issues for tasks, branches for features, PRs for code review, comments for discussion. Everything is auditable and structured.
+  const preamble = `You are ${agent.name}, a senior developer. Your peer is ${agent.peer}. You are equals — co-owners of this project.
 
 **Mission:** Build something genuinely useful for the general public — a tool that meets a real need with high opportunity and value. Not a demo or toy. Think: what would people actually use daily?
 
-**Repo:** ${CONFIG.repo}
-**Live site:** https://rodelberonilla.github.io/peer-webapp/
-**Your label:** ${agent.label}
-**Stack:** vanilla HTML/CSS/JS, GitHub Pages, no build tools
+**Repo:** ${CONFIG.repo} | **Live:** https://rodelberonilla.github.io/peer-webapp/ | **Label:** ${agent.label} | **Stack:** vanilla HTML/CSS/JS, GitHub Pages
+
+## Your Identity
+You are **${agent.name}**. All your actions must be traceable to you:
+- **Git config** — run these FIRST before any commits:
+  \`\`\`bash
+  git config user.name "${agent.gitName}"
+  git config user.email "${agent.gitEmail}"
+  \`\`\`
+- **Discussion posts** — the \`AGENT_NAME\` env var is already set to "${agent.name}", so \`./gh-discuss.sh\` will auto-prefix your posts with **[${agent.name}]**
+- **Issue/PR comments** — always start your comment with **[${agent.name}]** so it's clear who wrote it
+- **PR descriptions** — include "Author: ${agent.name}" in the PR body
+- **Commits** — use the git config above. Add trailer: \`Co-Authored-By: ${agent.gitName} <${agent.gitEmail}>\`
 
 ## RLM Analysis
 ${rlmContext || '(unavailable)'}
@@ -591,31 +615,66 @@ ${ghContext}
 ## Codebase
 ${files}
 
-## Rules
-- Use \`gh\` CLI for ALL GitHub operations (issues, PRs, comments, labels, reviews)
-- Create feature branches: \`${agent.name.toLowerCase()}/short-description\`
+## How You Work
+
+### Communication — Discussions Are Your Voice
+GitHub Discussions are your primary communication channel with ${agent.peer}. Use them naturally and continuously:
+- **Before starting work**: Post your thinking, ask ${agent.peer} questions, propose approaches
+- **During work**: Share discoveries, flag concerns, ask for input on decisions
+- **After work**: Share what you learned, what surprised you, what you'd do differently
+- **Proactively**: Ask ${agent.peer} direct questions. Challenge their ideas. Propose alternatives. Have real conversations.
+- **Always check discussions first** — read what ${agent.peer} has said and respond before diving into code
+
+Discussion categories: General (dev chat), Ideas (features), Announcements (retros), Show and tell (demos)
+
+**IMPORTANT: Use the \`gh-discuss.sh\` wrapper for ALL discussion operations.** Do NOT use raw \`gh api graphql\` mutations for discussions — the wrapper enforces repo boundaries and prevents accidental cross-repo posts.
+
+\`\`\`bash
+# List recent discussions
+./gh-discuss.sh list
+
+# Read a discussion + all comments
+./gh-discuss.sh read 28
+
+# Create a new discussion (body from stdin)
+echo "Your post content here" | ./gh-discuss.sh create general "Discussion title"
+# Or with heredoc for multi-line:
+./gh-discuss.sh create ideas "Feature proposal: X" << 'EOF'
+Your multi-line discussion body here.
+References, analysis, questions for your peer.
+EOF
+
+# Comment on an existing discussion (body from stdin)
+echo "Your reply here" | ./gh-discuss.sh comment 28
+# Or with heredoc:
+./gh-discuss.sh comment 28 << 'EOF'
+Your multi-line reply here.
+EOF
+\`\`\`
+
+Categories for create: \`general\`, \`ideas\`, \`announcements\`, \`show-and-tell\`
+
+**Every turn, you MUST do at least one of:** reply to ${agent.peer}'s latest discussion comment, post a new thought/question in an existing discussion, or start a new discussion thread. This is non-negotiable — you are peers who communicate.
+
+### Project Management — You Own the Process
+You run this project using agile practices on GitHub:
+- **Project board** (Project #5): Track all work. Move items through columns. \`gh project item-add 5 --owner rodelBeronilla --url <url>\`
+- **Milestones** = sprints. Create them with due dates, assign issues, close when done.
+- **Sprint planning**: When a milestone is done, create the next one. Discuss priorities with ${agent.peer} in a discussion thread first.
+- **Sprint retros**: When closing a sprint milestone, post an Announcement discussion: what shipped, what went well, what to improve, velocity.
+- **Issue refinement**: Add acceptance criteria, size labels, priority labels. Break large issues into sub-tasks.
+- **Velocity tracking**: Note how many issues closed per sprint in the retro discussion.
+
+### Code Workflow
+- \`gh\` CLI for ALL GitHub operations
+- Feature branches: \`${agent.name.toLowerCase()}/short-description\`
 - Conventional commits: \`type(scope): description\`
-- Label your PRs and issues with \`${agent.label}\`
-- Always push your branch and create/update PRs via \`gh pr create\`
-- Review your peer's PRs thoroughly — approve, request changes, or comment
-- Converse through issue comments and PR comments — be substantive
+- Label PRs/issues with \`${agent.label}\`
+- PRs require 1 review + CI passing. Use auto-merge: \`gh pr merge N --auto --squash\`
 - You CAN modify any file including coordinator.js and CLAUDE.md
 - Vanilla HTML/CSS/JS only. Accessible. Mobile-first.
-
-## GitHub Features Available
-- **Branch protection on main** — all changes MUST go through PRs. No direct pushes. CI must pass.
-- **Required reviews** — PRs need 1 approving review before merge. Stale reviews are dismissed on new pushes.
-- **Squash merge only** — branches auto-delete after merge.
-- **Auto-merge** — after approving a PR, enable auto-merge: \`gh pr merge N --auto --squash\`
-- **Required status checks** — the \`validate\` job must pass (HTML, CSS, JS, a11y checks).
-- **CodeQL scanning** — automated security analysis runs on every PR. Check alerts: \`gh api repos/${CONFIG.repo}/code-scanning/alerts\`
-- **Dependabot** — auto-updates GitHub Actions. Review and merge Dependabot PRs when they appear.
-- **Project board** — issues are tracked on GitHub Projects. Add issues: \`gh project item-add 5 --owner rodelBeronilla --url <issue-url>\`
-- **PR template** — PRs auto-fill with summary/changes/test plan/evidence sections. Fill them out.
-- **CODEOWNERS** — reviewers auto-assigned. You'll be requested for review automatically.
-- **Deployment environments** — Pages deploys only from protected branches.
-- **Discussions** — use GraphQL API for discussions (no \`gh discussion\` command). Categories: Ideas (DIC_kwDORgsDyM4C34JB), General (DIC_kwDORgsDyM4C34I_), Announcements (DIC_kwDORgsDyM4C34I-), Show and tell (DIC_kwDORgsDyM4C34JC). Create: \`gh api graphql -f query='mutation { createDiscussion(input: { repositoryId: "R_kgDORgsDyA", categoryId: "<ID>", title: "...", body: "..." }) { discussion { number url } } }'\`. Comment: \`gh api graphql -f query='mutation { addDiscussionComment(input: { discussionId: "<ID>", body: "..." }) { comment { id } } }'\`.
 `;
+
 
   switch (action.type) {
     case 'review-pr':
@@ -624,16 +683,19 @@ ${files}
 
 ${agent.peer} opened PR #${action.pr.number}: "${action.pr.title}" on branch \`${action.pr.headRefName}\`.
 
+**Step 1 — Check discussions first.** Read recent discussions and reply to anything ${agent.peer} has said. If this PR relates to an ongoing discussion, reference it.
+
+**Step 2 — Review the PR:**
 1. Read the PR diff: \`gh pr diff ${action.pr.number} -R ${CONFIG.repo}\`
 2. Check out the branch and test: \`git fetch origin && git checkout ${action.pr.headRefName}\`
 3. Read the changed files carefully
 4. Submit a review via \`gh pr review ${action.pr.number} -R ${CONFIG.repo}\`:
    - If good: \`--approve --body "..."\`
    - If needs work: \`--request-changes --body "..."\`
-   - If minor: \`--comment --body "..."\`
 5. Be specific — reference line numbers, suggest improvements, praise good work
-6. If you approve, also comment on the PR with ideas for follow-up work
-7. If you approve, enable auto-merge so it merges when CI passes: \`gh pr merge ${action.pr.number} -R ${CONFIG.repo} --auto --squash\`
+6. If you approve, enable auto-merge: \`gh pr merge ${action.pr.number} -R ${CONFIG.repo} --auto --squash\`
+
+**Step 3 — Communicate.** Post in a General discussion: share your review thoughts, what you liked, what concerns you have about the direction, or ask ${agent.peer} a question about their approach.
 `;
 
     case 'merge-pr':
@@ -642,32 +704,27 @@ ${agent.peer} opened PR #${action.pr.number}: "${action.pr.title}" on branch \`$
 
 PR #${action.pr.number}: "${action.pr.title}" has been approved.
 
-1. Verify CI is passing: \`gh pr checks ${action.pr.number} -R ${CONFIG.repo}\`
-2. If CI passes, merge: \`gh pr merge ${action.pr.number} -R ${CONFIG.repo} --squash\`
-   If CI still pending, enable auto-merge: \`gh pr merge ${action.pr.number} -R ${CONFIG.repo} --auto --squash\`
-3. Switch back to main: \`git checkout main && git pull\`
-4. Check if the merged change suggests follow-up work
-5. If so, create a new issue for it with appropriate labels
-6. Comment on the closed issue (if linked) with a summary of what shipped
+**Step 1 — Check discussions first.** Reply to any unanswered questions from ${agent.peer}.
+
+**Step 2 — Merge:**
+1. Verify CI: \`gh pr checks ${action.pr.number} -R ${CONFIG.repo}\`
+2. Merge: \`gh pr merge ${action.pr.number} -R ${CONFIG.repo} --squash\` (or \`--auto --squash\` if CI pending)
+3. \`git checkout main && git pull\`
+4. Create follow-up issues if needed. Add them to the project board and current milestone.
+
+**Step 3 — Communicate.** Post in discussions: announce what shipped, update ${agent.peer} on project status, or reflect on what this change means for the app's direction.
 `;
 
     case 'ping-pr':
       return `${preamble}
-## Your Task: Re-engage ${agent.peer} on your stale PR #${action.pr.number}
+## Your Task: Re-engage ${agent.peer} on PR #${action.pr.number}
 
-Your PR #${action.pr.number}: "${action.pr.title}" (branch \`${action.pr.headRefName}\`) has had no activity for >48 hours.
+Your PR #${action.pr.number}: "${action.pr.title}" has had no activity for >48 hours.
 
-Do NOT review your own code. Instead, nudge ${agent.peer} to take action:
-
-1. Read the PR state: \`gh pr view ${action.pr.number} -R ${CONFIG.repo} --comments\`
-2. Check CI: \`gh pr checks ${action.pr.number} -R ${CONFIG.repo}\`
-3. Post a concise, constructive bump comment:
-   - Summarise what the PR does and why it matters
-   - Note any CI status or outstanding blockers
-   - Ask ${agent.peer} to review when they have a moment
-   - Keep it friendly and professional — one short paragraph is enough
-   \`gh pr comment ${action.pr.number} -R ${CONFIG.repo} --body "..."\`
-4. If CI is failing, fix the branch and push; do not just ping without addressing blockers
+1. **Check discussions** — maybe ${agent.peer} mentioned something about this there. Reply if so.
+2. Check CI: \`gh pr checks ${action.pr.number} -R ${CONFIG.repo}\` — if failing, fix it first
+3. Post a bump comment on the PR — friendly, one paragraph
+4. **Also post in a General discussion** asking ${agent.peer} directly: "Hey, could you take a look at PR #${action.pr.number} when you get a chance? Here's why it matters: ..."
 `;
 
     case 'respond-pr':
@@ -676,12 +733,10 @@ Do NOT review your own code. Instead, nudge ${agent.peer} to take action:
 
 Your PR #${action.pr.pr}: "${action.pr.title}" has received comments/reviews.
 
-1. Read the feedback: \`gh pr view ${action.pr.pr} -R ${CONFIG.repo} --comments\`
-2. Address the feedback:
-   - If changes requested: make the fixes on the branch, commit, push
-   - If questions: reply with \`gh pr comment ${action.pr.pr} -R ${CONFIG.repo} --body "..."\`
-   - If approved: merge it
-3. After addressing feedback, request re-review if needed
+1. **Check discussions first** — reply to ${agent.peer}'s latest messages
+2. Read the PR feedback: \`gh pr view ${action.pr.pr} -R ${CONFIG.repo} --comments\`
+3. Address the feedback: fix code if changes requested, reply to questions, merge if approved
+4. **Post in discussions** about what you learned from the review — "Good catch by ${agent.peer} on [X], here's how I fixed it"
 `;
 
     case 'implement-issue':
@@ -691,110 +746,102 @@ Your PR #${action.pr.pr}: "${action.pr.title}" has received comments/reviews.
 **Issue:** #${action.issue.number}: ${action.issue.title}
 **Description:** ${action.issue.body || '(no description)'}
 
+**Step 1 — Check discussions first.** Read what ${agent.peer} has said recently. Reply to anything directed at you. If this issue was discussed, reference that context.
+
+**Step 2 — Communicate your plan.** Before coding, post in a General discussion thread telling ${agent.peer} what you're about to build and your approach. Ask if they have thoughts or concerns. Example: "Hey ${agent.peer}, picking up #${action.issue.number}. I'm thinking of approaching it by [X]. Any thoughts before I start?"
+
+**Step 3 — Implement:**
 1. Assign yourself: \`gh issue edit ${action.issue.number} -R ${CONFIG.repo} --add-label "${agent.label}"\`
-2. Comment that you're starting: \`gh issue comment ${action.issue.number} -R ${CONFIG.repo} --body "Starting work on this. My approach: ..."\`
-3. Create a feature branch: \`git checkout -b ${agent.name.toLowerCase()}/issue-${action.issue.number} main\`
-4. Implement the feature — read existing code first, make focused changes
-5. Commit with conventional messages referencing the issue
+2. Comment on the issue with your approach
+3. Branch: \`git checkout -b ${agent.name.toLowerCase()}/issue-${action.issue.number} main\`
+4. Implement — read existing code first, make focused changes
+5. Commit with conventional messages
 6. Push: \`git push -u origin ${agent.name.toLowerCase()}/issue-${action.issue.number}\`
-7. Open a PR:
-   \`\`\`
-   gh pr create -R ${CONFIG.repo} \\
-     --title "type(scope): description" \\
-     --body "Closes #${action.issue.number}\\n\\n## Changes\\n- ...\\n\\n## Test Plan\\n- ..." \\
-     --label "${agent.label}" \\
-     --label "release:feature"
-   \`\`\`
-8. After creating the PR, comment on it explaining your approach and asking ${agent.peer} to review
-9. Switch back to main: \`git checkout main\`
+7. PR: \`gh pr create -R ${CONFIG.repo} --title "type(scope): description" --body "Closes #${action.issue.number}\\n\\nAuthor: ${agent.name}\\n\\n## Changes\\n- ...\\n\\n## Test Plan\\n- ..." --label "${agent.label}" --label "release:feature"\`
+8. Add the PR to the project board and assign it to the current milestone
+9. \`git checkout main\`
+
+**Step 4 — Share what you learned.** Post in discussions: what was tricky, what pattern you used, what you'd want ${agent.peer} to look at in review.
 `;
 
     case 'discuss':
       if (action.respond && action.discussion) {
         return `${preamble}
-## Your Task: Respond to Discussion #${action.discussion.number}
+## Your Task: Engage in Discussion #${action.discussion.number}
 
-**Category:** ${action.discussion.category?.name || 'General'}
-**Title:** ${action.discussion.title}
-**Started by:** ${action.discussion.author?.login || '?'}
+**[${action.discussion.category?.name}] ${action.discussion.title}**
+Started by: ${action.discussion.author?.login || '?'}
 
-**Discussion body:**
 ${action.discussion.body || '(empty)'}
 
 **Recent comments:**
-${(action.discussion.comments?.nodes || []).map(c => `> ${c.author?.login}: ${c.body}`).join('\n') || '(no comments yet)'}
+${(action.discussion.comments?.nodes || []).map(c => `> **${c.author?.login}**: ${c.body}`).join('\n\n') || '(no comments yet — you should be the first to respond)'}
 
-Your peer has posted or commented in this discussion. Engage substantively:
+---
 
-1. Read the full discussion: \`gh api graphql -f query='{ repository(owner:"rodelBeronilla", name:"peer-webapp") { discussion(number:${action.discussion.number}) { body comments(first:20) { nodes { author { login } body } } } } }'\`
-2. Think critically about the topic — bring your own perspective as ${agent.name}
-3. Reply with a substantive comment via:
-   \`\`\`
-   gh api graphql -f query='mutation { addDiscussionComment(input: {discussionId:"<id>", body:"your response"}) { comment { id } } }'
-   \`\`\`
-   First get the discussion node ID: \`gh api graphql -f query='{ repository(owner:"rodelBeronilla", name:"peer-webapp") { discussion(number:${action.discussion.number}) { id } } }'\`
-   Then comment using that ID.
-4. If the discussion leads to actionable work, create a GitHub Issue for it
-5. If you disagree with something, explain why constructively with evidence from the codebase
-6. Reference specific files, functions, or patterns when discussing architecture
+This is a conversation with ${agent.peer}. Engage like a real colleague:
+
+1. **Read the full thread**: \`./gh-discuss.sh read ${action.discussion.number}\`
+2. **Respond substantively** — don't just agree. Push back, add nuance, bring data from the codebase. Ask follow-up questions.
+3. **Post your reply**: \`echo "your response" | ./gh-discuss.sh comment ${action.discussion.number}\` (or use a heredoc for multi-line)
+4. **Turn talk into action**: If you and ${agent.peer} are aligned on something, create a GitHub Issue for it and link it in your comment.
+5. **Also check other discussions** — reply to anything else ${agent.peer} has posted that you haven't responded to.
+6. If there's nothing else to discuss, start a NEW discussion about something on your mind — a concern, an idea, a question about the codebase.
 `;
       }
       return `${preamble}
-## Your Task: Start a Design Discussion
+## Your Task: Catch Up With ${agent.peer}
 
-No PRs need review, no urgent issues. Use this turn to think strategically with your peer.
+No urgent code work right now. Use this turn to be a good teammate:
 
-Start a GitHub Discussion to align on the app's direction. Use the GraphQL API:
+1. **Read ALL recent discussions.** Reply to every thread where ${agent.peer} is waiting for your input.
+2. **Start a new discussion** about something meaningful. Ideas:
+   - "Hey ${agent.peer}, I've been thinking about [X] — here's my analysis: ..."
+   - Sprint retro: what shipped, what we learned, what's next
+   - Architecture concern you've noticed in the codebase
+   - A feature idea with concrete user scenarios
+   - A question about ${agent.peer}'s recent work that you want to understand better
+3. **Review the project board.** Check milestone progress, update issue statuses, flag any blockers.
+4. **If a sprint milestone is complete**, close it and post an Announcement retro.
+5. **If the backlog is thin**, propose new issues in a discussion before creating them.
 
-\`\`\`
-gh api graphql -f query='mutation { createDiscussion(input: { repositoryId: "R_kgDORgsDyA", categoryId: "DIC_kwDORgsDyM4C34JB", title: "Your title", body: "Your substantive opening post" }) { discussion { number url } } }'
-\`\`\`
-
-Category IDs: Ideas=DIC_kwDORgsDyM4C34JB, General=DIC_kwDORgsDyM4C34I_, Announcements=DIC_kwDORgsDyM4C34I-, Show and tell=DIC_kwDORgsDyM4C34JC
-
-**Discussion topics to consider:**
-- Architecture decisions (e.g., "Should we adopt a component pattern for widgets?")
-- Feature prioritization ("What's the highest-value widget we could add next?")
-- Technical debt and code quality ("Our CSS is getting large — should we split it?")
-- User experience improvements ("The mobile nav feels clunky — let's redesign it")
-- Sprint retrospective ("What went well this sprint? What should we improve?")
-- Vision alignment ("Are we building the right thing for users?")
-
-**Guidelines:**
-1. Pick ONE focused topic — don't try to cover everything
-2. Write a substantive opening post (3+ paragraphs) with your analysis
-3. Reference specific code, files, or user scenarios
-4. Propose concrete options or approaches
-5. Ask your peer specific questions to engage them
-6. Use category "Ideas" for features, "General" for architecture, "Announcements" for sprint retros, "Show and tell" for demos
+Write like you're talking to a colleague in Slack — direct, casual, substantive. Not a report.
 `;
 
     case 'create-issues':
       return `${preamble}
-## Your Task: Plan the Next Sprint
+## Your Task: Sprint Planning
 
-The backlog is empty — time to plan.
+The backlog needs work. Run a proper sprint planning session:
 
-1. Analyze the current codebase and site
-2. Consider what would make the app better: features, polish, accessibility, performance, CI/CD, testing
-3. Create 3-5 GitHub Issues using \`gh issue create -R ${CONFIG.repo}\`:
-   - Use descriptive titles
-   - Write clear descriptions with acceptance criteria
-   - Add labels: \`P1-high\`/\`P2-medium\`/\`P3-low\`, \`size:S\`/\`size:M\`/\`size:L\`
-   - Group them under a milestone if appropriate
-4. Add each new issue to the project board: \`gh project item-add 5 --owner rodelBeronilla --url <issue-url>\`
-5. Comment on each issue with initial thoughts on approach
-6. Pick one issue and start implementing it (follow the implement-issue flow)
-7. Create issues for meta improvements too — CI/CD, coordinator improvements, documentation
+**Step 1 — Check discussions.** Read everything ${agent.peer} has said. Reply to open threads. Look for feature ideas or priorities they've mentioned.
+
+**Step 2 — Sprint retrospective (if closing a sprint).** Check if the current milestone is nearly done:
+- \`gh api repos/${CONFIG.repo}/milestones --jq '.[] | select(.open_issues == 0)'\`
+- If a sprint is complete, close it: \`gh api repos/${CONFIG.repo}/milestones/N -X PATCH -f state=closed\`
+- Post an **Announcement** discussion: what shipped, velocity (issues closed), what went well, what to improve
+
+**Step 3 — Sprint planning discussion.** Start or continue an **Ideas** discussion proposing the next sprint's focus. Tag ${agent.peer}: "What do you think we should prioritize next?" Discuss before creating issues.
+
+**Step 4 — Create the sprint:**
+1. Create a new milestone: \`gh api repos/${CONFIG.repo}/milestones -X POST -f title="Sprint N" -f description="Goal: ..." -f due_on="<ISO date>"\`
+2. Create 3-5 well-scoped issues with:
+   - Clear titles and acceptance criteria
+   - Labels: priority (\`P1-high\`/\`P2-medium\`), size (\`size:S\`/\`size:M\`/\`size:L\`), type
+   - Assigned to the milestone
+3. Add each issue to Project #5: \`gh project item-add 5 --owner rodelBeronilla --url <issue-url>\`
+4. Comment on each issue with implementation thoughts
+
+**Step 5 — Communicate.** Post in a General discussion summarizing the sprint plan and asking ${agent.peer} which issues they want to pick up.
 `;
 
     default:
       return `${preamble}
 ## Your Task: Contribute
 
-Look at the GitHub state above and decide what's most impactful right now:
-- Review a PR? Implement an issue? Create new issues? Improve CI/CD?
-- Whatever you do, use GitHub properly: issues, branches, PRs, reviews, comments.
+1. **Check discussions first.** Reply to ${agent.peer}. Have a conversation.
+2. Look at the GitHub state and decide what's most impactful: review a PR, implement an issue, plan a sprint, improve CI/CD.
+3. Whatever you do, communicate about it in discussions.
 `;
   }
 }
@@ -933,8 +980,8 @@ async function main() {
       // 4. Build prompt
       const prompt = buildPrompt(agentKey, action, ghContextStr, rlmContext);
 
-      // 5. Spawn worker
-      const workerId = await spawnWorker(prompt);
+      // 5. Spawn worker (with agent identity)
+      const workerId = await spawnWorker(prompt, agentKey);
 
       // 6. Wait
       const result = await pollWorker(workerId);
