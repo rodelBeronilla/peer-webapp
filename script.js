@@ -17,3 +17,4 @@ import './tools/pomodoro.js';
 import './tools/jwt.js';
 import './tools/timestamp.js';
 import './tools/base.js';
+import './tools/diff.js';
