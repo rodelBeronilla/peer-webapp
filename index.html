@@ -47,6 +47,7 @@
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="color">Color</a></li>
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="notes">Notes</a></li>
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="url">URL</a></li>
+        <li><a href="#tools" class="nav__link nav-tool-link" data-tab="bookmarks">Bookmarks</a></li>
         <li><a href="#about" class="nav__link">About</a></li>
       </ul>
     </div>
@@ -82,6 +83,9 @@
         </button>
         <button class="tab" role="tab" aria-selected="false" aria-controls="panel-url" id="tab-url" data-panel="url" tabindex="-1">
           <span class="tab__icon" aria-hidden="true">%</span> URL
+        </button>
+        <button class="tab" role="tab" aria-selected="false" aria-controls="panel-bookmarks" id="tab-bookmarks" data-panel="bookmarks" tabindex="-1">
+          <span class="tab__icon" aria-hidden="true">🔖</span> Bookmarks
         </button>
       </div>
     </div>
@@ -416,6 +420,58 @@
                 aria-label="URL output"
               ></textarea>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════════════════════════
+           Bookmarks
+           ═══════════════════════════════ -->
+      <section
+        id="panel-bookmarks"
+        class="panel"
+        role="tabpanel"
+        aria-labelledby="tab-bookmarks"
+        hidden
+      >
+        <div class="tool">
+          <div class="tool__header">
+            <div>
+              <h2 class="tool__title">Bookmarks</h2>
+              <p class="tool__desc">Save URLs for quick access. Bookmarks persist in your browser's local storage.</p>
+            </div>
+          </div>
+          <div class="tool__body">
+            <form class="bookmarks__form" id="bookmarksForm" aria-label="Add a bookmark">
+              <div class="bookmarks__form-row">
+                <label for="bookmarkUrl" class="sr-only">URL</label>
+                <input
+                  type="text"
+                  id="bookmarkUrl"
+                  class="bookmarks__input"
+                  placeholder="https://example.com"
+                  spellcheck="false"
+                  autocomplete="off"
+                  inputmode="url"
+                  required
+                >
+                <label for="bookmarkLabel" class="sr-only">Label (optional)</label>
+                <input
+                  type="text"
+                  id="bookmarkLabel"
+                  class="bookmarks__input bookmarks__input--label"
+                  placeholder="Label (optional)"
+                  maxlength="80"
+                  autocomplete="off"
+                >
+                <button type="submit" class="btn">Add</button>
+              </div>
+            </form>
+            <div class="status-bar" id="bookmarkStatus" aria-live="polite" role="status"></div>
+            <div class="notes-meta">
+              <span class="notes__count" id="bookmarksCount" aria-live="polite">0 bookmarks</span>
+            </div>
+            <ul class="bookmarks__list" id="bookmarksList" role="list" aria-label="Bookmarks list"></ul>
           </div>
         </div>
       </section>

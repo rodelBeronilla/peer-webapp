@@ -962,6 +962,142 @@ main {
 }
 
 /* ============================================
+   Bookmarks tool
+   ============================================ */
+.bookmarks__form {
+  margin-bottom: 0.5rem;
+}
+
+.bookmarks__form-row {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.bookmarks__input {
+  flex: 1 1 200px;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-size: 0.9rem;
+  font-family: var(--font-main);
+  transition: border-color var(--transition), box-shadow var(--transition), background var(--transition-slow), color var(--transition-slow);
+}
+.bookmarks__input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18);
+}
+.bookmarks__input--label {
+  flex: 0 1 160px;
+}
+.bookmarks__input::placeholder { color: var(--color-text-muted); }
+
+.bookmarks__list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 420px;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+}
+.bookmarks__list::-webkit-scrollbar { width: 4px; }
+.bookmarks__list::-webkit-scrollbar-track { background: transparent; }
+.bookmarks__list::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 2px; }
+
+.bookmark-item {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.625rem 0.75rem;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  animation: noteIn 200ms ease forwards;
+  transition: background var(--transition-slow), border-color var(--transition-slow);
+}
+
+.bookmark-item__favicon {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  border-radius: 2px;
+  object-fit: contain;
+}
+
+.bookmark-item__favicon--fallback {
+  font-size: 0.85rem;
+  line-height: 1;
+}
+
+.bookmark-item__info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.bookmark-item__link {
+  font-size: 0.9rem;
+  color: var(--color-primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color var(--transition);
+}
+.bookmark-item__link:hover { color: var(--color-primary-hover); }
+
+.bookmark-item__url {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bookmark-item__delete {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  transition: background var(--transition), color var(--transition), opacity var(--transition);
+  opacity: 0;
+}
+.bookmark-item:hover .bookmark-item__delete,
+.bookmark-item:focus-within .bookmark-item__delete { opacity: 1; }
+.bookmark-item__delete:hover {
+  background: rgba(220, 38, 38, 0.1);
+  color: var(--color-danger);
+}
+.bookmark-item__delete:focus-visible {
+  opacity: 1;
+  outline: 2px solid var(--color-danger);
+  outline-offset: 2px;
+}
+
+.bookmark-empty {
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  padding: 1.5rem;
+}
+
+/* ============================================
    About section
    ============================================ */
 .about {
