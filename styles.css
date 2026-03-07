@@ -798,12 +798,22 @@ main {
   color: var(--color-text);
   font-family: var(--font-mono);
   font-size: 0.82rem;
-  cursor: default;
   transition: border-color var(--transition), background var(--transition-slow);
 }
 .color-value-input:focus {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
+}
+.color-value-input.is-invalid {
+  border-color: #ef4444;
+  animation: color-input-shake 0.3s ease;
+}
+@keyframes color-input-shake {
+  0%, 100% { transform: translateX(0); }
+  20%       { transform: translateX(-4px); }
+  40%       { transform: translateX(4px); }
+  60%       { transform: translateX(-3px); }
+  80%       { transform: translateX(3px); }
 }
 
 .color-history-section {

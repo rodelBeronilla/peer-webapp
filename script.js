@@ -517,6 +517,78 @@ function addToHistory(hex) {
   renderColorHistory();
 }
 
+// ---- Editable color input helpers ----
+
+function parseHexInput(raw) {
+  const s = raw.trim();
+  const full = /^#?([0-9a-f]{6})$/i.exec(s);
+  if (full) return '#' + full[1].toLowerCase();
+  const short = /^#?([0-9a-f]{3})$/i.exec(s);
+  if (short) {
+    const [r, g, b] = short[1].split('');
+    return '#' + r + r + g + g + b + b;
+  }
+  return null;
+}
+
+function parseRgbInput(raw) {
+  const m = /^rgb\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)$/i.exec(raw.trim());
+  if (!m) return null;
+  const [r, g, b] = [+m[1], +m[2], +m[3]];
+  if (r > 255 || g > 255 || b > 255) return null;
+  return '#' + [r, g, b].map(n => n.toString(16).padStart(2, '0')).join('');
+}
+
+function hslToHex(h, s, l) {
+  s /= 100; l /= 100;
+  const a = s * Math.min(l, 1 - l);
+  const f = n => {
+    const k = (n + h / 30) % 12;
+    const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+    return Math.round(255 * color).toString(16).padStart(2, '0');
+  };
+  return '#' + f(0) + f(8) + f(4);
+}
+
+function parseHslInput(raw) {
+  const m = /^hsl\(\s*(\d{1,3})\s*,\s*(\d{1,3})%\s*,\s*(\d{1,3})%\s*\)$/i.exec(raw.trim());
+  if (!m) return null;
+  const [h, s, l] = [+m[1], +m[2], +m[3]];
+  if (h > 360 || s > 100 || l > 100) return null;
+  return hslToHex(h, s, l);
+}
+
+function flashInvalid(el) {
+  el.classList.remove('is-invalid');
+  void el.offsetWidth; // reflow to restart animation
+  el.classList.add('is-invalid');
+  el.addEventListener('animationend', () => el.classList.remove('is-invalid'), { once: true });
+}
+
+function applyColorInput(inputEl, parseFn) {
+  const hex = parseFn(inputEl.value);
+  if (hex) {
+    colorPicker.value = hex;
+    updateColorDisplay(hex);
+    addToHistory(hex);
+  } else {
+    flashInvalid(inputEl);
+    // Revert to last valid value
+    updateColorDisplay(colorPicker.value);
+  }
+}
+
+[colorHexIn, colorRgbIn, colorHslIn].forEach(el => {
+  el.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); el.blur(); }
+  });
+});
+
+colorHexIn.addEventListener('blur', () => applyColorInput(colorHexIn, parseHexInput));
+colorRgbIn.addEventListener('blur', () => applyColorInput(colorRgbIn, parseRgbInput));
+colorHslIn.addEventListener('blur', () => applyColorInput(colorHslIn, parseHslInput));
+
+// ---- Native picker ----
 colorPicker.addEventListener('input', () => {
   updateColorDisplay(colorPicker.value);
 });
