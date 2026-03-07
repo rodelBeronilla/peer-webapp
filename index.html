@@ -340,6 +340,51 @@
                 <p class="match-empty">Pick a color to add it here.</p>
               </div>
             </div>
+
+            <div class="contrast-section" aria-label="WCAG Contrast Checker">
+              <div class="pane__header">
+                <span class="pane__label">Contrast Checker</span>
+              </div>
+              <div class="contrast-pickers">
+                <div class="contrast-picker-group">
+                  <label class="contrast-picker-label" for="contrastBgPicker">Background</label>
+                  <label class="color-picker-wrap contrast-picker-wrap" title="Click to pick background color">
+                    <input type="color" id="contrastBgPicker" class="color-picker" value="#ffffff" aria-label="Background color picker">
+                    <div class="color-swatch contrast-bg-swatch" id="contrastBgSwatch"></div>
+                    <span class="color-swatch-label">Click to pick</span>
+                  </label>
+                  <input type="text" class="color-value-input contrast-hex-input" id="contrastBgHex" aria-label="Background HEX color" placeholder="#ffffff" spellcheck="false">
+                </div>
+                <div class="contrast-preview-wrap" aria-label="Contrast preview">
+                  <div class="contrast-preview" id="contrastPreview" aria-hidden="true">
+                    <span class="contrast-preview-text">Aa</span>
+                  </div>
+                  <div class="contrast-ratio" id="contrastRatio" aria-live="polite" aria-label="Contrast ratio">—</div>
+                </div>
+              </div>
+              <div class="contrast-badges" role="list" aria-label="WCAG pass/fail results">
+                <div class="contrast-badge" id="badge-aa-normal" role="listitem">
+                  <span class="contrast-badge__level">AA</span>
+                  <span class="contrast-badge__size">Normal</span>
+                  <span class="contrast-badge__result" aria-label="AA normal text: ">—</span>
+                </div>
+                <div class="contrast-badge" id="badge-aa-large" role="listitem">
+                  <span class="contrast-badge__level">AA</span>
+                  <span class="contrast-badge__size">Large</span>
+                  <span class="contrast-badge__result" aria-label="AA large text: ">—</span>
+                </div>
+                <div class="contrast-badge" id="badge-aaa-normal" role="listitem">
+                  <span class="contrast-badge__level">AAA</span>
+                  <span class="contrast-badge__size">Normal</span>
+                  <span class="contrast-badge__result" aria-label="AAA normal text: ">—</span>
+                </div>
+                <div class="contrast-badge" id="badge-aaa-large" role="listitem">
+                  <span class="contrast-badge__level">AAA</span>
+                  <span class="contrast-badge__size">Large</span>
+                  <span class="contrast-badge__result" aria-label="AAA large text: ">—</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>

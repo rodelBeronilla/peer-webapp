@@ -9,6 +9,13 @@ const colorRgbIn   = document.getElementById('colorRgb');
 const colorHslIn   = document.getElementById('colorHsl');
 const tabColorSwatch = document.getElementById('tabColorSwatch');
 
+// Contrast checker elements
+const contrastBgPicker = document.getElementById('contrastBgPicker');
+const contrastBgSwatch = document.getElementById('contrastBgSwatch');
+const contrastBgHex    = document.getElementById('contrastBgHex');
+const contrastPreview  = document.getElementById('contrastPreview');
+const contrastRatio    = document.getElementById('contrastRatio');
+
 const COLOR_HISTORY_KEY = 'devtools-color-history';
 let colorHistory = [];
 
@@ -53,6 +60,8 @@ function updateColorDisplay(hex) {
 
   const { h, s, l } = rgbToHsl(r, g, b);
   colorHslIn.value = `hsl(${h}, ${s}%, ${l}%)`;
+
+  updateContrast();
 }
 
 function loadColorHistory() {
@@ -184,7 +193,77 @@ document.getElementById('clearColorHistory').addEventListener('click', () => {
   renderColorHistory();
 });
 
+// ---- WCAG Contrast Checker ----
+
+const CONTRAST_BADGES = [
+  { id: 'badge-aa-normal',  threshold: 4.5, label: 'AA normal text' },
+  { id: 'badge-aa-large',   threshold: 3,   label: 'AA large text' },
+  { id: 'badge-aaa-normal', threshold: 7,   label: 'AAA normal text' },
+  { id: 'badge-aaa-large',  threshold: 4.5, label: 'AAA large text' },
+];
+
+function relativeLuminance(hex) {
+  const { r, g, b } = hexToRgb(hex);
+  const lin = v => {
+    const c = v / 255;
+    return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  };
+  return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+}
+
+function calcContrastRatio(hex1, hex2) {
+  const l1 = relativeLuminance(hex1);
+  const l2 = relativeLuminance(hex2);
+  const lighter = Math.max(l1, l2);
+  const darker  = Math.min(l1, l2);
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
+function updateContrast() {
+  const fgHex = colorPicker.value;
+  const bgHex = contrastBgPicker.value;
+
+  contrastPreview.style.backgroundColor = bgHex;
+  contrastPreview.style.color = fgHex;
+
+  const ratio = calcContrastRatio(fgHex, bgHex);
+  contrastRatio.textContent = ratio.toFixed(2) + ':1';
+
+  CONTRAST_BADGES.forEach(({ id, threshold, label }) => {
+    const badge = document.getElementById(id);
+    const result = badge.querySelector('.contrast-badge__result');
+    const pass = ratio >= threshold;
+    badge.classList.toggle('contrast-badge--pass', pass);
+    badge.classList.toggle('contrast-badge--fail', !pass);
+    result.textContent = pass ? 'Pass' : 'Fail';
+    result.setAttribute('aria-label', `${label}: ${pass ? 'Pass' : 'Fail'}`);
+  });
+}
+
+function updateBgDisplay(hex) {
+  contrastBgSwatch.style.background = hex;
+  contrastBgHex.value = hex.toUpperCase();
+  updateContrast();
+}
+
+contrastBgPicker.addEventListener('input', () => updateBgDisplay(contrastBgPicker.value));
+
+contrastBgHex.addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); contrastBgHex.blur(); }
+});
+contrastBgHex.addEventListener('blur', () => {
+  const hex = parseHexInput(contrastBgHex.value);
+  if (hex) {
+    contrastBgPicker.value = hex;
+    updateBgDisplay(hex);
+  } else {
+    flashInvalid(contrastBgHex);
+    updateBgDisplay(contrastBgPicker.value);
+  }
+});
+
 // Init
 loadColorHistory();
 updateColorDisplay(colorPicker.value);
 renderColorHistory();
+updateBgDisplay(contrastBgPicker.value);
