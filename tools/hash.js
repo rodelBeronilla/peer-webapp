@@ -165,6 +165,10 @@ casingBtn.addEventListener('click', () => {
   if (out256.value) out256.value = applyCase(out256.value.toLowerCase());
   if (out384.value) out384.value = applyCase(out384.value.toLowerCase());
   if (out512.value) out512.value = applyCase(out512.value.toLowerCase());
+  // Apply to file hash outputs too
+  if (fileOut256 && fileOut256.value) fileOut256.value = applyCase(fileOut256.value.toLowerCase());
+  if (fileOut384 && fileOut384.value) fileOut384.value = applyCase(fileOut384.value.toLowerCase());
+  if (fileOut512 && fileOut512.value) fileOut512.value = applyCase(fileOut512.value.toLowerCase());
   // Case toggle doesn't change hash value — comparison is always case-insensitive
 });
 
@@ -285,3 +289,137 @@ hmacClearBtn.addEventListener('click', () => {
 hmacCopy256.addEventListener('click', () => copyText(hmacOut256.value, hmacCopy256));
 hmacCopy384.addEventListener('click', () => copyText(hmacOut384.value, hmacCopy384));
 hmacCopy512.addEventListener('click', () => copyText(hmacOut512.value, hmacCopy512));
+
+// ---------------------------------------------------------------------------
+// File Hash section
+// ---------------------------------------------------------------------------
+
+const fileDropZone     = document.getElementById('fileDropZone');
+const fileInput        = document.getElementById('fileHashInput');
+const fileHashStatus   = document.getElementById('fileHashStatus');
+const fileOut256       = document.getElementById('fileHashOut256');
+const fileOut384       = document.getElementById('fileHashOut384');
+const fileOut512       = document.getElementById('fileHashOut512');
+const fileCopy256      = document.getElementById('fileHashCopy256');
+const fileCopy384      = document.getElementById('fileHashCopy384');
+const fileCopy512      = document.getElementById('fileHashCopy512');
+const fileClearBtn     = document.getElementById('fileHashClear');
+const fileCompareToggle256 = document.getElementById('fileHashCompareToggle256');
+const fileCompareToggle384 = document.getElementById('fileHashCompareToggle384');
+const fileCompareToggle512 = document.getElementById('fileHashCompareToggle512');
+const fileCompareRow256    = document.getElementById('fileHashCompareRow256');
+const fileCompareRow384    = document.getElementById('fileHashCompareRow384');
+const fileCompareRow512    = document.getElementById('fileHashCompareRow512');
+const fileExpected256      = document.getElementById('fileHashExpected256');
+const fileExpected384      = document.getElementById('fileHashExpected384');
+const fileExpected512      = document.getElementById('fileHashExpected512');
+const fileMatchStatus256   = document.getElementById('fileHashMatch256');
+const fileMatchStatus384   = document.getElementById('fileHashMatch384');
+const fileMatchStatus512   = document.getElementById('fileHashMatch512');
+
+function setFileStatus(msg, type = '') {
+  fileHashStatus.textContent = msg;
+  fileHashStatus.className = 'status-bar' + (type ? ` status-bar--${type}` : '');
+}
+
+function formatBytes(n) {
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  return `${(n / (1024 * 1024)).toFixed(2)} MB`;
+}
+
+function clearFileOutputs() {
+  fileOut256.value = '';
+  fileOut384.value = '';
+  fileOut512.value = '';
+  fileCopy256.disabled = true;
+  fileCopy384.disabled = true;
+  fileCopy512.disabled = true;
+  clearMatchStatus(fileMatchStatus256, fileExpected256);
+  clearMatchStatus(fileMatchStatus384, fileExpected384);
+  clearMatchStatus(fileMatchStatus512, fileExpected512);
+  fileDropZone.classList.remove('file-drop-zone--loaded');
+  setFileStatus('');
+}
+
+async function hashFile(file) {
+  setFileStatus(`Reading ${file.name}…`);
+
+  let arrayBuffer;
+  try {
+    arrayBuffer = await file.arrayBuffer();
+  } catch {
+    setFileStatus('Could not read file.', 'error');
+    return;
+  }
+
+  try {
+    const [h256, h384, h512] = await Promise.all([
+      digest('SHA-256', arrayBuffer),
+      digest('SHA-384', arrayBuffer),
+      digest('SHA-512', arrayBuffer),
+    ]);
+
+    fileOut256.value = applyCase(h256);
+    fileOut384.value = applyCase(h384);
+    fileOut512.value = applyCase(h512);
+
+    fileCopy256.disabled = false;
+    fileCopy384.disabled = false;
+    fileCopy512.disabled = false;
+
+    updateMatchStatus(fileExpected256, fileMatchStatus256, fileOut256);
+    updateMatchStatus(fileExpected384, fileMatchStatus384, fileOut384);
+    updateMatchStatus(fileExpected512, fileMatchStatus512, fileOut512);
+
+    fileDropZone.classList.add('file-drop-zone--loaded');
+    fileDropZone.querySelector('.file-drop-zone__label').textContent = file.name;
+    fileDropZone.querySelector('.file-drop-zone__hint').textContent = formatBytes(file.size);
+    setFileStatus(`${file.name} · ${formatBytes(file.size)}`, 'ok');
+  } catch {
+    setFileStatus('Hashing failed — Web Crypto API not available.', 'error');
+  }
+}
+
+// Drop zone interaction
+fileDropZone.addEventListener('click', () => fileInput.click());
+fileDropZone.addEventListener('keydown', e => {
+  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInput.click(); }
+});
+
+fileDropZone.addEventListener('dragover', e => {
+  e.preventDefault();
+  fileDropZone.classList.add('file-drop-zone--active');
+});
+fileDropZone.addEventListener('dragleave', () => {
+  fileDropZone.classList.remove('file-drop-zone--active');
+});
+fileDropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  fileDropZone.classList.remove('file-drop-zone--active');
+  const file = e.dataTransfer.files[0];
+  if (file) hashFile(file);
+});
+
+fileInput.addEventListener('change', () => {
+  const file = fileInput.files[0];
+  if (file) hashFile(file);
+});
+
+fileClearBtn.addEventListener('click', () => {
+  fileInput.value = '';
+  fileDropZone.querySelector('.file-drop-zone__label').innerHTML =
+    'Drop file here or <span class="file-drop-zone__browse">browse</span>';
+  fileDropZone.querySelector('.file-drop-zone__hint').textContent =
+    'SHA-256, SHA-384, SHA-512 \u2014 nothing leaves your device';
+  clearFileOutputs();
+});
+
+// Compare toggles for file hashes
+wireCompareToggle(fileCompareToggle256, fileCompareRow256, fileExpected256, fileMatchStatus256, fileOut256);
+wireCompareToggle(fileCompareToggle384, fileCompareRow384, fileExpected384, fileMatchStatus384, fileOut384);
+wireCompareToggle(fileCompareToggle512, fileCompareRow512, fileExpected512, fileMatchStatus512, fileOut512);
+
+fileCopy256.addEventListener('click', () => copyText(fileOut256.value, fileCopy256));
+fileCopy384.addEventListener('click', () => copyText(fileOut384.value, fileCopy384));
+fileCopy512.addEventListener('click', () => copyText(fileOut512.value, fileCopy512));
