@@ -126,7 +126,7 @@ function addBookmark(rawUrl, label) {
     return;
   }
 
-  bookmarks.unshift({ url, label: label.trim(), id: Date.now() });
+  bookmarks.unshift({ url, label: label.trim(), id: crypto.randomUUID() });
   saveBookmarks();
   renderBookmarks();
   bookmarkStatus.textContent = '';
@@ -191,7 +191,7 @@ bookmarksImportFile.addEventListener('change', () => {
       const newBookmarks = imported.filter(b => !existingUrls.has(normalizeUrl(b.url)));
       newBookmarks.forEach(b => {
         b.url = normalizeUrl(b.url);
-        if (!b.id) b.id = Date.now() + Math.random();
+        if (!b.id) b.id = crypto.randomUUID();
         if (!b.label) b.label = '';
       });
       bookmarks = [...newBookmarks, ...bookmarks];
