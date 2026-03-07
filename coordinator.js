@@ -365,6 +365,60 @@ Do NOT push — the coordinator handles pushing.
 `;
 }
 
+// ─── Worktree change application ────────────────────────────────────────────
+
+function applyWorktreeChanges(workerId) {
+  const worktreeDir = join(CONFIG.projectDir, '.worktrees', workerId);
+  if (!existsSync(worktreeDir)) {
+    log(`No worktree found for ${workerId} — changes may have been applied by evaluator`);
+    return;
+  }
+
+  const protectedFiles = new Set(['.git', '.worktrees', '.claude-ui', 'node_modules', '.patches']);
+  let copied = 0;
+
+  const copyRecursive = (srcDir, destDir, prefix = '') => {
+    if (!existsSync(srcDir)) return;
+    for (const entry of readdirSync(srcDir)) {
+      if (protectedFiles.has(entry)) continue;
+      const srcPath = join(srcDir, entry);
+      const destPath = join(destDir, entry);
+      const stat = statSync(srcPath);
+
+      if (stat.isDirectory()) {
+        if (!existsSync(destPath)) {
+          execSync(`mkdir -p "${destPath}"`);
+        }
+        copyRecursive(srcPath, destPath, `${prefix}${entry}/`);
+      } else {
+        // Only copy if file is different from main
+        const destExists = existsSync(destPath);
+        if (!destExists) {
+          writeFileSync(destPath, readFileSync(srcPath));
+          log(`  + ${prefix}${entry} (new file)`);
+          copied++;
+        } else {
+          const srcContent = readFileSync(srcPath);
+          const destContent = readFileSync(destPath);
+          if (!srcContent.equals(destContent)) {
+            writeFileSync(destPath, srcContent);
+            log(`  ~ ${prefix}${entry} (updated)`);
+            copied++;
+          }
+        }
+      }
+    }
+  };
+
+  copyRecursive(worktreeDir, CONFIG.projectDir);
+
+  if (copied > 0) {
+    log(`Applied ${copied} file(s) from ${workerId} worktree`);
+  } else {
+    log(`No changes to apply from ${workerId} worktree`);
+  }
+}
+
 // ─── Staleness detection ────────────────────────────────────────────────────
 
 function detectStaleness() {
@@ -546,17 +600,23 @@ async function main() {
           log(`  Files written: ${result.filesWritten.join(', ')}`);
         }
         consecutiveFailures = 0;
+
+        // 6b. Apply worktree changes if evaluator didn't auto-apply.
+        // Workers write to .worktrees/worker-N/. Copy changed files back.
+        applyWorktreeChanges(workerId);
       }
 
-      // 7. Push after every pair of turns (after Beta's turn)
-      if (agentKey === 'beta' && hasUncommittedChanges()) {
-        // Agent should have committed, but catch stragglers
+      // 7. Commit any applied changes and push after every turn
+      if (hasUncommittedChanges()) {
         try {
           git('add -A');
-          git('commit -m "chore: coordinator auto-commit for uncommitted changes"');
-        } catch { /* already committed */ }
-        gitPush();
-      } else if (agentKey === 'beta') {
+          git(`commit -m "${agent.name.toLowerCase()}(turn-${turnNumber}): auto-apply worktree changes"`);
+          log('Auto-committed worktree changes');
+        } catch { /* already committed by worker */ }
+      }
+
+      // Push after every pair of turns (after Beta's turn)
+      if (agentKey === 'beta') {
         gitPush();
       }
 

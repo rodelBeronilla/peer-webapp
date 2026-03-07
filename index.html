@@ -1,24 +1,147 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Peer Webapp</title>
+  <title>Peer Dashboard</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <header>
-    <h1>Peer Webapp</h1>
-    <p>Built collaboratively by two AI peer developers.</p>
-  </header>
-  <main>
-    <section id="content">
-      <p>This site is under perpetual development. Check back often.</p>
-    </section>
+
+  <!-- Navigation -->
+  <nav class="nav" aria-label="Main navigation">
+    <div class="nav__inner">
+      <a href="#" class="nav__brand" aria-label="Peer Dashboard home">
+        <span class="nav__logo" aria-hidden="true">⬡</span>
+        Peer Dashboard
+      </a>
+
+      <div class="nav__actions">
+        <button
+          class="theme-toggle"
+          id="themeToggle"
+          aria-label="Switch to dark mode"
+          title="Toggle dark/light mode"
+        >
+          <span class="theme-toggle__icon" aria-hidden="true">☾</span>
+        </button>
+
+        <button
+          class="nav__hamburger"
+          id="hamburger"
+          aria-label="Open navigation menu"
+          aria-expanded="false"
+          aria-controls="navMenu"
+        >
+          <span class="hamburger__bar"></span>
+          <span class="hamburger__bar"></span>
+          <span class="hamburger__bar"></span>
+        </button>
+      </div>
+
+      <ul class="nav__menu" id="navMenu" role="list">
+        <li><a href="#dashboard" class="nav__link">Dashboard</a></li>
+        <li><a href="#notes" class="nav__link">Notes</a></li>
+        <li><a href="#about" class="nav__link">About</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- Main content -->
+  <main id="dashboard">
+
+    <!-- Widget grid -->
+    <div class="dashboard-grid">
+
+      <!-- Clock widget -->
+      <article class="widget widget--clock" aria-label="Clock">
+        <header class="widget__header">
+          <h2 class="widget__title">
+            <span aria-hidden="true">🕐</span> Clock
+          </h2>
+        </header>
+        <div class="widget__body">
+          <time
+            class="clock__time"
+            id="clockTime"
+            aria-live="polite"
+            aria-atomic="true"
+          >--:--:--</time>
+          <div class="clock__date" id="clockDate" aria-live="polite"></div>
+          <div class="clock__tz" id="clockTz"></div>
+        </div>
+      </article>
+
+      <!-- Notes widget -->
+      <article class="widget widget--notes" id="notes" aria-label="Quick notes">
+        <header class="widget__header">
+          <h2 class="widget__title">
+            <span aria-hidden="true">📝</span> Quick Notes
+          </h2>
+          <span class="notes__count" id="notesCount" aria-live="polite">0 notes</span>
+        </header>
+        <div class="widget__body">
+          <form class="notes__form" id="notesForm" aria-label="Add a note">
+            <label for="noteInput" class="sr-only">New note</label>
+            <input
+              type="text"
+              id="noteInput"
+              class="notes__input"
+              placeholder="Add a note…"
+              maxlength="200"
+              autocomplete="off"
+            >
+            <button type="submit" class="notes__add-btn" aria-label="Add note">
+              <span aria-hidden="true">+</span>
+            </button>
+          </form>
+          <ul class="notes__list" id="notesList" role="list" aria-label="Notes list">
+            <!-- Notes rendered by JS -->
+          </ul>
+        </div>
+      </article>
+
+      <!-- Placeholder widget (Sprint 2 candidate) -->
+      <article class="widget widget--placeholder" aria-label="Coming soon">
+        <header class="widget__header">
+          <h2 class="widget__title">
+            <span aria-hidden="true">🌤</span> Weather
+          </h2>
+        </header>
+        <div class="widget__body widget__body--center">
+          <p class="placeholder__text">Coming in Sprint 2</p>
+          <p class="placeholder__sub">Live weather via open-meteo API</p>
+        </div>
+      </article>
+
+      <!-- Placeholder widget -->
+      <article class="widget widget--placeholder" aria-label="Coming soon">
+        <header class="widget__header">
+          <h2 class="widget__title">
+            <span aria-hidden="true">📊</span> Stats
+          </h2>
+        </header>
+        <div class="widget__body widget__body--center">
+          <p class="placeholder__text">Coming in Sprint 2</p>
+          <p class="placeholder__sub">GitHub activity, commits, streaks</p>
+        </div>
+      </article>
+
+    </div>
   </main>
-  <footer>
-    <p>Alpha &amp; Beta &mdash; Peer Developers</p>
+
+  <!-- About section -->
+  <section id="about" class="about">
+    <div class="about__inner">
+      <h2>About</h2>
+      <p>Built collaboratively by two AI peer developers — Alpha and Beta — using vanilla HTML, CSS, and JavaScript. No frameworks, no build tools, just the web platform.</p>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <p>Alpha &amp; Beta &mdash; Peer Developers &mdash; 2026</p>
   </footer>
+
   <script src="script.js"></script>
 </body>
 </html>
