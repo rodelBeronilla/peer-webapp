@@ -989,6 +989,142 @@
 
           </div>
 
+          <!-- File Hash section -->
+          <div class="tool__divider"><span>File Hash</span></div>
+          <div class="tool__body tool__body--split">
+
+            <div class="tool__pane">
+              <div class="pane__header">
+                <span class="pane__label">File</span>
+                <div class="pane__actions">
+                  <button class="btn btn--sm btn--ghost" id="fileHashClear">Clear</button>
+                </div>
+              </div>
+              <div
+                class="file-drop-zone"
+                id="fileDropZone"
+                role="button"
+                tabindex="0"
+                aria-label="Drop a file here or click to browse"
+              >
+                <input
+                  type="file"
+                  id="fileHashInput"
+                  class="file-drop-zone__input"
+                  aria-hidden="true"
+                  tabindex="-1"
+                >
+                <span class="file-drop-zone__icon" aria-hidden="true">⬆</span>
+                <span class="file-drop-zone__label">Drop file here or <span class="file-drop-zone__browse">browse</span></span>
+                <span class="file-drop-zone__hint">SHA-256, SHA-384, SHA-512 — nothing leaves your device</span>
+              </div>
+              <div class="status-bar" id="fileHashStatus" aria-live="polite" role="status"></div>
+            </div>
+
+            <div class="tool__pane">
+              <div class="pane__header">
+                <span class="pane__label">File Hashes</span>
+              </div>
+              <div class="base-grid" role="group" aria-label="File hash outputs">
+
+                <div class="hash-group">
+                  <div class="base-row">
+                    <label class="base-label" for="fileHashOut256">SHA-256</label>
+                    <input
+                      type="text"
+                      id="fileHashOut256"
+                      class="base-input"
+                      readonly
+                      spellcheck="false"
+                      aria-label="File SHA-256 hash output"
+                    >
+                    <div class="hash-row-btns">
+                      <button class="btn btn--sm btn--ghost" id="fileHashCopy256" disabled>Copy</button>
+                      <button class="btn btn--sm btn--ghost" id="fileHashCompareToggle256" aria-expanded="false" aria-controls="fileHashCompareRow256">Compare</button>
+                    </div>
+                  </div>
+                  <div class="hash-compare-row" id="fileHashCompareRow256" hidden>
+                    <span class="base-label" aria-hidden="true"></span>
+                    <input
+                      type="text"
+                      id="fileHashExpected256"
+                      class="base-input"
+                      placeholder="Paste expected SHA-256…"
+                      spellcheck="false"
+                      autocomplete="off"
+                      aria-label="Expected file SHA-256 hash to compare"
+                    >
+                    <span class="hash-match" id="fileHashMatch256" aria-live="polite"></span>
+                  </div>
+                </div>
+
+                <div class="hash-group">
+                  <div class="base-row">
+                    <label class="base-label" for="fileHashOut384">SHA-384</label>
+                    <input
+                      type="text"
+                      id="fileHashOut384"
+                      class="base-input"
+                      readonly
+                      spellcheck="false"
+                      aria-label="File SHA-384 hash output"
+                    >
+                    <div class="hash-row-btns">
+                      <button class="btn btn--sm btn--ghost" id="fileHashCopy384" disabled>Copy</button>
+                      <button class="btn btn--sm btn--ghost" id="fileHashCompareToggle384" aria-expanded="false" aria-controls="fileHashCompareRow384">Compare</button>
+                    </div>
+                  </div>
+                  <div class="hash-compare-row" id="fileHashCompareRow384" hidden>
+                    <span class="base-label" aria-hidden="true"></span>
+                    <input
+                      type="text"
+                      id="fileHashExpected384"
+                      class="base-input"
+                      placeholder="Paste expected SHA-384…"
+                      spellcheck="false"
+                      autocomplete="off"
+                      aria-label="Expected file SHA-384 hash to compare"
+                    >
+                    <span class="hash-match" id="fileHashMatch384" aria-live="polite"></span>
+                  </div>
+                </div>
+
+                <div class="hash-group">
+                  <div class="base-row">
+                    <label class="base-label" for="fileHashOut512">SHA-512</label>
+                    <input
+                      type="text"
+                      id="fileHashOut512"
+                      class="base-input"
+                      readonly
+                      spellcheck="false"
+                      aria-label="File SHA-512 hash output"
+                    >
+                    <div class="hash-row-btns">
+                      <button class="btn btn--sm btn--ghost" id="fileHashCopy512" disabled>Copy</button>
+                      <button class="btn btn--sm btn--ghost" id="fileHashCompareToggle512" aria-expanded="false" aria-controls="fileHashCompareRow512">Compare</button>
+                    </div>
+                  </div>
+                  <div class="hash-compare-row" id="fileHashCompareRow512" hidden>
+                    <span class="base-label" aria-hidden="true"></span>
+                    <input
+                      type="text"
+                      id="fileHashExpected512"
+                      class="base-input"
+                      placeholder="Paste expected SHA-512…"
+                      spellcheck="false"
+                      autocomplete="off"
+                      aria-label="Expected file SHA-512 hash to compare"
+                    >
+                    <span class="hash-match" id="fileHashMatch512" aria-live="polite"></span>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+          </div>
+
           <!-- HMAC section -->
           <div class="tool__divider"><span>HMAC</span></div>
           <div class="tool__body tool__body--split">
