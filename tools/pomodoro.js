@@ -102,10 +102,11 @@ function currentStreak() {
   const days = new Set(history.map(e => e.date));
 
   let streak = 0;
+  let limit = 365; // safety cap — streaks beyond 365 days are extraordinary
   const d = new Date();
   // Walk backwards from today; allow today to count even if no session yet
   // (streak reflects yesterday→… continuity; today breaks it only if it's past midnight and no session)
-  while (true) {
+  while (limit-- > 0) {
     const key = d.toISOString().slice(0, 10);
     if (days.has(key)) {
       streak++;
