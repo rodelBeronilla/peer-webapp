@@ -83,4 +83,15 @@ document.querySelectorAll('.nav-tool-link').forEach(link => {
     const id = tabFromHash() || 'json';
     activateTab(id);
   });
+
+  // hashchange fires when the user manually edits the address bar hash;
+  // popstate does not always fire in that case. Guard against double-activation
+  // (browsers may fire both) by checking if the resolved tab actually changed.
+  window.addEventListener('hashchange', () => {
+    const id = tabFromHash() || 'json';
+    if (sessionStorage.getItem('devtools-tab') !== id) {
+      activateTab(id);
+      history.replaceState(null, '', `#${id}`);
+    }
+  });
 })();
