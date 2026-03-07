@@ -16,6 +16,7 @@
  */
 
 import { execSync } from 'child_process';
+import { createSign } from 'crypto';
 import { readFileSync, existsSync, readdirSync, statSync } from 'fs';
 import { join, resolve } from 'path';
 
@@ -100,6 +101,93 @@ function gh(cmd) { return run(`gh ${cmd}`, { timeout: 60_000 }); }
 function ghJson(cmd) {
   const raw = gh(cmd);
   try { return JSON.parse(raw); } catch { return raw; }
+}
+
+// ─── GitHub App authentication ──────────────────────────────────────────────
+
+/**
+ * Generate a JWT for GitHub App authentication using RS256.
+ * Uses Node.js built-in crypto — no external dependencies.
+ */
+function generateAppJWT(appId, privateKeyPem) {
+  const now = Math.floor(Date.now() / 1000);
+  const header = Buffer.from(JSON.stringify({ alg: 'RS256', typ: 'JWT' })).toString('base64url');
+  const payload = Buffer.from(JSON.stringify({
+    iat: now - 60,      // issued 60s ago (clock skew)
+    exp: now + 600,     // expires in 10 min (max allowed)
+    iss: appId,
+  })).toString('base64url');
+
+  const signature = createSign('RSA-SHA256')
+    .update(`${header}.${payload}`)
+    .sign(privateKeyPem, 'base64url');
+
+  return `${header}.${payload}.${signature}`;
+}
+
+/**
+ * Get an installation token for a GitHub App installed on our repo.
+ * Returns { token, expiresAt } or null if not configured.
+ */
+async function getInstallationToken(agentKey) {
+  const agent = AGENTS[agentKey];
+  const credsDir = resolve(import.meta.dirname, '.github-apps', agentKey);
+
+  if (!existsSync(resolve(credsDir, 'app-id')) || !existsSync(resolve(credsDir, 'private-key.pem'))) {
+    return null; // App not set up yet — fall back to default auth
+  }
+
+  // Check cache — installation tokens last 1 hour, reuse if >5 min remaining
+  if (agent._tokenCache && agent._tokenCache.expiresAt > Date.now() + 300_000) {
+    return agent._tokenCache;
+  }
+
+  const appId = readFileSync(resolve(credsDir, 'app-id'), 'utf-8').trim();
+  const privateKey = readFileSync(resolve(credsDir, 'private-key.pem'), 'utf-8');
+
+  try {
+    const jwt = generateAppJWT(appId, privateKey);
+
+    // Find installation ID for our repo
+    const installRes = await fetch('https://api.github.com/app/installations', {
+      headers: {
+        'Authorization': `Bearer ${jwt}`,
+        'Accept': 'application/vnd.github+json',
+        'User-Agent': 'peer-webapp-coordinator',
+      },
+    });
+    if (!installRes.ok) throw new Error(`List installations: ${installRes.status}`);
+    const installations = await installRes.json();
+
+    // Find the installation for our repo owner
+    const install = installations.find(i =>
+      i.account?.login?.toLowerCase() === CONFIG.repo.split('/')[0].toLowerCase()
+    );
+    if (!install) throw new Error(`No installation found for ${CONFIG.repo.split('/')[0]}`);
+
+    // Create installation token
+    const tokenRes = await fetch(`https://api.github.com/app/installations/${install.id}/access_tokens`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${jwt}`,
+        'Accept': 'application/vnd.github+json',
+        'User-Agent': 'peer-webapp-coordinator',
+      },
+    });
+    if (!tokenRes.ok) throw new Error(`Create token: ${tokenRes.status}`);
+    const tokenData = await tokenRes.json();
+
+    const cached = {
+      token: tokenData.token,
+      expiresAt: new Date(tokenData.expires_at).getTime(),
+    };
+    agent._tokenCache = cached;
+    log(`Installation token for ${agent.name} refreshed (expires ${tokenData.expires_at})`);
+    return cached;
+  } catch (err) {
+    log(`GitHub App token for ${agent.name}: ${err.message}`, 'warn');
+    return null;
+  }
 }
 
 // ─── Logging ────────────────────────────────────────────────────────────────
@@ -560,7 +648,17 @@ async function spawnWorker(task, agentKey = null) {
   if (agentKey) {
     const agent = AGENTS[agentKey];
     const env = { AGENT_NAME: agent.name };
-    if (agent.token) env.GH_TOKEN = agent.token;
+
+    // Try GitHub App token first, then env var PAT, then default
+    const appToken = await getInstallationToken(agentKey);
+    if (appToken) {
+      env.GH_TOKEN = appToken.token;
+      log(`${agent.name} using GitHub App token (expires ${new Date(appToken.expiresAt).toISOString()})`);
+    } else if (agent.token) {
+      env.GH_TOKEN = agent.token;
+      log(`${agent.name} using PAT from environment`);
+    }
+
     spawnBody.env = env;
   }
   const { ok, id } = await apiPost('/api/worker/spawn', spawnBody);
