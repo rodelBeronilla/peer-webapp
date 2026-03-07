@@ -51,6 +51,7 @@
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="pomodoro">Pomodoro</a></li>
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="jwt">JWT</a></li>
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="timestamp">Timestamp</a></li>
+        <li><a href="#tools" class="nav__link nav-tool-link" data-tab="base">Base</a></li>
         <li><a href="#about" class="nav__link">About</a></li>
       </ul>
     </div>
@@ -98,6 +99,9 @@
         </button>
         <button class="tab" role="tab" aria-selected="false" aria-controls="panel-timestamp" id="tab-timestamp" data-panel="timestamp" tabindex="-1">
           <span class="tab__icon" aria-hidden="true">⏱</span> Timestamp
+        </button>
+        <button class="tab" role="tab" aria-selected="false" aria-controls="panel-base" id="tab-base" data-panel="base" tabindex="-1">
+          <span class="tab__icon" aria-hidden="true">01</span> Base
         </button>
       </div>
     </div>
@@ -747,6 +751,94 @@
               </dl>
             </div>
 
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════════════════════════
+           Number Base Converter
+           ═══════════════════════════════ -->
+      <section
+        id="panel-base"
+        class="panel"
+        role="tabpanel"
+        aria-labelledby="tab-base"
+        hidden
+      >
+        <div class="tool">
+          <div class="tool__header">
+            <div>
+              <h2 class="tool__title">Number Base Converter</h2>
+              <p class="tool__desc">Convert integers between binary, octal, decimal, and hexadecimal. Edit any field to update the others live. Accepts <code>0b</code>, <code>0o</code>, and <code>0x</code> prefixes.</p>
+            </div>
+          </div>
+          <div class="tool__body">
+            <div class="base-grid" role="group" aria-label="Base conversion fields">
+
+              <div class="base-row">
+                <label class="base-label" for="baseInputBin">BIN</label>
+                <input
+                  type="text"
+                  id="baseInputBin"
+                  class="base-input"
+                  placeholder="e.g. 1010"
+                  spellcheck="false"
+                  autocomplete="off"
+                  inputmode="text"
+                  aria-label="Binary value (base 2)"
+                >
+                <button class="btn btn--sm btn--ghost" id="baseCopyBin" disabled>Copy</button>
+              </div>
+
+              <div class="base-row">
+                <label class="base-label" for="baseInputOct">OCT</label>
+                <input
+                  type="text"
+                  id="baseInputOct"
+                  class="base-input"
+                  placeholder="e.g. 12"
+                  spellcheck="false"
+                  autocomplete="off"
+                  inputmode="text"
+                  aria-label="Octal value (base 8)"
+                >
+                <button class="btn btn--sm btn--ghost" id="baseCopyOct" disabled>Copy</button>
+              </div>
+
+              <div class="base-row">
+                <label class="base-label" for="baseInputDec">DEC</label>
+                <input
+                  type="text"
+                  id="baseInputDec"
+                  class="base-input"
+                  placeholder="e.g. 10"
+                  spellcheck="false"
+                  autocomplete="off"
+                  inputmode="numeric"
+                  aria-label="Decimal value (base 10)"
+                >
+                <button class="btn btn--sm btn--ghost" id="baseCopyDec" disabled>Copy</button>
+              </div>
+
+              <div class="base-row">
+                <label class="base-label" for="baseInputHex">HEX</label>
+                <input
+                  type="text"
+                  id="baseInputHex"
+                  class="base-input"
+                  placeholder="e.g. A"
+                  spellcheck="false"
+                  autocomplete="off"
+                  inputmode="text"
+                  aria-label="Hexadecimal value (base 16)"
+                >
+                <button class="btn btn--sm btn--ghost" id="baseCopyHex" disabled>Copy</button>
+              </div>
+
+            </div>
+
+            <div class="status-bar" id="baseStatus" aria-live="polite" role="status"></div>
+            <p class="base-bits" id="baseBits" aria-live="polite"></p>
           </div>
         </div>
       </section>
