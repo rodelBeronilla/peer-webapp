@@ -2,16 +2,24 @@
 
 import { escapeHtml } from './utils.js';
 
-const regexPattern   = document.getElementById('regexPattern');
-const regexFlags     = document.getElementById('regexFlags');
-const regexText      = document.getElementById('regexText');
-const regexStatus    = document.getElementById('regexStatus');
-const regexMatchCount = document.getElementById('regexMatchCount');
-const matchListBody  = document.getElementById('matchListBody');
+const regexPattern         = document.getElementById('regexPattern');
+const regexFlags           = document.getElementById('regexFlags');
+const regexText            = document.getElementById('regexText');
+const regexStatus          = document.getElementById('regexStatus');
+const regexMatchCount      = document.getElementById('regexMatchCount');
+const matchListBody        = document.getElementById('matchListBody');
+const regexReplaceTemplate = document.getElementById('regexReplaceTemplate');
+const regexReplaceOutput   = document.getElementById('regexReplaceOutput');
+const regexReplaceCopy     = document.getElementById('regexReplaceCopy');
 
 function setRegexStatus(msg, type = '') {
   regexStatus.textContent = msg;
   regexStatus.className = 'status-bar' + (type ? ` status-bar--${type}` : '');
+}
+
+function clearReplace() {
+  regexReplaceOutput.value = '';
+  regexReplaceCopy.disabled = true;
 }
 
 function runRegex() {
@@ -24,6 +32,7 @@ function runRegex() {
     matchListBody.innerHTML = '<p class="match-empty">Enter a pattern and test string to see matches.</p>';
     setRegexStatus('');
     regexText.classList.remove('has-matches', 'no-matches');
+    clearReplace();
     return;
   }
 
@@ -36,6 +45,7 @@ function runRegex() {
     matchListBody.innerHTML = `<p class="match-empty match-empty--error">${escapeHtml(String(err))}</p>`;
     setRegexStatus(String(err), 'error');
     regexText.classList.remove('has-matches', 'no-matches');
+    clearReplace();
     return;
   }
 
@@ -43,8 +53,15 @@ function runRegex() {
     regexMatchCount.textContent = '';
     matchListBody.innerHTML = '<p class="match-empty">Enter a test string above.</p>';
     regexText.classList.remove('has-matches', 'no-matches');
+    clearReplace();
     return;
   }
+
+  // Replace mode — runs regardless of match count
+  // Use user's exact flags (without forced 'g') so g/no-g replaces all/first
+  const replaceRx = new RegExp(pattern, flags);
+  regexReplaceOutput.value = text.replace(replaceRx, regexReplaceTemplate.value);
+  regexReplaceCopy.disabled = false;
 
   const matches = [...text.matchAll(rx)];
 
@@ -108,3 +125,12 @@ function scheduleRegex() {
 regexPattern.addEventListener('input', scheduleRegex);
 regexFlags.addEventListener('input', scheduleRegex);
 regexText.addEventListener('input', scheduleRegex);
+regexReplaceTemplate.addEventListener('input', scheduleRegex);
+
+regexReplaceCopy.addEventListener('click', () => {
+  if (!regexReplaceOutput.value) return;
+  navigator.clipboard.writeText(regexReplaceOutput.value).then(() => {
+    regexReplaceCopy.textContent = 'Copied!';
+    setTimeout(() => { regexReplaceCopy.textContent = 'Copy'; }, 1500);
+  });
+});

@@ -722,6 +722,13 @@ main {
 
 .match-empty--error { color: var(--color-danger); opacity: 1; }
 
+.regex-replace-template {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+}
+
 /* ============================================
    Color tool
    ============================================ */

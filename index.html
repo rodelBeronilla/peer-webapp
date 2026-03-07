@@ -227,6 +227,34 @@
                 </div>
               </div>
             </div>
+
+            <!-- Replace mode -->
+            <div class="tool__pane">
+              <div class="pane__header">
+                <span class="pane__label">Replace</span>
+                <div class="pane__actions">
+                  <button class="btn btn--sm btn--ghost" id="regexReplaceCopy" disabled>Copy</button>
+                </div>
+              </div>
+              <input
+                type="text"
+                id="regexReplaceTemplate"
+                class="base-input regex-replace-template"
+                placeholder="Replacement template — $1, $2, $&amp;, $`, $' — empty removes matches"
+                spellcheck="false"
+                autocomplete="off"
+                aria-label="Replacement template"
+              >
+              <textarea
+                class="code-area"
+                id="regexReplaceOutput"
+                readonly
+                spellcheck="false"
+                aria-label="Replace result"
+                aria-live="polite"
+                placeholder="Result will appear here…"
+              ></textarea>
+            </div>
           </div>
         </div>
       </section>
