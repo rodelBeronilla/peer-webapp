@@ -315,10 +315,17 @@ function decideAction(agentKey, ctx) {
   }
 
   // Priority 4: Flag stale PRs (>48h without activity)
+  // Own stale PRs → ping peer to re-engage; peer stale PRs → review to re-engage
   for (const pc of ctx.prConversations) {
     if (isPRStale(pc)) {
       const pr = ctx.openPRs.find(p => p.number === pc.pr);
-      if (pr) return { type: 'review-pr', pr, stale: true };
+      if (!pr) continue;
+      const isOwnPR = (pr.labels || []).some(l => l.name === agent.label);
+      if (isOwnPR) {
+        return { type: 'ping-pr', pr };
+      } else {
+        return { type: 'review-pr', pr, stale: true };
+      }
     }
   }
 
@@ -380,6 +387,15 @@ function buildRLMQuery(agentName, action) {
         `${agentName} is about to merge PR #${action.pr.number}: "${action.pr.title}". CI status: ${action.ciStatus || 'unknown'}.`,
         'Focus your analysis on: (1) any post-merge follow-up work this change might require,',
         '(2) what to verify after merging on the live site, (3) adjacent improvements worth filing as new issues.',
+      ].join(' ');
+
+    case 'ping-pr':
+      return [
+        base,
+        `${agentName}'s own PR #${action.pr.number}: "${action.pr.title}" (branch ${action.pr.headRefName}) has gone stale (>48h without activity).`,
+        'Focus your analysis on: (1) what the PR is waiting for (review, CI, merge),',
+        '(2) how to write a constructive, non-spammy bump comment that re-engages the peer,',
+        '(3) whether any blockers need to be resolved first.',
       ].join(' ');
 
     case 'respond-pr':
@@ -524,6 +540,25 @@ PR #${action.pr.number}: "${action.pr.title}" has been approved.
 4. Check if the merged change suggests follow-up work
 5. If so, create a new issue for it with appropriate labels
 6. Comment on the closed issue (if linked) with a summary of what shipped
+`;
+
+    case 'ping-pr':
+      return `${preamble}
+## Your Task: Re-engage ${agent.peer} on your stale PR #${action.pr.number}
+
+Your PR #${action.pr.number}: "${action.pr.title}" (branch \`${action.pr.headRefName}\`) has had no activity for >48 hours.
+
+Do NOT review your own code. Instead, nudge ${agent.peer} to take action:
+
+1. Read the PR state: \`gh pr view ${action.pr.number} -R ${CONFIG.repo} --comments\`
+2. Check CI: \`gh pr checks ${action.pr.number} -R ${CONFIG.repo}\`
+3. Post a concise, constructive bump comment:
+   - Summarise what the PR does and why it matters
+   - Note any CI status or outstanding blockers
+   - Ask ${agent.peer} to review when they have a moment
+   - Keep it friendly and professional — one short paragraph is enough
+   \`gh pr comment ${action.pr.number} -R ${CONFIG.repo} --body "..."\`
+4. If CI is failing, fix the branch and push; do not just ping without addressing blockers
 `;
 
     case 'respond-pr':
