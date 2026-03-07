@@ -33,6 +33,14 @@ const CONFIG = {
   workerModel: 'sonnet',
 };
 
+// Adaptive cooldowns by outcome (ms)
+const COOLDOWNS = {
+  productive: 30_000,   // useful work done
+  idle:       120_000,  // nothing to do (avoid churn)
+  failure:    90_000,   // something went wrong
+  stale:      60_000,   // stale PR detected
+};
+
 const AGENTS = {
   alpha: { name: 'Alpha', peer: 'Beta', label: 'agent:alpha' },
   beta:  { name: 'Beta',  peer: 'Alpha', label: 'agent:beta' },
@@ -106,11 +114,11 @@ function getRecentMergedPRs(limit = 10) {
 }
 
 function getIssueComments(number) {
-  return ghJson(`issue view ${number} -R ${CONFIG.repo} --json comments --jq '.comments'`);
+  return ghJson(`issue view ${number} -R ${CONFIG.repo} --json comments`);
 }
 
 function getPRComments(number) {
-  return ghJson(`pr view ${number} -R ${CONFIG.repo} --json comments,reviews --jq '{comments, reviews}'`);
+  return ghJson(`pr view ${number} -R ${CONFIG.repo} --json comments,reviews`);
 }
 
 function getMilestones() {
@@ -121,6 +129,36 @@ function getLabels() {
   try {
     return ghJson(`label list -R ${CONFIG.repo} --json name --jq '.[].name'`);
   } catch { return []; }
+}
+
+/**
+ * Returns 'success' | 'failure' | 'pending' | 'unknown' for a PR's CI checks.
+ * Checks all required status checks; if any fail, returns 'failure'.
+ */
+function getCIStatus(prNumber) {
+  try {
+    const raw = gh(`pr checks ${prNumber} -R ${CONFIG.repo} --json name,state,conclusion`);
+    const checks = JSON.parse(raw);
+    if (!Array.isArray(checks) || checks.length === 0) return 'unknown';
+    if (checks.some(c => c.state === 'FAILURE' || c.conclusion === 'failure')) return 'failure';
+    if (checks.some(c => c.state === 'PENDING' || c.state === 'IN_PROGRESS')) return 'pending';
+    return 'success';
+  } catch { return 'unknown'; }
+}
+
+/**
+ * Returns true if a PR has had no activity (comments/reviews) in the last `thresholdMs`.
+ */
+function isPRStale(prData, thresholdMs = 48 * 60 * 60 * 1000) {
+  const reviews = prData.reviews || [];
+  const comments = prData.comments || [];
+  const timestamps = [
+    ...reviews.map(r => r.submittedAt),
+    ...comments.map(c => c.createdAt),
+  ].filter(Boolean).map(t => new Date(t).getTime());
+  if (timestamps.length === 0) return false;
+  const latest = Math.max(...timestamps);
+  return Date.now() - latest > thresholdMs;
 }
 
 // ─── GitHub state summary ───────────────────────────────────────────────────
@@ -148,8 +186,9 @@ function buildGitHubContext() {
   const issueConversations = [];
   for (const issue of (Array.isArray(openIssues) ? openIssues.slice(0, 5) : [])) {
     try {
-      const comments = getIssueComments(issue.number);
-      if (Array.isArray(comments) && comments.length > 0) {
+      const data = getIssueComments(issue.number);
+      const comments = data?.comments || (Array.isArray(data) ? data : []);
+      if (comments.length > 0) {
         issueConversations.push({ issue: issue.number, title: issue.title, comments });
       }
     } catch { /* skip */ }
@@ -240,21 +279,30 @@ function decideAction(agentKey, ctx) {
   const agent = AGENTS[agentKey];
   const peerLabel = AGENTS[agentKey === 'alpha' ? 'beta' : 'alpha'].label;
 
-  // Priority 1: Review peer's open PRs
-  const peerPRs = ctx.openPRs.filter(pr =>
-    (pr.labels || []).some(l => l.name === peerLabel) &&
-    pr.reviewDecision !== 'APPROVED'
-  );
+  // Priority 1: Review peer's open PRs (sort oldest first to avoid staleness)
+  const peerPRs = ctx.openPRs
+    .filter(pr =>
+      (pr.labels || []).some(l => l.name === peerLabel) &&
+      pr.reviewDecision !== 'APPROVED'
+    )
+    .sort((a, b) => a.number - b.number); // lower number = older
   if (peerPRs.length > 0) {
     return { type: 'review-pr', pr: peerPRs[0] };
   }
 
-  // Priority 2: Merge approved PRs (own or peer's)
-  const approvedPRs = ctx.openPRs.filter(pr =>
-    pr.reviewDecision === 'APPROVED'
-  );
-  if (approvedPRs.length > 0) {
-    return { type: 'merge-pr', pr: approvedPRs[0] };
+  // Priority 2: Merge approved PRs — but only if CI is passing
+  const approvedPRs = ctx.openPRs.filter(pr => pr.reviewDecision === 'APPROVED');
+  for (const pr of approvedPRs) {
+    const ci = getCIStatus(pr.number);
+    if (ci === 'failure') {
+      log(`PR #${pr.number} approved but CI failing — skipping merge`);
+      continue;
+    }
+    if (ci === 'pending') {
+      log(`PR #${pr.number} approved but CI pending — skipping merge for now`);
+      continue;
+    }
+    return { type: 'merge-pr', pr, ciStatus: ci };
   }
 
   // Priority 3: Respond to comments on own PRs
@@ -266,7 +314,15 @@ function decideAction(agentKey, ctx) {
     return { type: 'respond-pr', pr: ownPRsWithComments[0] };
   }
 
-  // Priority 4: Pick up an unassigned issue
+  // Priority 4: Flag stale PRs (>48h without activity)
+  for (const pc of ctx.prConversations) {
+    if (isPRStale(pc)) {
+      const pr = ctx.openPRs.find(p => p.number === pc.pr);
+      if (pr) return { type: 'review-pr', pr, stale: true };
+    }
+  }
+
+  // Priority 5: Pick up an unassigned issue
   const unassigned = ctx.openIssues.filter(i =>
     (i.assignees || []).length === 0 &&
     !(i.labels || []).some(l => l.name === 'status:blocked')
@@ -275,7 +331,7 @@ function decideAction(agentKey, ctx) {
     return { type: 'implement-issue', issue: unassigned[0] };
   }
 
-  // Priority 5: Create new issues (backlog empty)
+  // Priority 6: Create new issues (backlog empty)
   return { type: 'create-issues' };
 }
 
@@ -300,16 +356,71 @@ function listSourceFiles() {
 
 // ─── RLM invocation ─────────────────────────────────────────────────────────
 
-async function invokeRLM(agentName, actionDesc) {
-  const query = [
-    `Analyze the codebase for ${agentName}. Action: ${actionDesc}`,
-    'Summarize: (1) codebase state and architecture quality,',
-    '(2) what needs improvement, (3) recommended approach for this action,',
-    '(4) pitfalls to avoid.'
-  ].join(' ');
+/**
+ * Build an action-specific RLM query that gives the analyst relevant context.
+ * Generic queries produce generic advice — specific queries produce useful analysis.
+ */
+function buildRLMQuery(agentName, action) {
+  const base = `You are analyzing the peer-webapp codebase for ${agentName}.`;
+
+  switch (action.type) {
+    case 'review-pr':
+      return [
+        base,
+        `${agentName} is about to review PR #${action.pr.number}: "${action.pr.title}" on branch ${action.pr.headRefName}.`,
+        'Focus your analysis on: (1) what the PR likely changes based on the branch name,',
+        '(2) potential bugs or regressions to look for, (3) accessibility and mobile-first concerns,',
+        '(4) vanilla JS/CSS patterns to verify, (5) specific review criteria for this type of change.',
+        action.stale ? 'Note: this PR appears stale (>48h without activity). Consider how to re-engage constructively.' : '',
+      ].filter(Boolean).join(' ');
+
+    case 'merge-pr':
+      return [
+        base,
+        `${agentName} is about to merge PR #${action.pr.number}: "${action.pr.title}". CI status: ${action.ciStatus || 'unknown'}.`,
+        'Focus your analysis on: (1) any post-merge follow-up work this change might require,',
+        '(2) what to verify after merging on the live site, (3) adjacent improvements worth filing as new issues.',
+      ].join(' ');
+
+    case 'respond-pr':
+      return [
+        base,
+        `${agentName} needs to respond to review feedback on PR #${action.pr.pr}: "${action.pr.title}".`,
+        'Focus your analysis on: (1) common review concerns for vanilla JS/CSS/HTML PRs,',
+        '(2) how to address requested changes cleanly, (3) commit message conventions for fixup commits.',
+      ].join(' ');
+
+    case 'implement-issue':
+      return [
+        base,
+        `${agentName} is implementing issue #${action.issue.number}: "${action.issue.title}".`,
+        `Issue body: ${(action.issue.body || '').substring(0, 300).replace(/\n/g, ' ')}`,
+        'Focus your analysis on: (1) how this feature fits the existing architecture,',
+        '(2) vanilla JS implementation patterns that apply, (3) localStorage persistence approach,',
+        '(4) accessibility requirements (ARIA, keyboard nav), (5) mobile-first CSS approach,',
+        '(6) pitfalls specific to this type of widget on static GitHub Pages.',
+      ].join(' ');
+
+    case 'create-issues':
+      return [
+        base,
+        `${agentName} needs to plan the next sprint — the backlog is empty.`,
+        'Focus your analysis on: (1) gaps in the current feature set,',
+        '(2) technical debt and code quality improvements needed,',
+        '(3) CI/CD improvements, (4) accessibility audits outstanding,',
+        '(5) 3-5 concrete, well-scoped issues to create.',
+      ].join(' ');
+
+    default:
+      return `${base} Summarize codebase state, what needs improvement, and recommended next action.`;
+  }
+}
+
+async function invokeRLM(agentName, action) {
+  const query = buildRLMQuery(agentName, action);
 
   try {
-    log(`Invoking RLM for ${agentName}...`);
+    log(`Invoking RLM for ${agentName} (${action.type})...`);
     const { ok, id } = await apiPost('/api/rlm/invoke', { mode: 'analyst', query });
     if (!ok) return null;
     const result = await pollWorker(id, CONFIG.rlmTimeoutMs);
@@ -593,6 +704,9 @@ async function main() {
     log(`Turn ${turnCount} — ${agent.name}`);
     log('═'.repeat(60));
 
+    let action = null;
+    let cooldown = COOLDOWNS.productive;
+
     try {
       // Ensure we're on main and up to date
       try {
@@ -605,11 +719,11 @@ async function main() {
       const ghContextStr = formatGitHubContext(ctx);
 
       // 2. Decide action
-      const action = decideAction(agentKey, ctx);
+      action = decideAction(agentKey, ctx);
       log(`Action: ${action.type}${action.pr ? ` (PR #${action.pr.number})` : ''}${action.issue ? ` (Issue #${action.issue.number})` : ''}`);
 
-      // 3. RLM analysis
-      const rlmContext = await invokeRLM(agent.name, `${action.type} — ${action.pr?.title || action.issue?.title || 'planning'}`);
+      // 3. RLM analysis (action-specific query)
+      const rlmContext = await invokeRLM(agent.name, action);
 
       // 4. Build prompt
       const prompt = buildPrompt(agentKey, action, ghContextStr, rlmContext);
@@ -623,17 +737,23 @@ async function main() {
       if (!result) {
         log(`${agent.name} timed out`, 'error');
         consecutiveFailures++;
+        cooldown = COOLDOWNS.failure;
       } else if (result.exitCode !== 0) {
         log(`${agent.name} failed (exit ${result.exitCode})`, 'error');
         consecutiveFailures++;
+        cooldown = COOLDOWNS.failure;
       } else {
         log(`${agent.name} completed`);
         consecutiveFailures = 0;
+        // Idle turns cool down longer to avoid churn
+        if (action.type === 'create-issues') cooldown = COOLDOWNS.idle;
+        if (action.stale) cooldown = COOLDOWNS.stale;
       }
 
     } catch (err) {
       log(`Turn failed: ${err.message}`, 'error');
       consecutiveFailures++;
+      cooldown = COOLDOWNS.failure;
     }
 
     // Circuit breaker
@@ -643,8 +763,8 @@ async function main() {
       consecutiveFailures = 0;
     }
 
-    log(`Cooling down ${CONFIG.cooldownMs / 1000}s...`);
-    await sleep(CONFIG.cooldownMs);
+    log(`Cooling down ${cooldown / 1000}s... (${action?.type || 'unknown'})`);
+    await sleep(cooldown);
   }
 }
 
