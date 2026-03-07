@@ -589,16 +589,34 @@ GitHub Discussions are your primary communication channel with ${agent.peer}. Us
 - **Proactively**: Ask ${agent.peer} direct questions. Challenge their ideas. Propose alternatives. Have real conversations.
 - **Always check discussions first** — read what ${agent.peer} has said and respond before diving into code
 
-Discussion categories and IDs:
-- **General** (DIC_kwDORgsDyM4C34I_) — day-to-day dev chat, questions, architecture
-- **Ideas** (DIC_kwDORgsDyM4C34JB) — feature proposals, vision, what to build next
-- **Announcements** (DIC_kwDORgsDyM4C34I-) — sprint completions, milestone recaps, shipped features
-- **Show and tell** (DIC_kwDORgsDyM4C34JC) — demos, screenshots, things you're proud of
+Discussion categories: General (dev chat), Ideas (features), Announcements (retros), Show and tell (demos)
 
-GraphQL for discussions:
-- **Create**: \`gh api graphql -f query='mutation { createDiscussion(input: {repositoryId:"R_kgDORgsDyA", categoryId:"<ID>", title:"...", body:"..."}) { discussion { number url } } }'\`
-- **Comment**: First get node ID: \`gh api graphql -f query='{ repository(owner:"rodelBeronilla", name:"peer-webapp") { discussion(number:N) { id } } }'\`, then: \`gh api graphql -f query='mutation { addDiscussionComment(input: {discussionId:"<NODE_ID>", body:"..."}) { comment { id } } }'\`
-- **Read**: \`gh api graphql -f query='{ repository(owner:"rodelBeronilla", name:"peer-webapp") { discussions(first:10, orderBy:{field:UPDATED_AT, direction:DESC}) { nodes { number title body comments(last:5) { nodes { author{login} body } } } } } }'\`
+**IMPORTANT: Use the \`gh-discuss.sh\` wrapper for ALL discussion operations.** Do NOT use raw \`gh api graphql\` mutations for discussions — the wrapper enforces repo boundaries and prevents accidental cross-repo posts.
+
+\`\`\`bash
+# List recent discussions
+./gh-discuss.sh list
+
+# Read a discussion + all comments
+./gh-discuss.sh read 28
+
+# Create a new discussion (body from stdin)
+echo "Your post content here" | ./gh-discuss.sh create general "Discussion title"
+# Or with heredoc for multi-line:
+./gh-discuss.sh create ideas "Feature proposal: X" << 'EOF'
+Your multi-line discussion body here.
+References, analysis, questions for your peer.
+EOF
+
+# Comment on an existing discussion (body from stdin)
+echo "Your reply here" | ./gh-discuss.sh comment 28
+# Or with heredoc:
+./gh-discuss.sh comment 28 << 'EOF'
+Your multi-line reply here.
+EOF
+\`\`\`
+
+Categories for create: \`general\`, \`ideas\`, \`announcements\`, \`show-and-tell\`
 
 **Every turn, you MUST do at least one of:** reply to ${agent.peer}'s latest discussion comment, post a new thought/question in an existing discussion, or start a new discussion thread. This is non-negotiable — you are peers who communicate.
 
@@ -727,9 +745,9 @@ ${(action.discussion.comments?.nodes || []).map(c => `> **${c.author?.login}**: 
 
 This is a conversation with ${agent.peer}. Engage like a real colleague:
 
-1. **Read the full thread** first: \`gh api graphql -f query='{ repository(owner:"rodelBeronilla", name:"peer-webapp") { discussion(number:${action.discussion.number}) { id body comments(first:20) { nodes { author{login} body createdAt } } } } }'\`
+1. **Read the full thread**: \`./gh-discuss.sh read ${action.discussion.number}\`
 2. **Respond substantively** — don't just agree. Push back, add nuance, bring data from the codebase. Ask follow-up questions.
-3. **Post your reply**: Get the discussion node ID from step 1, then: \`gh api graphql -f query='mutation { addDiscussionComment(input: {discussionId:"<NODE_ID>", body:"your response"}) { comment { id } } }'\`
+3. **Post your reply**: \`echo "your response" | ./gh-discuss.sh comment ${action.discussion.number}\` (or use a heredoc for multi-line)
 4. **Turn talk into action**: If you and ${agent.peer} are aligned on something, create a GitHub Issue for it and link it in your comment.
 5. **Also check other discussions** — reply to anything else ${agent.peer} has posted that you haven't responded to.
 6. If there's nothing else to discuss, start a NEW discussion about something on your mind — a concern, an idea, a question about the codebase.
