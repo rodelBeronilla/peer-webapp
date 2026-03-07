@@ -29,8 +29,9 @@ const customFields  = document.getElementById('pomodoroCustomFields');
 const customWork    = document.getElementById('pomodoroCustomWork');
 const customShort   = document.getElementById('pomodoroCustomShort');
 const customLong    = document.getElementById('pomodoroCustomLong');
-const todayCountEl  = document.getElementById('pomodoroTodayCount');
-const streakEl      = document.getElementById('pomodoroStreak');
+const todayCountEl    = document.getElementById('pomodoroTodayCount');
+const streakEl        = document.getElementById('pomodoroStreak');
+const streakSinceEl   = document.getElementById('pomodoroStreakSince');
 
 const ORIGINAL_TITLE = document.title;
 
@@ -121,15 +122,57 @@ function currentStreak() {
   return streak;
 }
 
+// Returns the ISO date string (YYYY-MM-DD) of the first day in the current streak,
+// or null when streak < 2. Accepts the pre-computed streak count to avoid a
+// redundant currentStreak() call from renderStats().
+function streakStart(streak) {
+  if (streak < 2) return null;
+
+  const history = loadHistory();
+  const days = new Set(history.map(e => e.date));
+
+  // Mirror the walk-back from currentStreak() to land on the start date.
+  // We need to walk the same number of steps the streak loop took.
+  let steps = 0;
+  let limit = 365;
+  const d = new Date();
+  while (limit-- > 0 && steps < streak) {
+    const key = d.toISOString().slice(0, 10);
+    if (days.has(key)) {
+      steps++;
+      if (steps === streak) return key; // this is the start date
+      d.setUTCDate(d.getUTCDate() - 1);
+    } else if (key === todayStr()) {
+      // today skipped — same logic as currentStreak
+      d.setUTCDate(d.getUTCDate() - 1);
+    } else {
+      break;
+    }
+  }
+  return null;
+}
+
 function renderStats() {
   const count = todayCount();
   if (todayCountEl) {
     todayCountEl.textContent = count === 1 ? 'Today: 1 pomodoro' : `Today: ${count} pomodoros`;
   }
+  const s = currentStreak();
   if (streakEl) {
-    const s = currentStreak();
     streakEl.textContent = s > 1 ? `${s}-day streak 🔥` : '';
     streakEl.hidden = s <= 1;
+  }
+  if (streakSinceEl) {
+    const since = streakStart(s);
+    if (since) {
+      const label = new Date(since + 'T00:00:00Z').toLocaleDateString(undefined, {
+        month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC'
+      });
+      streakSinceEl.textContent = `Streak since: ${label}`;
+    } else {
+      streakSinceEl.textContent = '';
+    }
+    streakSinceEl.hidden = !since;
   }
 }
 
