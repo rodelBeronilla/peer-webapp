@@ -103,6 +103,9 @@
         <button class="tab" role="tab" aria-selected="false" aria-controls="panel-base" id="tab-base" data-panel="base" tabindex="-1">
           <span class="tab__icon" aria-hidden="true">01</span> Base
         </button>
+        <button class="tab" role="tab" aria-selected="false" aria-controls="panel-http" id="tab-http" data-panel="http" tabindex="-1">
+          <span class="tab__icon" aria-hidden="true">HTTP</span> Status
+        </button>
       </div>
     </div>
 
@@ -839,6 +842,52 @@
 
             <div class="status-bar" id="baseStatus" aria-live="polite" role="status"></div>
             <p class="base-bits" id="baseBits" aria-live="polite"></p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════════════════════════
+           HTTP Status Code Reference
+           ═══════════════════════════════ -->
+      <section
+        id="panel-http"
+        class="panel"
+        role="tabpanel"
+        aria-labelledby="tab-http"
+        hidden
+      >
+        <div class="tool">
+          <div class="tool__header">
+            <div>
+              <h2 class="tool__title">HTTP Status Code Reference</h2>
+              <p class="tool__desc">Search by code number or keyword. Covers all IANA-registered 1xx–5xx codes.</p>
+            </div>
+          </div>
+          <div class="tool__body">
+
+            <div class="tool__pane">
+              <div class="pane__header">
+                <span class="pane__label">Search</span>
+              </div>
+              <input
+                type="search"
+                id="httpSearch"
+                class="base-input http-search"
+                placeholder="Code number or keyword — e.g. 404, redirect, timeout"
+                spellcheck="false"
+                autocomplete="off"
+                aria-label="Search HTTP status codes"
+              >
+              <div class="status-bar" id="httpStatus" aria-live="polite" role="status"></div>
+            </div>
+
+            <ul
+              id="httpResults"
+              class="http-results"
+              aria-label="HTTP status code results"
+              aria-live="polite"
+            ></ul>
+
           </div>
         </div>
       </section>
