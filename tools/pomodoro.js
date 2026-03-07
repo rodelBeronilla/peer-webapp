@@ -123,9 +123,9 @@ function currentStreak() {
 }
 
 // Returns the ISO date string (YYYY-MM-DD) of the first day in the current streak,
-// or null when streak < 2.
-function streakStart() {
-  const streak = currentStreak();
+// or null when streak < 2. Accepts the pre-computed streak count to avoid a
+// redundant currentStreak() call from renderStats().
+function streakStart(streak) {
   if (streak < 2) return null;
 
   const history = loadHistory();
@@ -157,14 +157,21 @@ function renderStats() {
   if (todayCountEl) {
     todayCountEl.textContent = count === 1 ? 'Today: 1 pomodoro' : `Today: ${count} pomodoros`;
   }
+  const s = currentStreak();
   if (streakEl) {
-    const s = currentStreak();
     streakEl.textContent = s > 1 ? `${s}-day streak 🔥` : '';
     streakEl.hidden = s <= 1;
   }
   if (streakSinceEl) {
-    const since = streakStart();
-    streakSinceEl.textContent = since ? `Streak since: ${since}` : '';
+    const since = streakStart(s);
+    if (since) {
+      const label = new Date(since + 'T00:00:00Z').toLocaleDateString(undefined, {
+        month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC'
+      });
+      streakSinceEl.textContent = `Streak since: ${label}`;
+    } else {
+      streakSinceEl.textContent = '';
+    }
     streakSinceEl.hidden = !since;
   }
 }
