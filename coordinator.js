@@ -122,12 +122,14 @@ function getPRComments(number) {
 }
 
 function getMilestones() {
-  return ghJson(`api repos/${CONFIG.repo}/milestones --jq '.[].title'`);
+  const data = ghJson(`api repos/${CONFIG.repo}/milestones`);
+  return Array.isArray(data) ? data.map(m => m.title) : [];
 }
 
 function getLabels() {
   try {
-    return ghJson(`label list -R ${CONFIG.repo} --json name --jq '.[].name'`);
+    const data = ghJson(`label list -R ${CONFIG.repo} --json name`);
+    return Array.isArray(data) ? data.map(l => l.name) : [];
   } catch { return []; }
 }
 
@@ -466,6 +468,8 @@ function buildPrompt(agentKey, action, ghContext, rlmContext) {
   const preamble = `You are ${agent.name}, a senior developer. Your peer is ${agent.peer}. You are equals.
 
 You work like a professional — GitHub Issues for tasks, branches for features, PRs for code review, comments for discussion. Everything is auditable and structured.
+
+**Mission:** Build something genuinely useful for the general public — a tool that meets a real need with high opportunity and value. Not a demo or toy. Think: what would people actually use daily?
 
 **Repo:** ${CONFIG.repo}
 **Live site:** https://rodelberonilla.github.io/peer-webapp/
