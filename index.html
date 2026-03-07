@@ -494,7 +494,7 @@
           <div class="tool__header">
             <div>
               <h2 class="tool__title">Pomodoro Timer</h2>
-              <p class="tool__desc">Focus in 25-minute sessions with 5-minute breaks. Sessions are counted automatically.</p>
+              <p class="tool__desc">Focus in timed sessions with short and long breaks. Supports classic 25/5, sprint 15/5, deep-work 50/10, and custom durations. Session count persists across reloads.</p>
             </div>
           </div>
           <div class="tool__body pomodoro-tool">
@@ -524,6 +524,31 @@
                 <input type="checkbox" id="pomodoroSound" checked aria-label="Play audio cue at session end">
                 <span>Audio cue at session end</span>
               </label>
+
+              <div class="pomodoro-preset-row">
+                <label for="pomodoroPreset" class="pomodoro-preset-label">Duration preset</label>
+                <select id="pomodoroPreset" class="pomodoro-preset-select" aria-label="Duration preset">
+                  <option value="classic">25 / 5 — Classic</option>
+                  <option value="sprint">15 / 5 — Sprint</option>
+                  <option value="deep">50 / 10 — Deep Work</option>
+                  <option value="custom">Custom…</option>
+                </select>
+              </div>
+
+              <div id="pomodoroCustomFields" class="pomodoro-custom-fields" hidden>
+                <label class="pomodoro-custom-label">
+                  Work
+                  <input type="number" id="pomodoroCustomWork" class="pomodoro-custom-input" value="25" min="1" max="120" aria-label="Custom work duration in minutes"> min
+                </label>
+                <label class="pomodoro-custom-label">
+                  Short break
+                  <input type="number" id="pomodoroCustomShort" class="pomodoro-custom-input" value="5" min="1" max="60" aria-label="Custom short break duration in minutes"> min
+                </label>
+                <label class="pomodoro-custom-label">
+                  Long break
+                  <input type="number" id="pomodoroCustomLong" class="pomodoro-custom-input" value="15" min="1" max="60" aria-label="Custom long break duration in minutes"> min
+                </label>
+              </div>
             </div>
 
           </div>
