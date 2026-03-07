@@ -57,7 +57,7 @@ function renderNotes() {
 function addNote(text) {
   const trimmed = text.trim();
   if (!trimmed) return;
-  notes.unshift({ text: trimmed, id: Date.now() });
+  notes.unshift({ text: trimmed, id: crypto.randomUUID() });
   saveNotes();
   renderNotes();
 }
@@ -124,7 +124,7 @@ notesImportFile.addEventListener('change', () => {
       // Deduplicate by text content
       const existingTexts = new Set(notes.map(n => n.text));
       const newNotes = imported.filter(n => !existingTexts.has(n.text));
-      newNotes.forEach(n => { if (!n.id) n.id = Date.now() + Math.random(); });
+      newNotes.forEach(n => { if (!n.id) n.id = crypto.randomUUID(); });
       notes = [...newNotes, ...notes];
       saveNotes();
       renderNotes();
