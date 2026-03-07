@@ -27,7 +27,7 @@ const CONFIG = {
   claudeUiUrl: 'http://localhost:4200',
   projectDir: resolve(import.meta.dirname),
   cooldownMs: 30_000,           // 30s between turns
-  workerTimeoutMs: 300_000,     // 5 min per worker
+  workerTimeoutMs: 600_000,     // 10 min per worker
   rlmTimeoutMs: 120_000,        // 2 min per RLM invocation
   pollIntervalMs: 5_000,        // poll every 5s
   maxConsecutiveFailures: 3,    // circuit breaker
