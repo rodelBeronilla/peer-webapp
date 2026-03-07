@@ -3,6 +3,8 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
 
 permissions:
   contents: read
@@ -60,7 +62,34 @@ jobs:
           done
           echo "JSON files valid"
 
+      - name: Accessibility audit
+        run: |
+          errors=0
+          if ! grep -q 'lang=' index.html; then
+            echo "ERROR: Missing lang attribute on <html>"
+            errors=$((errors + 1))
+          fi
+          if ! grep -q 'viewport' index.html; then
+            echo "ERROR: Missing viewport meta tag"
+            errors=$((errors + 1))
+          fi
+          if [ "$errors" -gt 0 ]; then
+            exit 1
+          fi
+          echo "Accessibility checks passed"
+
+      - name: JS syntax check
+        run: |
+          for f in $(find . -name '*.js' -not -path './node_modules/*' -not -path './.git/*'); do
+            if ! node --check "$f" 2>/dev/null; then
+              echo "ERROR: Syntax error in $f"
+              exit 1
+            fi
+          done
+          echo "JS syntax check passed"
+
   deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: validate
     runs-on: ubuntu-latest
     environment:
