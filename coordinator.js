@@ -576,7 +576,30 @@ function decideAction(agentKey, ctx, turnCount = 0) {
     return { type: 'merge-pr', pr, ciStatus: ci };
   }
 
-  // Priority 2: Review peer's open PRs (oldest first — clear the stale backlog)
+  // Priority 2: Peer PRs with explicit re-review requests — beat the normal oldest-first queue.
+  // When a peer force-pushes their branch and comments "please re-review" (or similar), that
+  // explicit signal should jump the general review queue. A re-review request is a strict subset
+  // of the Priority 3 filter conditions, so this block MUST appear before Priority 3 — otherwise
+  // Priority 3 fires first and claims the same PR, making this block unreachable.
+  // Uses prConversations (already fetched) — no extra GitHub API calls.
+  const RE_REVIEW_PATTERN = /\bre-?review\b/i;
+  const reReviewPRs = ctx.openPRs
+    .filter(pr => {
+      if (!(pr.labels || []).some(l => l.name === peerLabel)) return false;
+      if (pr.reviewDecision === 'APPROVED') return false;
+      if (pr.mergeStateStatus === 'CONFLICTING') return false;
+      const pc = ctx.prConversations.find(c => c.pr === pr.number);
+      if (!pc) return false;
+      return (pc.comments || []).some(c => RE_REVIEW_PATTERN.test(c.body || ''));
+    })
+    .sort((a, b) => a.number - b.number);
+  for (const pr of reReviewPRs) {
+    if (claimWork(agentKey, 'pr', pr.number)) {
+      return { type: 'review-pr', pr };
+    }
+  }
+
+  // Priority 3: Review peer's open PRs (oldest first — clear the stale backlog)
   // Skip CONFLICTING peer PRs — reviewing a PR that can never merge is wasted effort;
   // the peer needs to rebase before review is meaningful.
   const peerPRs = ctx.openPRs
@@ -592,7 +615,7 @@ function decideAction(agentKey, ctx, turnCount = 0) {
     }
   }
 
-  // Priority 3: Respond to comments on own PRs
+  // Priority 4: Respond to comments on own PRs
   const ownPRsWithComments = ctx.prConversations.filter(pc => {
     const pr = ctx.openPRs.find(p => p.number === pc.pr);
     return pr && (pr.labels || []).some(l => l.name === agent.label);
@@ -601,7 +624,7 @@ function decideAction(agentKey, ctx, turnCount = 0) {
     return { type: 'respond-pr', pr: ownPRsWithComments[0] };
   }
 
-  // Priority 4: Flag stale PRs (>24h without activity — reduced from 48h)
+  // Priority 5: Flag stale PRs (>24h without activity — reduced from 48h)
   // Own stale PRs → ping peer to re-engage; peer stale PRs → review to re-engage
   const staleThresholdMs = 24 * 60 * 60 * 1000;
   // Check PRs that have comment/review activity
@@ -634,7 +657,7 @@ function decideAction(agentKey, ctx, turnCount = 0) {
     }
   }
 
-  // Priority 5: Pick up unassigned issues (oldest first to clear backlog)
+  // Priority 6: Pick up unassigned issues (oldest first to clear backlog)
   const unassigned = ctx.openIssues
     .filter(i =>
       (i.assignees || []).length === 0 &&
@@ -647,7 +670,7 @@ function decideAction(agentKey, ctx, turnCount = 0) {
     }
   }
 
-  // Priority 5b: Stale assigned issues — assigned to this agent but no PR exists
+  // Priority 6b: Stale assigned issues — assigned to this agent but no PR exists
   const myStaleIssues = ctx.openIssues.filter(i => {
     const assignedToMe = (i.assignees || []).some(a =>
       a.login?.toLowerCase().includes(agent.name.toLowerCase())
@@ -665,7 +688,7 @@ function decideAction(agentKey, ctx, turnCount = 0) {
     }
   }
 
-  // Priority 6: Respond to peer's unanswered discussion (when nothing else to do)
+  // Priority 7: Respond to peer's unanswered discussion (when nothing else to do)
   if (ctx.discussions && ctx.discussions.length > 0) {
     for (const d of ctx.discussions) {
       const comments = d.comments?.nodes || [];
@@ -677,12 +700,12 @@ function decideAction(agentKey, ctx, turnCount = 0) {
     }
   }
 
-  // Priority 7: Catch up / start new discussion (idle turn)
+  // Priority 8: Catch up / start new discussion (idle turn)
   if (ctx.discussions !== undefined) {
     return { type: 'discuss', respond: false };
   }
 
-  // Priority 8: Create new issues (backlog empty)
+  // Priority 9: Create new issues (backlog empty)
   return { type: 'create-issues' };
 }
 
