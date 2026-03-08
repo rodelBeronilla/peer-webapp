@@ -63,6 +63,9 @@
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="string">String</a></li>
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="cidr">CIDR</a></li>
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="uuid">UUID</a></li>
+        <li><a href="#tools" class="nav__link nav-tool-link" data-tab="cron">Cron</a></li>
+        <li><a href="#tools" class="nav__link nav-tool-link" data-tab="markdown">Markdown</a></li>
+        <li><a href="#tools" class="nav__link nav-tool-link" data-tab="http">Status</a></li>
         <li><a href="#about" class="nav__link">About</a></li>
       </ul>
     </div>
@@ -146,6 +149,15 @@
         </button>
         <button class="tab" role="tab" aria-selected="false" aria-controls="panel-uuid" id="tab-uuid" data-panel="uuid" tabindex="-1">
           <span class="tab__icon" aria-hidden="true">⟳</span> UUID
+        </button>
+        <button class="tab" role="tab" aria-selected="false" aria-controls="panel-cron" id="tab-cron" data-panel="cron" tabindex="-1">
+          <span class="tab__icon" aria-hidden="true">⏰</span> Cron
+        </button>
+        <button class="tab" role="tab" aria-selected="false" aria-controls="panel-markdown" id="tab-markdown" data-panel="markdown" tabindex="-1">
+          <span class="tab__icon" aria-hidden="true">MD</span> Markdown
+        </button>
+        <button class="tab" role="tab" aria-selected="false" aria-controls="panel-http" id="tab-http" data-panel="http" tabindex="-1">
+          <span class="tab__icon" aria-hidden="true">HTTP</span> Status
         </button>
       </div>
     </div>
@@ -2342,6 +2354,184 @@
               aria-label="Generated UUIDs"
               aria-live="polite"
             ></textarea>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════════════════════════
+           Cron Expression Explainer
+           ═══════════════════════════════ -->
+      <section
+        id="panel-cron"
+        class="panel"
+        role="tabpanel"
+        aria-labelledby="tab-cron"
+        hidden
+      >
+        <div class="tool">
+          <div class="tool__header">
+            <div>
+              <h2 class="tool__title">Cron Expression Explainer</h2>
+              <p class="tool__desc">Paste a cron expression to see it in plain English and preview the next 5 run times. Supports <code>*</code>, ranges (<code>1-5</code>), lists (<code>1,3,5</code>), steps (<code>*/15</code>), and named months/days.</p>
+            </div>
+          </div>
+          <div class="tool__body">
+
+            <!-- Input -->
+            <div class="tool__pane">
+              <div class="pane__header">
+                <span class="pane__label">Expression</span>
+                <div class="pane__actions">
+                  <button class="btn btn--sm btn--ghost" id="cronCopy" disabled>Copy description</button>
+                </div>
+              </div>
+              <input
+                type="text"
+                id="cronInput"
+                class="base-input cron-input"
+                placeholder="min  hour  dom  month  dow — e.g. 0 9 * * 1-5"
+                spellcheck="false"
+                autocomplete="off"
+                aria-label="Cron expression input"
+              >
+              <div class="status-bar" id="cronStatus" aria-live="polite" role="status"></div>
+            </div>
+
+            <!-- Presets -->
+            <div class="cron-presets" role="group" aria-label="Preset expressions">
+              <button class="btn btn--sm btn--ghost" data-cron="* * * * *">Every minute</button>
+              <button class="btn btn--sm btn--ghost" data-cron="*/15 * * * *">Every 15 min</button>
+              <button class="btn btn--sm btn--ghost" data-cron="0 * * * *">Every hour</button>
+              <button class="btn btn--sm btn--ghost" data-cron="0 9 * * 1-5">Weekdays 9 AM</button>
+              <button class="btn btn--sm btn--ghost" data-cron="0 0 * * *">Daily midnight</button>
+              <button class="btn btn--sm btn--ghost" data-cron="0 0 1 * *">Monthly</button>
+              <button class="btn btn--sm btn--ghost" data-cron="0 0 1 1 *">Yearly</button>
+            </div>
+
+            <!-- Description output -->
+            <div class="tool__pane tool__pane--top">
+              <div class="pane__header">
+                <span class="pane__label">Plain English</span>
+              </div>
+              <p
+                id="cronDesc"
+                class="cron-desc"
+                aria-live="polite"
+                role="status"
+              >Enter a cron expression above — e.g. 0 9 * * 1-5</p>
+            </div>
+
+            <!-- Next runs -->
+            <div class="tool__pane tool__pane--top">
+              <div class="pane__header">
+                <span class="pane__label">Next 5 runs</span>
+              </div>
+              <ul
+                id="cronNextRuns"
+                class="cron-runs"
+                aria-live="polite"
+                aria-label="Next scheduled run times"
+              ></ul>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════════════════════════
+           Markdown Previewer
+           ═══════════════════════════════ -->
+      <section
+        id="panel-markdown"
+        class="panel"
+        role="tabpanel"
+        aria-labelledby="tab-markdown"
+        hidden
+      >
+        <div class="tool">
+          <div class="tool__header">
+            <div>
+              <h2 class="tool__title">Markdown Previewer</h2>
+              <p class="tool__desc">Paste Markdown and see the rendered output in real time.</p>
+            </div>
+            <div class="tool__actions">
+              <button class="btn btn--sm btn--ghost" id="mdCopyHtml" disabled>Copy HTML</button>
+            </div>
+          </div>
+          <div class="tool__body">
+            <div class="status-bar" id="mdStatus" aria-live="polite" role="status"></div>
+            <div class="tool__body--split">
+              <div class="tool__pane">
+                <div class="pane__header">
+                  <span class="pane__label">Markdown</span>
+                </div>
+                <textarea
+                  class="code-area"
+                  id="mdInput"
+                  placeholder="Paste Markdown here…"
+                  spellcheck="false"
+                  autocomplete="off"
+                  aria-label="Markdown input"
+                ></textarea>
+              </div>
+              <div class="tool__pane">
+                <div class="pane__header">
+                  <span class="pane__label">Preview</span>
+                </div>
+                <div
+                  id="mdPreview"
+                  class="md-preview"
+                  aria-live="polite"
+                  aria-label="Markdown preview"
+                ></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════════════════════════
+           HTTP Status Code Reference
+           ═══════════════════════════════ -->
+      <section
+        id="panel-http"
+        class="panel"
+        role="tabpanel"
+        aria-labelledby="tab-http"
+        hidden
+      >
+        <div class="tool">
+          <div class="tool__header">
+            <div>
+              <h2 class="tool__title">HTTP Status Code Reference</h2>
+              <p class="tool__desc">Search by code number or keyword. Covers all IANA-registered 1xx–5xx codes.</p>
+            </div>
+          </div>
+          <div class="tool__body">
+
+            <div class="tool__pane">
+              <div class="pane__header">
+                <span class="pane__label">Search</span>
+              </div>
+              <input
+                type="search"
+                id="httpSearch"
+                class="base-input http-search"
+                placeholder="Code number or keyword — e.g. 404, redirect, timeout"
+                spellcheck="false"
+                autocomplete="off"
+                aria-label="Search HTTP status codes"
+              >
+              <div class="status-bar" id="httpStatus" aria-live="polite" role="status"></div>
+            </div>
+
+            <ul
+              id="httpResults"
+              class="http-results"
+              aria-label="HTTP status code results"
+              aria-live="polite"
+            ></ul>
 
           </div>
         </div>

@@ -29,3 +29,6 @@ import './tools/password.js';
 import './tools/string.js';
 import './tools/cidr.js';
 import './tools/uuid.js';
+import './tools/cron.js';
+import './tools/markdown.js';
+import './tools/http.js';
