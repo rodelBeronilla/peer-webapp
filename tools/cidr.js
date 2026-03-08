@@ -1,7 +1,7 @@
 // CIDR / IP Subnet Calculator
 // Parses CIDR notation and computes network details using bitwise arithmetic.
 
-import { copyText } from './utils.js';
+import { copyText, escapeHtml } from './utils.js';
 
 const cidrInput   = document.getElementById('cidrInput');
 const cidrCalc    = document.getElementById('cidrCalc');
@@ -105,13 +105,13 @@ function calculate() {
       <tbody>
         ${rows.map(r => `
           <tr>
-            <td class="cidr-field-label">${r.label}</td>
-            <td class="cidr-field-value" id="${r.id}"><code>${r.value}</code></td>
-            <td><button class="btn btn--sm btn--ghost cidr-copy-btn" data-value="${r.value}" aria-label="Copy ${r.label}">Copy</button></td>
+            <td class="cidr-field-label">${escapeHtml(r.label)}</td>
+            <td class="cidr-field-value" id="${escapeHtml(r.id)}"><code>${escapeHtml(r.value)}</code></td>
+            <td><button class="btn btn--sm btn--ghost cidr-copy-btn" data-value="${escapeHtml(r.value)}" aria-label="Copy ${escapeHtml(r.label)}">Copy</button></td>
           </tr>`).join('')}
       </tbody>
     </table>
-    ${note ? `<p class="cidr-note">${note}</p>` : ''}
+    ${note ? `<p class="cidr-note">${escapeHtml(note)}</p>` : ''}
   `;
 
   cidrResult.hidden = false;
