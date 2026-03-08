@@ -2407,3 +2407,146 @@ main {
   min-height: 1em;
   letter-spacing: 0.01em;
 }
+
+/* ============================================
+   Hash & HMAC Tool
+   ============================================ */
+
+/* Hash panel: wider label column to fit "SHA-256" etc. */
+#panel-hash .base-row {
+  grid-template-columns: 4.5rem 1fr auto;
+}
+
+/* Hash compare mode */
+.hash-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.hash-row-btns {
+  display: flex;
+  gap: 0.375rem;
+}
+
+.hash-compare-row {
+  display: grid;
+  grid-template-columns: 4.5rem 1fr auto;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.hash-match {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+  min-width: 5.5rem;
+  text-align: center;
+}
+
+.hash-match--ok  { color: var(--color-ok); }
+.hash-match--err { color: var(--color-danger); }
+
+/* Hash tool section divider (SHA / HMAC) */
+.tool__divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem 0;
+  color: var(--color-text-muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.tool__divider::before,
+.tool__divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--color-border);
+}
+
+/* HMAC key input — full-width editable field */
+.hmac-key-input {
+  width: 100%;
+  box-sizing: border-box;
+  display: block;
+}
+
+/* Secondary pane header with top spacing */
+.pane__header--mt {
+  margin-top: 0.75rem;
+}
+
+/* ============================================
+   File drop zone
+   ============================================ */
+.file-drop-zone {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 1.5rem 1rem;
+  border: 2px dashed var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  text-align: center;
+  min-height: 9rem;
+}
+
+.file-drop-zone:hover,
+.file-drop-zone:focus-visible {
+  border-color: var(--color-accent);
+  outline: none;
+}
+
+.file-drop-zone--active {
+  border-color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 8%, var(--color-surface));
+}
+
+.file-drop-zone--loaded {
+  border-style: solid;
+  border-color: var(--color-ok);
+  background: color-mix(in srgb, var(--color-ok) 5%, var(--color-surface));
+}
+
+.file-drop-zone__input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.file-drop-zone__icon {
+  font-size: 1.75rem;
+  line-height: 1;
+  color: var(--color-muted);
+}
+
+.file-drop-zone--loaded .file-drop-zone__icon {
+  color: var(--color-ok);
+}
+
+.file-drop-zone__label {
+  font-size: 0.9rem;
+  color: var(--color-text);
+}
+
+.file-drop-zone__browse {
+  color: var(--color-accent);
+  text-decoration: underline;
+}
+
+.file-drop-zone__hint {
+  font-size: 0.78rem;
+  color: var(--color-muted);
+}
