@@ -63,6 +63,9 @@
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="string">String</a></li>
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="cidr">CIDR</a></li>
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="uuid">UUID</a></li>
+        <li><a href="#tools" class="nav__link nav-tool-link" data-tab="cron">Cron</a></li>
+        <li><a href="#tools" class="nav__link nav-tool-link" data-tab="markdown">Markdown</a></li>
+        <li><a href="#tools" class="nav__link nav-tool-link" data-tab="http">Status</a></li>
         <li><a href="#about" class="nav__link">About</a></li>
       </ul>
     </div>
@@ -149,6 +152,12 @@
         </button>
         <button class="tab" role="tab" aria-selected="false" aria-controls="panel-cron" id="tab-cron" data-panel="cron" tabindex="-1">
           <span class="tab__icon" aria-hidden="true">⏱</span> Cron
+        </button>
+        <button class="tab" role="tab" aria-selected="false" aria-controls="panel-markdown" id="tab-markdown" data-panel="markdown" tabindex="-1">
+          <span class="tab__icon" aria-hidden="true">MD</span> Markdown
+        </button>
+        <button class="tab" role="tab" aria-selected="false" aria-controls="panel-http" id="tab-http" data-panel="http" tabindex="-1">
+          <span class="tab__icon" aria-hidden="true">HTTP</span> Status
         </button>
       </div>
     </div>
@@ -2416,6 +2425,100 @@
               <ol class="cron-run-list" id="cronRunList" aria-label="Next scheduled run times"></ol>
             </div>
 
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════════════════════════
+           Markdown Previewer
+           ═══════════════════════════════ -->
+      <section
+        id="panel-markdown"
+        class="panel"
+        role="tabpanel"
+        aria-labelledby="tab-markdown"
+        hidden
+      >
+        <div class="tool">
+          <div class="tool__header">
+            <div>
+              <h2 class="tool__title">Markdown Previewer</h2>
+              <p class="tool__desc">Paste Markdown and see the rendered output in real time.</p>
+            </div>
+            <div class="tool__actions">
+              <button class="btn btn--sm btn--ghost" id="mdCopyHtml" disabled>Copy HTML</button>
+            </div>
+          </div>
+          <div class="tool__body">
+            <div class="status-bar" id="mdStatus" aria-live="polite" role="status"></div>
+            <div class="tool__body--split">
+              <div class="tool__pane">
+                <div class="pane__header">
+                  <span class="pane__label">Markdown</span>
+                </div>
+                <textarea
+                  class="code-area"
+                  id="mdInput"
+                  placeholder="Paste Markdown here…"
+                  spellcheck="false"
+                  autocomplete="off"
+                  aria-label="Markdown input"
+                ></textarea>
+              </div>
+              <div class="tool__pane">
+                <div class="pane__header">
+                  <span class="pane__label">Preview</span>
+                </div>
+                <div
+                  id="mdPreview"
+                  class="md-preview"
+                  aria-live="polite"
+                  aria-label="Markdown preview"
+                ></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════════════════════════
+           HTTP Status Code Reference
+           ═══════════════════════════════ -->
+      <section
+        id="panel-http"
+        class="panel"
+        role="tabpanel"
+        aria-labelledby="tab-http"
+        hidden
+      >
+        <div class="tool">
+          <div class="tool__header">
+            <div>
+              <h2 class="tool__title">HTTP Status Codes</h2>
+              <p class="tool__desc">All IANA-registered 1xx–5xx codes with descriptions. Search by number or keyword.</p>
+            </div>
+          </div>
+          <div class="tool__body">
+            <div class="tool__pane">
+              <div class="pane__header">
+                <span class="pane__label">Search</span>
+              </div>
+              <input
+                type="search"
+                id="httpSearch"
+                class="base-input http-search"
+                placeholder="Search by code or keyword — e.g. 404, not found, redirect…"
+                spellcheck="false"
+                autocomplete="off"
+                aria-label="Search HTTP status codes"
+              >
+              <div class="status-bar" id="httpStatus" aria-live="polite" role="status"></div>
+            </div>
+            <ul
+              id="httpResults"
+              class="http-results"
+              aria-label="HTTP status code results"
+            ></ul>
           </div>
         </div>
       </section>
