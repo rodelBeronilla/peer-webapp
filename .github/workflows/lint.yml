@@ -26,3 +26,6 @@ jobs:
 
       - name: Run ESLint
         run: npx eslint tools/*.js script.js
+
+      - name: Run Stylelint
+        run: npx stylelint "styles.css" "tools/*.css"
