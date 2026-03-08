@@ -22,6 +22,13 @@ export function copyText(text, btn) {
   });
 }
 
+// Escape boundary: call escapeHtml() only immediately before setting innerHTML.
+// Never call it before textContent assignments — textContent is safe and will
+// render literal &lt; entities if pre-escaped.
 export function escapeHtml(str) {
-  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 }
