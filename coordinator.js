@@ -450,12 +450,18 @@ function decideAction(agentKey, ctx, turnCount = 0) {
     }
   }
 
-  // Priority 2: Merge reviewed PRs with passing CI
-  // GitHub doesn't count bot APPROVED reviews in reviewDecision, so check for peer reviews directly
+  // Priority 2: Merge PEER's reviewed PRs with passing CI (never merge your own)
   const mergeablePRs = ctx.openPRs.filter(pr => {
+    // Only merge peer's PRs, not your own
+    const isPeerPR = (pr.labels || []).some(l => l.name === peerLabel);
+    if (!isPeerPR) return false;
     if (pr.reviewDecision === 'APPROVED') return true;
+    // Check if THIS agent has already reviewed it (bot approvals don't show in reviewDecision)
     const reviews = pr.reviews || [];
-    return reviews.some(r => r.state === 'APPROVED' || r.state === 'COMMENTED');
+    const myReview = reviews.find(r =>
+      r.author?.login?.toLowerCase().includes(agent.name.toLowerCase())
+    );
+    return myReview && (myReview.state === 'APPROVED' || myReview.state === 'COMMENTED');
   });
   for (const pr of mergeablePRs) {
     if (!claimWork(agentKey, 'merge', pr.number)) continue;
@@ -816,7 +822,11 @@ You run this project using agile practices on GitHub:
 - Feature branches: \`${agent.name.toLowerCase()}/short-description\`
 - Conventional commits: \`type(scope): description\`
 - Label PRs/issues with \`${agent.label}\`
-- PRs require 1 review + CI passing. Use auto-merge: \`gh pr merge N --auto --squash\`
+- **Assign yourself** to issues you pick up: \`--add-assignee @me\`
+- **Request ${agent.peer} as reviewer** on every PR: \`--reviewer ${agent.peer.toLowerCase()}-peer-dev\`
+- **Never self-review or self-merge.** ${agent.peer} reviews your work, you review ${agent.peer}'s. That's the whole point of pair development.
+- PRs require ${agent.peer}'s review + CI passing. After ${agent.peer} approves, THEY merge — not you.
+- **Segregation of duties applies to ALL gh actions**: any command that accepts \`--reviewer\` or \`--assignee\` should use them to maintain collaboration. Don't work in isolation.
 - You CAN modify any file including coordinator.js and CLAUDE.md
 - Vanilla HTML/CSS/JS only. Accessible. Mobile-first.
 `;
@@ -839,7 +849,8 @@ ${agent.peer} opened PR #${action.pr.number}: "${action.pr.title}" on branch \`$
    - If good: \`--approve --body "..."\`
    - If needs work: \`--request-changes --body "..."\`
 5. Be specific — reference line numbers, suggest improvements, praise good work
-6. If you approve, enable auto-merge: \`gh pr merge ${action.pr.number} -R ${CONFIG.repo} --auto --squash\`
+6. If you approve and CI passes, merge it: \`gh pr merge ${action.pr.number} -R ${CONFIG.repo} --squash\` — you're the reviewer, it's your responsibility to merge ${agent.peer}'s approved work
+7. **Never merge your own PRs.** Only merge ${agent.peer}'s after you've reviewed and approved.
 
 **Step 3 — Talk to ${agent.peer}.** Read recent discussions (\`./gh-discuss.sh list\`) and reply to anything waiting for you. Then start a conversation about this review — not a status report. Examples:
 - In **Q&A**: "Question about PR #${action.pr.number}: why did you use [approach X] instead of [approach Y]? I see trade-offs either way..."
@@ -856,11 +867,12 @@ PR #${action.pr.number}: "${action.pr.title}" has been approved.
 
 **Step 1 — Check discussions first.** Reply to any unanswered questions from ${agent.peer}.
 
-**Step 2 — Merge:**
-1. Verify CI: \`gh pr checks ${action.pr.number} -R ${CONFIG.repo}\`
-2. Merge: \`gh pr merge ${action.pr.number} -R ${CONFIG.repo} --squash\` (or \`--auto --squash\` if CI pending)
-3. \`git checkout main && git pull\`
-4. Create follow-up issues if needed. Add them to the project board and current milestone.
+**Step 2 — Merge (only ${agent.peer}'s PRs, never your own):**
+1. Verify this is ${agent.peer}'s PR (has \`${peerLabel}\` label). **If it's YOUR PR, skip — ${agent.peer} merges it after reviewing.**
+2. Verify CI: \`gh pr checks ${action.pr.number} -R ${CONFIG.repo}\`
+3. Merge: \`gh pr merge ${action.pr.number} -R ${CONFIG.repo} --squash\`
+4. \`git checkout main && git pull\`
+5. Create follow-up issues if needed. Assign them: \`--assignee @me\` if you'll do it, or leave unassigned for ${agent.peer} to pick up. Add to project board and current milestone.
 
 **Step 3 — Talk to ${agent.peer}.** Check discussions (\`./gh-discuss.sh list\`) and reply to anything pending. Then share something worth discussing — not "Shipped PR #${action.pr.number}" (that's what the merge notification is for). Instead:
 - In **Show and tell**: What's interesting about what just shipped? What did you learn? What would you change if you did it again?
@@ -888,8 +900,9 @@ Your PR #${action.pr.pr}: "${action.pr.title}" has received comments/reviews.
 
 1. **Check discussions first** — reply to ${agent.peer}'s latest messages
 2. Read the PR feedback: \`gh pr view ${action.pr.pr} -R ${CONFIG.repo} --comments\`
-3. Address the feedback: fix code if changes requested, reply to questions, merge if approved
-4. **Reply to ${agent.peer} in discussions** — check \`./gh-discuss.sh list\` and respond to anything waiting. If the review feedback was interesting, continue the conversation in the relevant thread, don't create a new one just to say "fixed it."
+3. Address the feedback: fix code if changes requested, reply to questions. **Do NOT merge your own PR** — ${agent.peer} merges after approving.
+4. If you've addressed all feedback, comment asking ${agent.peer} to re-review.
+5. **Reply to ${agent.peer} in discussions** — check \`./gh-discuss.sh list\` and respond to anything waiting. If the review feedback was interesting, continue the conversation in the relevant thread, don't create a new one just to say "fixed it."
 `;
 
     case 'implement-issue':
@@ -904,13 +917,13 @@ Your PR #${action.pr.pr}: "${action.pr.title}" has received comments/reviews.
 **Step 2 — Communicate your plan.** Before coding, post in a General discussion thread telling ${agent.peer} what you're about to build and your approach. Ask if they have thoughts or concerns. Example: "Hey ${agent.peer}, picking up #${action.issue.number}. I'm thinking of approaching it by [X]. Any thoughts before I start?"
 
 **Step 3 — Implement:**
-1. Assign yourself: \`gh issue edit ${action.issue.number} -R ${CONFIG.repo} --add-label "${agent.label}"\`
+1. Assign yourself: \`gh issue edit ${action.issue.number} -R ${CONFIG.repo} --add-label "${agent.label}" --add-assignee @me\`
 2. Comment on the issue with your approach
 3. Branch: \`git checkout -b ${agent.name.toLowerCase()}/issue-${action.issue.number} main\`
 4. Implement — read existing code first, make focused changes
 5. Commit with conventional messages
 6. Push: \`git push -u origin ${agent.name.toLowerCase()}/issue-${action.issue.number}\`
-7. PR: \`gh pr create -R ${CONFIG.repo} --title "type(scope): description" --body "Closes #${action.issue.number}\\n\\nAuthor: ${agent.name}\\n\\n## Changes\\n- ...\\n\\n## Test Plan\\n- ..." --label "${agent.label}" --label "release:feature"\`
+7. PR: \`gh pr create -R ${CONFIG.repo} --title "type(scope): description" --body "Closes #${action.issue.number}\\n\\nAuthor: ${agent.name}\\n\\n## Changes\\n- ...\\n\\n## Test Plan\\n- ..." --label "${agent.label}" --label "release:feature" --assignee @me --reviewer ${agent.peer.toLowerCase()}-peer-dev\`
 8. Add the PR to the project board and assign it to the current milestone
 9. \`git checkout main\`
 
@@ -989,10 +1002,11 @@ The backlog needs work. Run a proper sprint planning session:
    - Clear titles and acceptance criteria
    - Labels: priority (\`P1-high\`/\`P2-medium\`), size (\`size:S\`/\`size:M\`/\`size:L\`), type
    - Assigned to the milestone
+   - **Assign collaboratively**: assign yourself (\`--add-assignee @me\`) to issues you plan to own, leave others for ${agent.peer}
 3. Add each issue to Project #5: \`gh project item-add 5 --owner rodelBeronilla --url <issue-url>\`
-4. Comment on each issue with implementation thoughts
+4. Comment on each issue with implementation thoughts — tag ${agent.peer} for their input
 
-**Step 5 — Communicate.** Post in a General discussion summarizing the sprint plan and asking ${agent.peer} which issues they want to pick up.
+**Step 5 — Communicate.** Post in a General discussion summarizing the sprint plan. Ask ${agent.peer} which unassigned issues they want — don't assign all to yourself.
 `;
 
     default:
