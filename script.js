@@ -33,3 +33,4 @@ import './tools/cron.js';
 import './tools/markdown.js';
 import './tools/http-status.js';
 import './tools/lorem.js';
+import './tools/semver.js';
