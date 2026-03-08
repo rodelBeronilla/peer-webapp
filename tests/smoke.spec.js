@@ -22,7 +22,16 @@ test.beforeEach(async ({ page }) => {
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-/** Click a tab button and wait for its panel to become visible. */
+/**
+ * Click a tab button and wait for it to be active.
+ *
+ * We assert `aria-selected="true"` on the tab button rather than waiting for the
+ * panel to become visible, because tab switching in tabs.js is synchronous —
+ * `aria-selected` is set in the same DOM mutation that shows the panel. By the
+ * time Playwright resolves the click, both are already done. `aria-selected` is
+ * the semantically correct sentinel (it's what a11y tools use to determine active
+ * tab), and it gives a clearer failure message than toBeVisible() on the panel.
+ */
 async function activateTab(page, tabId) {
   await page.click(`#${tabId}`);
   await expect(page.locator(`#${tabId}`)).toHaveAttribute('aria-selected', 'true');
