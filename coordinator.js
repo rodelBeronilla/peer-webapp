@@ -830,8 +830,15 @@ function decideAction(agentKey, ctx, turnCount = 0) {
   for (const pr of reviewablePRs) {
     let bonus = 0;
     // Re-review request bonus (+15)
+    // Filter to comments NOT authored by the reviewing agent — a reviewer's own note
+    // ("I'll re-review when CI passes") should not inflate the score for a PR they
+    // are already handling. Only the PR author requesting re-review should trigger this.
     const pc = ctx.prConversations.find(c => c.pr === pr.number);
-    if (pc && (pc.comments || []).some(c => RE_REVIEW_PATTERN.test(c.body || ''))) bonus += 15;
+    const agentLoginPart = agent.name.toLowerCase();
+    if (pc && (pc.comments || []).some(c =>
+      RE_REVIEW_PATTERN.test(c.body || '') &&
+      !(c.author?.login || '').toLowerCase().includes(agentLoginPart)
+    )) bonus += 15;
     // Stale PR bonus (+10)
     if (isPRStale(pc || pr, staleThresholdMs)) bonus += 10;
     candidates.push({
