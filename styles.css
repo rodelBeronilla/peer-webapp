@@ -1741,3 +1741,102 @@ main {
 .chmod-cmd-output {
   color: var(--color-text-muted);
 }
+
+/* ============================================
+   Unicode Character Inspector
+   ============================================ */
+.cm-empty {
+  padding: 2rem;
+  text-align: center;
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.cm-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.cm-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.cm-th {
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
+}
+
+.cm-row {
+  border-bottom: 1px solid var(--color-border);
+}
+.cm-row:last-child {
+  border-bottom: none;
+}
+.cm-row--special {
+  background: color-mix(in srgb, var(--color-danger, #ef4444) 6%, transparent);
+}
+
+.cm-cell {
+  padding: 0.35rem 0.75rem;
+  vertical-align: middle;
+}
+.cm-cell code {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+}
+
+.cm-char {
+  display: inline-block;
+  min-width: 1.6rem;
+  text-align: center;
+  font-size: 1.1rem;
+  line-height: 1;
+  padding: 0.15rem 0.3rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 3px;
+}
+.cm-char--control {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--color-danger, #ef4444);
+  background: color-mix(in srgb, var(--color-danger, #ef4444) 8%, var(--color-surface));
+}
+
+/* Category badges */
+.cm-cat {
+  display: inline-block;
+  padding: 0.1em 0.45em;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1.4;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.cm-cat--ascii   { background: color-mix(in srgb, #22c55e 15%, transparent); color: #16a34a; }
+.cm-cat--unicode { background: color-mix(in srgb, #3b82f6 15%, transparent); color: #1d4ed8; }
+.cm-cat--control { background: color-mix(in srgb, #ef4444 15%, transparent); color: #dc2626; }
+.cm-cat--space   { background: color-mix(in srgb, #f97316 15%, transparent); color: #ea580c; }
+.cm-cat--emoji   { background: color-mix(in srgb, #a855f7 15%, transparent); color: #7c3aed; }
+
+@media (prefers-color-scheme: dark) {
+  .cm-cat--ascii   { color: #86efac; }
+  .cm-cat--unicode { color: #93c5fd; }
+  .cm-cat--control { color: #fca5a5; }
+  .cm-cat--space   { color: #fdba74; }
+  .cm-cat--emoji   { color: #d8b4fe; }
+}
