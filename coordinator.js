@@ -418,7 +418,11 @@ function isPRStale(prData, thresholdMs = 48 * 60 * 60 * 1000) {
 function hasGammaInformalApproval(pr) {
   const gammaLogin = AGENTS.gamma.ghUser; // 'gamma-peer-dev'
   const approvalPattern = /\b(lgtm|approved?|no\s+blockers?|no\s+outstanding\s+issues?|merge.?ready)\b/i;
+  // Only match COMMENTED reviews — APPROVED is already captured by reviewDecision === 'APPROVED'.
+  // Filtering to COMMENTED prevents CHANGES_REQUESTED bodies with partial approval language
+  // (e.g. "the X path is approved, but new blocker: ...") from triggering the score boost.
   return (pr.reviews || []).some(r =>
+    r.state === 'COMMENTED' &&
     (r.author?.login || '').toLowerCase() === gammaLogin.toLowerCase() &&
     approvalPattern.test(r.body || '')
   );
