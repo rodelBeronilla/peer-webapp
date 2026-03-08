@@ -65,6 +65,7 @@
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="uuid">UUID</a></li>
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="markdown">Markdown</a></li>
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="http-status">HTTP Status</a></li>
+        <li><a href="#tools" class="nav__link nav-tool-link" data-tab="lorem">Lorem Ipsum</a></li>
         <li><a href="#about" class="nav__link">About</a></li>
       </ul>
     </div>
@@ -157,6 +158,9 @@
         </button>
         <button class="tab" role="tab" aria-selected="false" aria-controls="panel-http-status" id="tab-http-status" data-panel="http-status" tabindex="-1">
           <span class="tab__icon" aria-hidden="true">🌐</span> HTTP Status
+        </button>
+        <button class="tab" role="tab" aria-selected="false" aria-controls="panel-lorem" id="tab-lorem" data-panel="lorem" tabindex="-1">
+          <span class="tab__icon" aria-hidden="true">¶</span> Lorem Ipsum
         </button>
       </div>
     </div>
@@ -2513,6 +2517,85 @@
             </div>
 
             <div id="httpList" role="list" aria-label="HTTP status codes"></div>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════════════════════════
+           Lorem Ipsum Generator
+           ═══════════════════════════════ -->
+      <section
+        id="panel-lorem"
+        class="panel"
+        role="tabpanel"
+        aria-labelledby="tab-lorem"
+        hidden
+      >
+        <div class="tool">
+          <div class="tool__header">
+            <div>
+              <h2 class="tool__title">Lorem Ipsum Generator</h2>
+              <p class="tool__desc">Generate randomized placeholder text for mockups and layout testing. Choose paragraphs, sentences, or words.</p>
+            </div>
+          </div>
+          <div class="tool__body">
+
+            <div class="lorem-controls">
+              <div class="lorem-control-row">
+                <label class="lorem-label" for="loremMode">Generate</label>
+                <select class="lorem-select" id="loremMode" aria-label="Output unit">
+                  <option value="paragraphs">Paragraphs</option>
+                  <option value="sentences">Sentences</option>
+                  <option value="words">Words</option>
+                </select>
+              </div>
+
+              <div class="lorem-control-row">
+                <label class="lorem-label" for="loremCount" id="loremCountLabel">Paragraphs</label>
+                <input
+                  type="number"
+                  class="lorem-count"
+                  id="loremCount"
+                  value="3"
+                  min="1"
+                  max="100"
+                  aria-label="Count"
+                >
+              </div>
+
+              <div class="lorem-control-row lorem-checkboxes">
+                <label class="lorem-check-label">
+                  <input type="checkbox" id="loremClassic" checked>
+                  Start with classic
+                </label>
+                <label class="lorem-check-label">
+                  <input type="checkbox" id="loremHtml">
+                  Wrap in &lt;p&gt; tags
+                </label>
+              </div>
+
+              <div class="lorem-control-row lorem-actions">
+                <button class="btn" id="loremGenerate">Regenerate</button>
+                <button class="btn btn--secondary" id="loremCopy" disabled>Copy</button>
+              </div>
+            </div>
+
+            <textarea
+              class="lorem-output"
+              id="loremOutput"
+              readonly
+              aria-label="Generated lorem ipsum text"
+              spellcheck="false"
+            ></textarea>
+
+            <div
+              class="status-bar"
+              id="loremStatus"
+              role="status"
+              aria-live="polite"
+              aria-atomic="true"
+            ></div>
 
           </div>
         </div>
