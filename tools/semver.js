@@ -130,8 +130,9 @@ function comparePrerelease(a, b) {
     const bNum = /^\d+$/.test(bId);
 
     if (aNum && bNum) {
-      const diff = parseInt(aId, 10) - parseInt(bId, 10);
-      if (diff !== 0) return diff;
+      // Subtraction overflows above 2^53 — use explicit comparison instead
+      const an = parseInt(aId, 10), bn = parseInt(bId, 10);
+      if (an !== bn) return an < bn ? -1 : 1;
     } else if (aNum) {
       return -1; // numeric < alphanumeric
     } else if (bNum) {
