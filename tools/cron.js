@@ -25,15 +25,6 @@ const ALIASES = {
 const MONTH_NAMES = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
 const DAY_NAMES   = ['sun','mon','tue','wed','thu','fri','sat'];
 
-// ── Field constraints ─────────────────────────────────────────────────────────
-
-const FIELDS = [
-  { name: 'minute',       min: 0, max: 59 },
-  { name: 'hour',         min: 0, max: 23 },
-  { name: 'day-of-month', min: 1, max: 31 },
-  { name: 'month',        min: 1, max: 12 },
-  { name: 'day-of-week',  min: 0, max: 7  }, // 0 and 7 both = Sunday
-];
 
 // ── Parser ────────────────────────────────────────────────────────────────────
 
@@ -84,7 +75,7 @@ function parseField(token, min, max, names) {
   return result;
 }
 
-function resolveValue(str, names, min, max) {
+function resolveValue(str, names, min, _max) {
   if (names) {
     const idx = names.indexOf(str.toLowerCase());
     if (idx !== -1) return idx + (min === 1 ? 1 : 0);
@@ -269,7 +260,6 @@ function describeExpression(expr, parsed) {
 
   const minuteDesc = describeList(minutes, 60, fmtMin);
   const hourDesc   = describeList(hours,   24, fmtHour);
-  const monthDesc  = describeList(months,  12, fmtMonth);
 
   let timeStr;
   if (minutes.length === 60 && hours.length === 24) {

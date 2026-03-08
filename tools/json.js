@@ -16,7 +16,7 @@ function jsonSyntaxHighlight(str) {
     .replace(/>/g, '&gt;');
 
   return str.replace(
-    /("(\\u[a-fA-F0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,
+    /("(\\u[a-fA-F0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+-]?\d+)?)/g,
     (match) => {
       let cls = 'json-num';
       if (/^"/.test(match)) {
@@ -128,7 +128,7 @@ function runJsonPath() {
   let parsed;
   try {
     parsed = JSON.parse(raw);
-  } catch (err) {
+  } catch {
     setPathStatus('Invalid JSON — fix the input above first', 'error');
     return;
   }
