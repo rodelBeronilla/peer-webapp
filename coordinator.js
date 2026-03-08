@@ -620,6 +620,28 @@ function decideGammaAction(agentKey, ctx, turnCount = 0) {
 function decideAction(agentKey, ctx, turnCount = 0) {
   if (AGENTS[agentKey].isReviewOnly) return decideGammaAction(agentKey, ctx, turnCount);
 
+  // Priority index — physical order IS execution order. A block listed at position N
+  // will always preempt anything listed after it. To insert a new priority between
+  // existing blocks, place the CODE before the block it should beat AND update this list.
+  // Mismatches between this list and the code below are a bug.
+  //
+  //  (implicit) Owner-triggered discussion response
+  //  (implicit) @mention discussion response
+  //  (implicit) Checkpoint (workSinceCheckpoint threshold)
+  //  0: Own PR is CONFLICTING — resolve before all else
+  //  (implicit) Notify peer of their CONFLICTING PRs (side-effect, no return)
+  //  1: Merge peer's reviewed + passing-CI PRs (unblock the pipeline)
+  //  2: Review peer PRs with explicit re-review requests (beat oldest-first queue)
+  //  3: Review peer's open PRs (oldest first)
+  //  4: Respond to comments on own open PRs
+  //  5: Flag stale PRs (>24h) — ping own or review peer's
+  //  5b: Self-reflection (workSinceReflect threshold)
+  //  6: Pick up unassigned issues (oldest first)
+  //  6b: Resume stale assigned issues that have no open PR
+  //  7: Respond to peer's unanswered discussion
+  //  8: Start new discussion / idle turn
+  //  9: Create new issues (backlog empty)
+
   const agent = AGENTS[agentKey];
   const peerLabel = AGENTS[agentKey === 'alpha' ? 'beta' : 'alpha'].label;
 
