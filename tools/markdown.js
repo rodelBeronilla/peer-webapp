@@ -195,6 +195,10 @@ mdCopyBtn.addEventListener('click', () => {
   navigator.clipboard.writeText(html).then(() => {
     mdCopyBtn.textContent = 'Copied!';
     setTimeout(() => { mdCopyBtn.textContent = 'Copy HTML'; }, 1500);
+  }).catch(() => {
+    mdStatus.textContent = 'Copy failed — clipboard access denied';
+    mdStatus.className = 'status-bar status-bar--error';
+    setTimeout(() => { mdStatus.textContent = ''; mdStatus.className = 'status-bar'; }, 3000);
   });
 });
 
