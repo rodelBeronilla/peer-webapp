@@ -18,6 +18,10 @@
   --color-secondary: #7c3aed;
   --color-secondary-hover: #6d28d9;
   --color-warn: #f59e0b;
+  --color-entropy-weak:   #ef4444;
+  --color-entropy-fair:   #f97316;
+  --color-entropy-good:   #eab308;
+  --color-entropy-strong: #22c55e;
   --font-main: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-mono: 'SF Mono', 'Fira Code', Consolas, monospace;
   --max-width: 1200px;
@@ -47,6 +51,10 @@
   --color-secondary: #a78bfa;
   --color-secondary-hover: #c4b5fd;
   --color-warn: #fbbf24;
+  --color-entropy-weak:   #f87171;
+  --color-entropy-fair:   #fb923c;
+  --color-entropy-good:   #facc15;
+  --color-entropy-strong: #4ade80;
 }
 
 /* ============================================
@@ -748,6 +756,13 @@ main {
 .hl-1 { background: rgba( 52, 211, 153, 0.45); } /* emerald */
 .hl-2 { background: rgba(167, 139, 250, 0.45); } /* violet  */
 .hl-3 { background: rgba(251, 146,  60, 0.45); } /* orange  */
+
+.regex-replace-template {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+}
 
 /* ============================================
    Color tool
@@ -2358,10 +2373,10 @@ main {
   color: var(--color-text-muted);
 }
 
-.pw-entropy--weak   { color: #ef4444; }
-.pw-entropy--fair   { color: #f97316; }
-.pw-entropy--good   { color: #eab308; }
-.pw-entropy--strong { color: #22c55e; }
+.pw-entropy--weak   { color: var(--color-entropy-weak); }
+.pw-entropy--fair   { color: var(--color-entropy-fair); }
+.pw-entropy--good   { color: var(--color-entropy-good); }
+.pw-entropy--strong { color: var(--color-entropy-strong); }
 
 /* ============================================
    Tool section divider
