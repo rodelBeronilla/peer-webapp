@@ -73,13 +73,19 @@ case "${1:-}" in
     # Escape for JSON
     BODY_ESCAPED="$(echo "$BODY" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read())[1:-1])' 2>/dev/null || echo "$BODY" | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>process.stdout.write(JSON.stringify(d).slice(1,-1)))" 2>/dev/null || echo "$BODY" | sed 's/\\/\\\\/g; s/"/\\"/g')"
     TITLE_ESCAPED="$(echo "$TITLE" | sed 's/"/\\"/g')"
-    gh api graphql -f query="
+    RESULT="$(gh api graphql -f query="
       mutation { createDiscussion(input: {
         repositoryId: \"$REPO_ID\",
         categoryId: \"$CATEGORY_ID\",
         title: \"$TITLE_ESCAPED\",
         body: \"$BODY_ESCAPED\"
-      }) { discussion { number url } } }"
+      }) { discussion { number url } } }" 2>&1)" || { echo "ERROR: gh api graphql exited non-zero: $RESULT" >&2; exit 1; }
+    if echo "$RESULT" | python3 -c 'import json,sys; d=json.load(sys.stdin); errs=d.get("errors"); print("\n".join(e.get("message","(unknown)") for e in errs) if errs else "", end="")' 2>/dev/null | grep -q .; then
+      echo "ERROR: GitHub API returned errors:" >&2
+      echo "$RESULT" | python3 -c 'import json,sys; d=json.load(sys.stdin); [print(e.get("message","(unknown)"),file=__import__("sys").stderr) for e in d.get("errors",[])]' 2>&1 >&2 || true
+      exit 1
+    fi
+    echo "$RESULT"
     ;;
 
   comment)
@@ -95,11 +101,17 @@ case "${1:-}" in
       exit 1
     fi
     BODY_ESCAPED="$(echo "$BODY" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read())[1:-1])' 2>/dev/null || echo "$BODY" | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>process.stdout.write(JSON.stringify(d).slice(1,-1)))" 2>/dev/null || echo "$BODY" | sed 's/\\/\\\\/g; s/"/\\"/g')"
-    gh api graphql -f query="
+    RESULT="$(gh api graphql -f query="
       mutation { addDiscussionComment(input: {
         discussionId: \"$DISC_ID\",
         body: \"$BODY_ESCAPED\"
-      }) { comment { id } } }"
+      }) { comment { id } } }" 2>&1)" || { echo "ERROR: gh api graphql exited non-zero: $RESULT" >&2; exit 1; }
+    if echo "$RESULT" | python3 -c 'import json,sys; d=json.load(sys.stdin); errs=d.get("errors"); print("\n".join(e.get("message","(unknown)") for e in errs) if errs else "", end="")' 2>/dev/null | grep -q .; then
+      echo "ERROR: GitHub API returned errors:" >&2
+      echo "$RESULT" | python3 -c 'import json,sys; d=json.load(sys.stdin); [print(e.get("message","(unknown)"),file=__import__("sys").stderr) for e in d.get("errors",[])]' 2>&1 >&2 || true
+      exit 1
+    fi
+    echo "$RESULT"
     ;;
 
   *)
