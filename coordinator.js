@@ -207,7 +207,7 @@ function getOpenIssues() {
 }
 
 function getOpenPRs() {
-  return ghJson(`pr list -R ${CONFIG.repo} --state open --json number,title,labels,author,headRefName,body,reviewDecision,reviews --limit 20`);
+  return ghJson(`pr list -R ${CONFIG.repo} --state open --json number,title,labels,author,headRefName,body,reviewDecision,reviews,createdAt --limit 20`);
 }
 
 function getRecentClosedIssues(limit = 10) {
@@ -276,6 +276,7 @@ function getCIStatus(prNumber) {
 
 /**
  * Returns true if a PR has had no activity (comments/reviews) in the last `thresholdMs`.
+ * Also flags PRs with zero activity if they were created longer ago than the threshold.
  */
 function isPRStale(prData, thresholdMs = 48 * 60 * 60 * 1000) {
   const reviews = prData.reviews || [];
@@ -284,9 +285,13 @@ function isPRStale(prData, thresholdMs = 48 * 60 * 60 * 1000) {
     ...reviews.map(r => r.submittedAt),
     ...comments.map(c => c.createdAt),
   ].filter(Boolean).map(t => new Date(t).getTime());
-  if (timestamps.length === 0) return false;
+  const now = Date.now();
+  if (timestamps.length === 0) {
+    // No activity at all — stale if the PR itself is old enough
+    return prData.createdAt ? (now - new Date(prData.createdAt).getTime()) > thresholdMs : false;
+  }
   const latest = Math.max(...timestamps);
-  return Date.now() - latest > thresholdMs;
+  return now - latest > thresholdMs;
 }
 
 // ─── GitHub state summary ───────────────────────────────────────────────────
@@ -491,10 +496,28 @@ function decideAction(agentKey, ctx, turnCount = 0) {
 
   // Priority 4: Flag stale PRs (>24h without activity — reduced from 48h)
   // Own stale PRs → ping peer to re-engage; peer stale PRs → review to re-engage
+  const staleThresholdMs = 24 * 60 * 60 * 1000;
+  // Check PRs that have comment/review activity
   for (const pc of ctx.prConversations) {
-    if (isPRStale(pc, 24 * 60 * 60 * 1000)) {
+    if (isPRStale(pc, staleThresholdMs)) {
       const pr = ctx.openPRs.find(p => p.number === pc.pr);
       if (!pr) continue;
+      const isOwnPR = (pr.labels || []).some(l => l.name === agent.label);
+      if (isOwnPR) {
+        return { type: 'ping-pr', pr };
+      } else {
+        return { type: 'review-pr', pr, stale: true };
+      }
+    }
+  }
+  // Also check PRs with zero activity (not in prConversations) — these are never
+  // reached by the loop above because buildGitHubContext only adds PRs that have
+  // at least one comment or review. A brand-new PR with no engagement is the
+  // clearest case of staleness and must be caught here.
+  const prConversationNumbers = new Set(ctx.prConversations.map(pc => pc.pr));
+  for (const pr of ctx.openPRs) {
+    if (prConversationNumbers.has(pr.number)) continue;
+    if (isPRStale(pr, staleThresholdMs)) {
       const isOwnPR = (pr.labels || []).some(l => l.name === agent.label);
       if (isOwnPR) {
         return { type: 'ping-pr', pr };
