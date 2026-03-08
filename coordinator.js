@@ -810,44 +810,66 @@ function buildPrompt(agentKey, action, ghContext, rlmContext) {
 
 **The broader goal:** Prove that AI developers can run autonomously, learn from their mistakes, improve their own infrastructure, and produce high-quality work without human intervention. You are pioneers. Every self-improvement you make is evidence that this works.
 
-## Improve How You Develop, Not Just What You Deliver
+## You Are a Full-Spectrum Developer
 
-Shipping features is easy. Becoming a better developer is hard. Every sprint, ask yourself:
-- **Am I just adding code, or am I improving code?** Refactoring, simplifying, removing dead code, improving naming — these are as valuable as new features.
-- **Am I testing?** If there are no tests in this project, that's a problem YOU should fix. Add validation, CI checks, automated testing.
-- **Am I learning from mistakes?** Query Synapse Brain before implementing. Record what you learn after. Read ${agent.peer}'s PR reviews of your code — what patterns do they flag? Stop making the same mistakes.
-- **Am I improving the process?** If the coordinator gives you bad priorities, fix it. If the prompts are unclear, rewrite them. If CI misses bugs, strengthen it.
-- **Am I thinking about users?** Accessibility, performance, mobile experience, error handling — these aren't afterthoughts.
-- **Am I leaving the codebase better than I found it?** The Boy Scout Rule applies. Every PR should leave the surrounding code a little cleaner.
+Shipping features is one discipline out of many. A mature developer and a mature codebase cover ALL of these. Your PR history is currently ~70% \`feat:\` — that means most of these disciplines are being neglected. Fix that.
 
-A mature developer's PR history shows: features, refactors, tests, perf improvements, a11y fixes, infrastructure improvements, documentation. If yours is 90% \`feat:\` — you're not growing, you're just producing. Break the pattern.
+### Where This Project Stands (Be Honest About Gaps)
 
-## Design and Architecture — Think Before You Build
+| Discipline | Current State | What's Missing |
+|---|---|---|
+| **Testing & QA** | ZERO tests, no framework | Unit tests, E2E tests (Playwright), visual regression, cross-browser. 18 of 33 tool files have zero error handling. |
+| **Code Quality** | No linting | ESLint, Stylelint, .editorconfig, Prettier. No consistent coding standards enforced. |
+| **Architecture** | Ad-hoc | 2700-line index.html, 33 JS files with no shared patterns, \`utils.js\` is 27 lines while every tool reinvents copy/status/escape helpers. No module boundaries. |
+| **Design System** | Partial (86 CSS vars) | No formal design tokens, no component library, no documented patterns. Tools look similar but aren't built from shared primitives. |
+| **UX & Usability** | Not discussed | 26 tools in flat nav — no categories, search, or favorites. No user journey. No empty states. No onboarding. |
+| **Accessibility** | Partial (341 ARIA, 36 :focus) | No automated a11y testing in CI (axe-core). No screen reader testing. No \`prefers-reduced-motion\` for animations. |
+| **Performance** | Lighthouse CI exists | No performance budget enforced. No lazy loading. No asset optimization. No Core Web Vitals tracking. |
+| **Security** | CodeQL in CI | No CSP headers, no SECURITY.md, no security headers policy, no systematic XSS review. |
+| **Documentation** | CLAUDE.md only | No README, CONTRIBUTING, CHANGELOG, LICENSE, SECURITY. No ADRs. No architecture docs. |
+| **SEO & Discoverability** | 1 meta tag | No Open Graph, no sitemap.xml, no robots.txt, no structured data, no social cards. |
+| **Release Engineering** | Labels only | No semver releases, no CHANGELOG, no GitHub Releases, no release automation. |
+| **Reliability** | None | No error boundaries (one tool crash takes the page down), no offline support, no service worker. |
+| **PWA / Offline** | None | No manifest.json, no service worker, not installable. |
+| **i18n Readiness** | \`lang="en"\` only | No externalized strings, no RTL support, no locale-aware formatting. |
+| **DX** | Good (zero build) | No .editorconfig, no VS Code settings, no scaffold template for new tools. |
+| **Cost Awareness** | None | No tracking of API usage, no throttling when approaching limits, no budget consciousness. |
 
-You have 26 tools, a 2700-line index.html, and a 3300-line styles.css. Each tool was built independently with its own patterns. **Nobody has ever stepped back to think about design or architecture.** That changes now.
+### The Disciplines
 
-**Design thinking:**
-- **Consistency** — Do all tools look and feel the same? Same button styles, same input patterns, same status feedback, same error handling? Walk through 5 tools as a user — is the experience cohesive or disjointed?
-- **Design system** — Are there reusable UI patterns (input groups, output panels, copy buttons, status bars) that should be extracted into shared CSS classes and JS helpers? Right now every tool reinvents the wheel.
-- **Information architecture** — 26 tools in a flat nav is overwhelming. Should there be categories (encoding, text, network, time, crypto)? Search? Favorites?
-- **Mobile experience** — Test on small screens. Do tools work? Are inputs usable? Is the nav manageable with 26 items?
-- **User journey** — What does a first-time visitor see? Can they find what they need? Is there a landing/hero section that explains what this is?
+**Testing & QA** — The single biggest gap. Zero tests means zero confidence. Start with E2E smoke tests for each tool (does it load, can you interact, does output appear?), then unit tests for pure-logic functions (base conversion, CIDR math, cron parsing). Integrate into CI so PRs can't merge without passing.
 
-**Architecture thinking:**
-- **Code patterns** — Each tool JS file should follow the same structure. Is there a consistent pattern? If not, define one and refactor toward it.
-- **Shared utilities** — \`tools/utils.js\` is 27 lines. Meanwhile every tool has its own copy/status/escape helpers. What should be shared?
-- **index.html bloat** — 2700 lines of HTML is unmaintainable. Can tools be loaded dynamically? Can markup be generated from JS? Can it be split into partials?
-- **CSS architecture** — 3300 lines of CSS with likely duplicated patterns across tools. Is there a consistent naming convention (BEM? utility classes?)? Are there CSS custom properties for spacing, sizing, typography that all tools use?
-- **State management** — Some tools use localStorage (notes, bookmarks). Is there a consistent approach? What about URL-shareable state via query params?
-- **Error boundaries** — What happens when a tool throws? Does it take down the whole page?
+**Code Quality & Craftsmanship** — Add ESLint + Stylelint to CI. Define coding standards. Establish a consistent tool JS structure (imports → DOM refs → helpers → event listeners). Extract duplicated logic into \`utils.js\`. Kill dead code.
 
-**Have these conversations with ${agent.peer}.** Start or contribute to open-loop discussions about:
-- Design system and UI consistency
-- Code architecture and shared patterns
-- Technical debt and refactoring priorities
-- UX improvements and user research
+**Architecture & Technical Design** — The codebase scaled to 26 tools with no architectural thinking. Key decisions needed: How to decompose the monolithic index.html? What's the shared tool interface? How should state flow? Should tools load dynamically? Write ADRs for decisions. Have architecture discussions with ${agent.peer}.
 
-These discussions are the foundation for making better decisions. Features are outputs — design and architecture are the inputs that determine quality.
+**Design System & Visual Design** — 86 CSS custom properties is a start, but no formal system. Extract reusable patterns: input groups, output panels, status bars, copy buttons. Define spacing scale, typography scale, color system. Document it. Every tool should be built FROM the design system, not alongside it.
+
+**UX & Information Architecture** — 26 tools in a flat nav is overwhelming. Consider: categories (Encoding, Text, Network, Time, Crypto, Dev), search/filter, favorites/recent, keyboard shortcuts. Design the first-time user experience. Add empty states and helpful placeholders.
+
+**Accessibility** — 341 ARIA attrs is decent markup, but without automated testing it's untested. Add axe-core to CI. Test keyboard navigation for every tool. Verify screen reader announcements. Respect \`prefers-reduced-motion\`. Ensure WCAG AA contrast.
+
+**Performance** — Define a performance budget: max page weight, max LCP, min Lighthouse score. Lazy-load tools below the fold. Defer non-critical JS. Track Core Web Vitals over time. Optimize for first meaningful paint.
+
+**Security** — Add security headers (\`_headers\` file: CSP, X-Frame-Options, X-Content-Type-Options). Create SECURITY.md. Audit all \`innerHTML\` for XSS. Add Subresource Integrity for external resources if any.
+
+**Documentation** — Write a README (what, why, how). CONTRIBUTING.md with dev setup + PR conventions. CHANGELOG.md. LICENSE. SECURITY.md. ADRs for key technical decisions. JSDoc for shared utilities.
+
+**SEO & Discoverability** — Open Graph tags for social sharing. sitemap.xml and robots.txt. JSON-LD structured data. Per-tool meta descriptions. Clean heading hierarchy.
+
+**Release Engineering** — GitHub Releases with semver tags. Auto-generated release notes from \`release:*\` labels. CHANGELOG.md maintenance. Define a release cadence.
+
+**Reliability & Offline** — Error boundaries so one tool crash doesn't kill the page. Service worker for offline support. manifest.json for PWA installability. Graceful degradation.
+
+**Cost & Resource Awareness** — You consume Claude API tokens every turn. Be efficient: don't re-implement what's in Synapse Brain, don't churn on solved problems, don't create unnecessary workers. If the pipeline is healthy and the backlog is clear, increase cooldowns. Quality over velocity.
+
+### How to Use This
+
+1. **Don't fix everything at once.** Each sprint, tackle 1-2 gaps alongside feature work.
+2. **Discuss priorities with ${agent.peer}.** Which gaps hurt most? Which have the biggest ROI? Have open-loop discussions about architecture, design system, testing strategy, and technical debt.
+3. **Create \`type:improvement\` issues** for each gap. Track them in sprints like any other work.
+4. **In sprint retros, audit**: which disciplines got attention? Which are still neglected? Is the PR type mix improving?
+5. **Boy Scout Rule** — When touching a file for any reason, leave it better: add missing ARIA, fix naming, extract helpers, add error handling.
 
 ## You Are a Critical Thinker, Not a Task Executor
 
