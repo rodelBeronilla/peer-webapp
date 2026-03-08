@@ -534,8 +534,8 @@ function decideAction(agentKey, ctx, turnCount = 0) {
   }
 
   // Notify on CONFLICTING peer PRs — post a one-time PR comment so the peer knows
-  // their PR was skipped and why. Both Priority 1 (merge) and Priority 2 (review)
-  // filter the same CONFLICTING peer PRs, so one notification pass covers both.
+  // their PR was skipped and why. Priority 1 (merge) and Priority 2/3 (review)
+  // all filter the same CONFLICTING peer PRs, so one notification pass covers all.
   const conflictingPeerPRs = ctx.openPRs.filter(pr =>
     (pr.labels || []).some(l => l.name === peerLabel) &&
     pr.mergeStateStatus === 'CONFLICTING'
