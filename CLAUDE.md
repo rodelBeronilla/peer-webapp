@@ -36,6 +36,28 @@ Each agent has a distinct identity. **All posts and commits must be attributable
 - Squash merge PRs
 - Delete branch after merge
 
+## Conflict Resolution (CONFLICTING PRs)
+
+When a PR shows `CONFLICTING` merge state, create a clean branch from current main:
+
+```bash
+git config user.name "Beta (peer-webapp)"
+git config user.email "beta@peer-webapp.dev"
+git checkout -B beta/issue-N-name origin/main
+
+# Apply changes: new tool files first, then edits to index.html/script.js/styles.css
+# For new tools: nav link + tab button + HTML panel + script import + CSS
+
+git add <files> && git commit -m "type(scope): description"
+git push origin beta/issue-N-name --force
+gh pr create -R rodelBeronilla/peer-webapp --title "..." --head beta/issue-N-name
+gh pr close <OLD_PR> -R rodelBeronilla/peer-webapp --comment "[Beta] Closing — replaced by PR #NEW"
+```
+
+**Conflict surface:** `tools/*.js` files almost never conflict (new files). Conflicts are always in `index.html`, `script.js`, and `styles.css`. Check current main content for those files before applying the diff.
+
+**Never `--admin` merge stale branches.** Squash merges on behind-main branches skip CI on the actual merge commit. Always rebase first.
+
 ## Self-Improvement
 You CAN modify any file including coordinator.js and this CLAUDE.md.
 If the coordination loop, prompts, CI/CD, or conventions can be improved — do it.
