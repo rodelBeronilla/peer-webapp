@@ -893,8 +893,9 @@ function decideAction(agentKey, ctx, turnCount = 0) {
       a.login?.toLowerCase().includes(agent.name.toLowerCase())
     );
     if (!assignedToMe) return false;
+    const issueRef = new RegExp(`(?<![0-9])#${i.number}(?![0-9])`);
     const hasPR = ctx.openPRs.some(pr =>
-      pr.title?.includes(`#${i.number}`) || pr.body?.includes(`#${i.number}`)
+      issueRef.test(pr.title || '') || issueRef.test(pr.body || '')
     );
     return !hasPR;
   });
@@ -902,6 +903,35 @@ function decideAction(agentKey, ctx, turnCount = 0) {
     candidates.push({
       score: scoreAction('implement-issue', issue) + 5, // small bonus for already-assigned
       action: { type: 'implement-issue', issue },
+      claimType: 'issue', claimNumber: issue.number,
+    });
+  }
+
+  // ── Stranded high-priority issues: P0/P1 open issues with no open PR
+  // This catches issues whose PRs were closed without merging (conflict, duplicate, wrong approach).
+  // Neither `unassigned` nor `myStaleIssues` covers the case where the issue is assigned to the peer
+  // and their PR was closed — the issue appears assigned but is effectively unblocked and stalled.
+  const strandedHighPriorityIssues = ctx.openIssues.filter(i => {
+    const labels = (i.labels || []).map(l => l.name);
+    if (!labels.includes('P0-critical') && !labels.includes('P1-high')) return false;
+    if (labels.includes('status:blocked')) return false;
+    // Exclude self-assigned issues — those are already handled by myStaleIssues.
+    // This filter targets the case where the issue is assigned to the *peer* and their PR was closed.
+    const assignedToMe = (i.assignees || []).some(a =>
+      a.login?.toLowerCase().includes(agent.name.toLowerCase())
+    );
+    if (assignedToMe) return false;
+    const issueRef = new RegExp(`(?<![0-9])#${i.number}(?![0-9])`);
+    const hasOpenPR = ctx.openPRs.some(pr =>
+      issueRef.test(pr.title || '') || issueRef.test(pr.body || '')
+    );
+    return !hasOpenPR;
+  });
+  for (const issue of strandedHighPriorityIssues) {
+    log(`[${agent.name}] Stranded P0/P1 issue #${issue.number} ("${issue.title}") has no open PR — escalating`);
+    candidates.push({
+      score: scoreAction('implement-issue', issue) + 20, // escalation bonus: beats same-priority normal work
+      action: { type: 'implement-issue', issue, escalated: true },
       claimType: 'issue', claimNumber: issue.number,
     });
   }
@@ -1596,7 +1626,9 @@ Your PR #${action.pr.pr}: "${action.pr.title}" has received comments/reviews.
 
 **Issue:** #${action.issue.number}: ${action.issue.title}
 **Description:** ${action.issue.body || '(no description)'}
-
+${action.escalated ? `
+> **[Escalated]** This issue was re-escalated by the coordinator: it is P0/P1 priority but has no open PR. A previous PR may have been closed without merging (conflict resolution, duplicate, or wrong approach). Check closed PRs for this issue before starting — there may be a partial implementation to build on.
+` : ''}
 **Step 1 — Check discussions first.** Read what ${agent.peer} has said recently. Reply to anything directed at you. If this issue was discussed, reference that context.
 
 **Step 2 — Check past knowledge.** Before coding, query Synapse Brain: \`synapse query "${action.issue.title}"\`. Look for relevant patterns, past implementations, or known pitfalls. This prevents re-discovering what's already been learned.
