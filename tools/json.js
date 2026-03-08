@@ -75,3 +75,95 @@ jsonInput.addEventListener('input', () => {
   clearTimeout(jsonDebounce);
   jsonDebounce = setTimeout(() => runJsonFormat(2), 400);
 });
+
+// ── JSON Path Evaluator ──────────────────────────────────────────────────────
+
+const jsonPath       = document.getElementById('jsonPath');
+const jsonPathOutput = document.getElementById('jsonPathOutput');
+const jsonPathStatus = document.getElementById('jsonPathStatus');
+const jsonPathCopy   = document.getElementById('jsonPathCopy');
+let   jsonPathResult = '';
+
+function tokenizePath(path) {
+  // Convert bracket indices to dot-segments: items[0].x → items.0.x
+  return path.replace(/\[(\d+)\]/g, '.$1').split('.').filter(t => t !== '');
+}
+
+function resolvePath(obj, pathStr) {
+  const tokens = tokenizePath(pathStr);
+  if (tokens.length === 0) return obj; // empty path → root
+  let cur = obj;
+  for (const token of tokens) {
+    if (cur === null || cur === undefined) {
+      throw new Error(`Reached null/undefined before "${token}"`);
+    }
+    if (typeof cur !== 'object') {
+      throw new Error(`Cannot index into ${typeof cur} at "${token}"`);
+    }
+    if (!(token in cur)) {
+      const ctx = Array.isArray(cur) ? `array(len ${cur.length})` : 'object';
+      throw new Error(`Key "${token}" not found in ${ctx}`);
+    }
+    cur = cur[token];
+  }
+  return cur;
+}
+
+function setPathStatus(msg, type = '') {
+  jsonPathStatus.textContent = msg;
+  jsonPathStatus.className = 'status-bar' + (type ? ` status-bar--${type}` : '');
+}
+
+function runJsonPath() {
+  const raw  = jsonInput.value.trim();
+  const path = jsonPath.value.trim();
+
+  jsonPathOutput.innerHTML = '<span class="code-placeholder">Result will appear here</span>';
+  jsonPathCopy.disabled = true;
+  jsonPathResult = '';
+
+  if (!raw) { setPathStatus('Paste JSON in the input above first'); return; }
+  if (!path) { setPathStatus(''); return; }
+
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (err) {
+    setPathStatus('Invalid JSON — fix the input above first', 'error');
+    return;
+  }
+
+  try {
+    const value = resolvePath(parsed, path);
+    if (value === undefined) {
+      jsonPathOutput.innerHTML = '<span class="json-null">undefined</span>';
+      setPathStatus('Path resolved to undefined', 'error');
+      return;
+    }
+    if (value === null || typeof value !== 'object') {
+      jsonPathResult = String(value === null ? 'null' : value);
+      jsonPathOutput.innerHTML = jsonSyntaxHighlight(jsonPathResult);
+    } else {
+      jsonPathResult = JSON.stringify(value, null, 2);
+      jsonPathOutput.innerHTML = jsonSyntaxHighlight(jsonPathResult);
+    }
+    const typeLabel = Array.isArray(value) ? `array[${value.length}]` : typeof value;
+    setPathStatus(`Matched · ${typeLabel}`, 'ok');
+    jsonPathCopy.disabled = false;
+  } catch (err) {
+    jsonPathOutput.innerHTML = `<span class="json-error">${escapeHtml(String(err))}</span>`;
+    setPathStatus(String(err), 'error');
+  }
+}
+
+let pathDebounce;
+jsonPath.addEventListener('input', () => {
+  clearTimeout(pathDebounce);
+  pathDebounce = setTimeout(runJsonPath, 200);
+});
+// Re-run path when JSON input changes (already debounced above, so use a second listener)
+jsonInput.addEventListener('input', () => {
+  clearTimeout(pathDebounce);
+  pathDebounce = setTimeout(runJsonPath, 450);
+});
+jsonPathCopy.addEventListener('click', () => copyText(jsonPathResult, jsonPathCopy));

@@ -71,7 +71,7 @@ case "${1:-}" in
     fi
     BODY="$(prefix_body "$(cat)")"
     # Escape for JSON
-    BODY_ESCAPED="$(echo "$BODY" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read())[1:-1])' 2>/dev/null || echo "$BODY" | sed 's/\\/\\\\/g; s/"/\\"/g; s/\n/\\n/g')"
+    BODY_ESCAPED="$(echo "$BODY" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read())[1:-1])' 2>/dev/null || echo "$BODY" | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>process.stdout.write(JSON.stringify(d).slice(1,-1)))" 2>/dev/null || echo "$BODY" | sed 's/\\/\\\\/g; s/"/\\"/g')"
     TITLE_ESCAPED="$(echo "$TITLE" | sed 's/"/\\"/g')"
     gh api graphql -f query="
       mutation { createDiscussion(input: {
@@ -94,7 +94,7 @@ case "${1:-}" in
       echo "ERROR: Discussion #$NUMBER not found in $REPO_OWNER/$REPO_NAME" >&2
       exit 1
     fi
-    BODY_ESCAPED="$(echo "$BODY" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read())[1:-1])' 2>/dev/null || echo "$BODY" | sed 's/\\/\\\\/g; s/"/\\"/g; s/\n/\\n/g')"
+    BODY_ESCAPED="$(echo "$BODY" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read())[1:-1])' 2>/dev/null || echo "$BODY" | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>process.stdout.write(JSON.stringify(d).slice(1,-1)))" 2>/dev/null || echo "$BODY" | sed 's/\\/\\\\/g; s/"/\\"/g')"
     gh api graphql -f query="
       mutation { addDiscussionComment(input: {
         discussionId: \"$DISC_ID\",

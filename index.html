@@ -52,6 +52,13 @@
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="jwt">JWT</a></li>
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="timestamp">Timestamp</a></li>
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="base">Base</a></li>
+        <li><a href="#tools" class="nav__link nav-tool-link" data-tab="htmlentity">HTML Entity</a></li>
+        <li><a href="#tools" class="nav__link nav-tool-link" data-tab="chmod">Chmod</a></li>
+        <li><a href="#tools" class="nav__link nav-tool-link" data-tab="charmap">Char Map</a></li>
+        <li><a href="#tools" class="nav__link nav-tool-link" data-tab="cssspec">CSS Spec</a></li>
+        <li><a href="#tools" class="nav__link nav-tool-link" data-tab="tz">Time Zone</a></li>
+        <li><a href="#tools" class="nav__link nav-tool-link" data-tab="diff">Diff</a></li>
+        <li><a href="#tools" class="nav__link nav-tool-link" data-tab="password">Password</a></li>
         <li><a href="#about" class="nav__link">About</a></li>
       </ul>
     </div>
@@ -103,6 +110,27 @@
         <button class="tab" role="tab" aria-selected="false" aria-controls="panel-base" id="tab-base" data-panel="base" tabindex="-1">
           <span class="tab__icon" aria-hidden="true">01</span> Base
         </button>
+        <button class="tab" role="tab" aria-selected="false" aria-controls="panel-htmlentity" id="tab-htmlentity" data-panel="htmlentity" tabindex="-1">
+          <span class="tab__icon" aria-hidden="true">&amp;</span> HTML Entity
+        </button>
+        <button class="tab" role="tab" aria-selected="false" aria-controls="panel-chmod" id="tab-chmod" data-panel="chmod" tabindex="-1">
+          <span class="tab__icon" aria-hidden="true">🔒</span> Chmod
+        </button>
+        <button class="tab" role="tab" aria-selected="false" aria-controls="panel-charmap" id="tab-charmap" data-panel="charmap" tabindex="-1">
+          <span class="tab__icon" aria-hidden="true">U+</span> Char Map
+        </button>
+        <button class="tab" role="tab" aria-selected="false" aria-controls="panel-cssspec" id="tab-cssspec" data-panel="cssspec" tabindex="-1">
+          <span class="tab__icon" aria-hidden="true">{}</span> CSS Spec
+        </button>
+        <button class="tab" role="tab" aria-selected="false" aria-controls="panel-tz" id="tab-tz" data-panel="tz" tabindex="-1">
+          <span class="tab__icon" aria-hidden="true">🌐</span> Time Zone
+        </button>
+        <button class="tab" role="tab" aria-selected="false" aria-controls="panel-diff" id="tab-diff" data-panel="diff" tabindex="-1">
+          <span class="tab__icon" aria-hidden="true">±</span> Diff
+        </button>
+        <button class="tab" role="tab" aria-selected="false" aria-controls="panel-password" id="tab-password" data-panel="password" tabindex="-1">
+          <span class="tab__icon" aria-hidden="true">🔑</span> Password
+        </button>
       </div>
     </div>
 
@@ -152,6 +180,43 @@
                 </div>
               </div>
               <pre class="code-preview" id="jsonOutput" aria-label="Formatted JSON output" aria-live="polite" tabindex="0"><span class="code-placeholder">Output will appear here</span></pre>
+            </div>
+          </div>
+        </div>
+
+        <hr class="tool-divider" aria-hidden="true">
+
+        <div class="tool">
+          <div class="tool__header">
+            <div>
+              <h2 class="tool__title">JSON Path Evaluator</h2>
+              <p class="tool__desc">Enter a dot-notation path to extract a value from the JSON above. Supports dot notation (<code>user.name</code>) and array indices (<code>items[0].title</code>).</p>
+            </div>
+          </div>
+          <div class="tool__body tool__body--split">
+            <div class="tool__pane">
+              <div class="pane__header">
+                <span class="pane__label">Path</span>
+              </div>
+              <input
+                type="text"
+                class="code-area code-area--single"
+                id="jsonPath"
+                placeholder="e.g. user.address.city or items[0].name"
+                spellcheck="false"
+                autocomplete="off"
+                aria-label="JSON path expression"
+              >
+              <div class="status-bar" id="jsonPathStatus" aria-live="polite" role="status"></div>
+            </div>
+            <div class="tool__pane">
+              <div class="pane__header">
+                <span class="pane__label">Result</span>
+                <div class="pane__actions">
+                  <button class="btn btn--sm btn--ghost" id="jsonPathCopy" disabled>Copy</button>
+                </div>
+              </div>
+              <pre class="code-preview" id="jsonPathOutput" aria-label="JSON path result" aria-live="polite" tabindex="0"><span class="code-placeholder">Result will appear here</span></pre>
             </div>
           </div>
         </div>
@@ -338,6 +403,57 @@
               </div>
               <div class="color-history" id="colorHistory" role="list" aria-label="Recent colors">
                 <p class="match-empty">Pick a color to add it here.</p>
+              </div>
+            </div>
+
+            <div class="contrast-section" aria-label="WCAG Contrast Checker">
+              <div class="pane__header">
+                <span class="pane__label">Contrast Checker</span>
+              </div>
+              <div class="contrast-pickers">
+                <div class="contrast-fg-indicator" aria-label="Foreground color (from color picker above)">
+                  <span class="contrast-picker-label" id="contrastFgLabel">Foreground</span>
+                  <div class="contrast-fg-swatch" id="contrastFgSwatch" role="img" aria-labelledby="contrastFgLabel"></div>
+                  <output class="contrast-fg-hex" id="contrastFgHex" aria-live="polite" aria-label="Foreground HEX color">—</output>
+                  <span class="contrast-fg-hint">← from picker above</span>
+                </div>
+                <div class="contrast-picker-group">
+                  <label class="contrast-picker-label" for="contrastBgPicker">Background</label>
+                  <label class="color-picker-wrap contrast-picker-wrap" title="Click to pick background color">
+                    <input type="color" id="contrastBgPicker" class="color-picker" value="#ffffff" aria-label="Background color picker">
+                    <div class="color-swatch contrast-bg-swatch" id="contrastBgSwatch"></div>
+                    <span class="color-swatch-label">Click to pick</span>
+                  </label>
+                  <input type="text" class="color-value-input contrast-hex-input" id="contrastBgHex" aria-label="Background HEX color" placeholder="#ffffff" spellcheck="false">
+                </div>
+                <div class="contrast-preview-wrap" aria-label="Contrast preview">
+                  <div class="contrast-preview" id="contrastPreview" aria-hidden="true">
+                    <span class="contrast-preview-text">Aa</span>
+                  </div>
+                  <div class="contrast-ratio" id="contrastRatio" aria-live="polite" aria-label="Contrast ratio">—</div>
+                </div>
+              </div>
+              <div class="contrast-badges" role="list" aria-label="WCAG pass/fail results">
+                <div class="contrast-badge" id="badge-aa-normal" role="listitem">
+                  <span class="contrast-badge__level">AA</span>
+                  <span class="contrast-badge__size">Normal</span>
+                  <span class="contrast-badge__result" aria-label="AA normal text: ">—</span>
+                </div>
+                <div class="contrast-badge" id="badge-aa-large" role="listitem">
+                  <span class="contrast-badge__level">AA</span>
+                  <span class="contrast-badge__size">Large</span>
+                  <span class="contrast-badge__result" aria-label="AA large text: ">—</span>
+                </div>
+                <div class="contrast-badge" id="badge-aaa-normal" role="listitem">
+                  <span class="contrast-badge__level">AAA</span>
+                  <span class="contrast-badge__size">Normal</span>
+                  <span class="contrast-badge__result" aria-label="AAA normal text: ">—</span>
+                </div>
+                <div class="contrast-badge" id="badge-aaa-large" role="listitem">
+                  <span class="contrast-badge__level">AAA</span>
+                  <span class="contrast-badge__size">Large</span>
+                  <span class="contrast-badge__result" aria-label="AAA large text: ">—</span>
+                </div>
               </div>
             </div>
           </div>
@@ -877,6 +993,655 @@
 
             <div class="status-bar" id="baseStatus" aria-live="polite" role="status"></div>
             <p class="base-bits" id="baseBits" aria-live="polite"></p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════════════════════════
+           HTML Entity Encoder / Decoder
+           ═══════════════════════════════ -->
+      <section
+        id="panel-htmlentity"
+        class="panel"
+        role="tabpanel"
+        aria-labelledby="tab-htmlentity"
+        hidden
+      >
+        <div class="tool">
+          <div class="tool__header">
+            <div>
+              <h2 class="tool__title">HTML Entity Encoder / Decoder</h2>
+              <p class="tool__desc">Escape special characters to HTML entities (<code>&amp;amp;</code> <code>&amp;lt;</code> <code>&amp;gt;</code> <code>&amp;quot;</code> <code>&amp;#39;</code>), or decode any entity — named, decimal, or hex — back to plain text.</p>
+            </div>
+          </div>
+          <div class="tool__body tool__body--split">
+            <div class="tool__pane">
+              <div class="pane__header">
+                <span class="pane__label">Input</span>
+                <div class="pane__actions">
+                  <button class="btn btn--sm" id="heEncode">Encode →</button>
+                  <button class="btn btn--sm btn--secondary" id="heDecode">← Decode</button>
+                  <button class="btn btn--sm btn--ghost" id="heClear">Clear</button>
+                </div>
+              </div>
+              <textarea
+                class="code-area"
+                id="heInput"
+                placeholder="Enter plain text to encode, or HTML with entities to decode…"
+                spellcheck="false"
+                autocomplete="off"
+                aria-label="HTML entity input"
+              ></textarea>
+              <div class="status-bar" id="heStatus" aria-live="polite" role="status"></div>
+            </div>
+            <div class="tool__pane">
+              <div class="pane__header">
+                <span class="pane__label">Output</span>
+                <div class="pane__actions">
+                  <button class="btn btn--sm btn--ghost" id="heCopy" disabled>Copy</button>
+                  <button class="btn btn--sm btn--ghost" id="heSwap" title="Swap input ↔ output">⇄ Swap</button>
+                </div>
+              </div>
+              <textarea
+                class="code-area"
+                id="heOutput"
+                placeholder="Result will appear here…"
+                readonly
+                spellcheck="false"
+                aria-label="HTML entity output"
+              ></textarea>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════════════════════════
+           Unix Permissions / chmod Calculator
+           ═══════════════════════════════ -->
+      <section
+        id="panel-chmod"
+        class="panel"
+        role="tabpanel"
+        aria-labelledby="tab-chmod"
+        hidden
+      >
+        <div class="tool">
+          <div class="tool__header">
+            <div>
+              <h2 class="tool__title">chmod Calculator</h2>
+              <p class="tool__desc">Click permission bits, or type an octal code (e.g. <code>755</code>) or symbolic string (e.g. <code>-rwxr-xr-x</code>). Generates a ready-to-paste <code>chmod</code> command.</p>
+            </div>
+          </div>
+          <div class="tool__body">
+
+            <!-- Permission grid -->
+            <div class="chmod-grid" role="group" aria-label="Permission bits">
+              <div class="chmod-header-row">
+                <span class="chmod-bit-label"></span>
+                <span class="chmod-col-head">Owner</span>
+                <span class="chmod-col-head">Group</span>
+                <span class="chmod-col-head">Others</span>
+              </div>
+
+              <div class="chmod-bit-row">
+                <span class="chmod-bit-label">Read (r)</span>
+                <label class="chmod-check">
+                  <input type="checkbox" id="chmodOwnerR" aria-label="Owner read"> r
+                </label>
+                <label class="chmod-check">
+                  <input type="checkbox" id="chmodGroupR" aria-label="Group read"> r
+                </label>
+                <label class="chmod-check">
+                  <input type="checkbox" id="chmodOtherR" aria-label="Others read"> r
+                </label>
+              </div>
+
+              <div class="chmod-bit-row">
+                <span class="chmod-bit-label">Write (w)</span>
+                <label class="chmod-check">
+                  <input type="checkbox" id="chmodOwnerW" aria-label="Owner write"> w
+                </label>
+                <label class="chmod-check">
+                  <input type="checkbox" id="chmodGroupW" aria-label="Group write"> w
+                </label>
+                <label class="chmod-check">
+                  <input type="checkbox" id="chmodOtherW" aria-label="Others write"> w
+                </label>
+              </div>
+
+              <div class="chmod-bit-row">
+                <span class="chmod-bit-label">Execute (x)</span>
+                <label class="chmod-check">
+                  <input type="checkbox" id="chmodOwnerX" aria-label="Owner execute"> x
+                </label>
+                <label class="chmod-check">
+                  <input type="checkbox" id="chmodGroupX" aria-label="Group execute"> x
+                </label>
+                <label class="chmod-check">
+                  <input type="checkbox" id="chmodOtherX" aria-label="Others execute"> x
+                </label>
+              </div>
+
+              <!-- Special bits -->
+              <div class="chmod-bit-row chmod-special-row">
+                <span class="chmod-bit-label chmod-bit-label--muted">Special</span>
+                <label class="chmod-check chmod-check--special" title="setUID — run as owner">
+                  <input type="checkbox" id="chmodSUID" aria-label="setUID"> setUID
+                </label>
+                <label class="chmod-check chmod-check--special" title="setGID — run as group">
+                  <input type="checkbox" id="chmodSGID" aria-label="setGID"> setGID
+                </label>
+                <label class="chmod-check chmod-check--special" title="Sticky bit — restrict deletion">
+                  <input type="checkbox" id="chmodSticky" aria-label="Sticky bit"> sticky
+                </label>
+              </div>
+            </div>
+
+            <!-- Octal / symbolic inputs -->
+            <div class="base-grid chmod-outputs" role="group" aria-label="Permission notation">
+
+              <div class="base-row">
+                <label class="base-label" for="chmodOctal">OCT</label>
+                <input
+                  type="text"
+                  id="chmodOctal"
+                  class="base-input"
+                  placeholder="e.g. 755"
+                  spellcheck="false"
+                  autocomplete="off"
+                  inputmode="numeric"
+                  aria-label="Octal permission code"
+                  maxlength="5"
+                >
+                <button class="btn btn--sm btn--ghost" id="chmodCopyOctal">Copy</button>
+              </div>
+
+              <div class="base-row">
+                <label class="base-label" for="chmodSymbolic">SYM</label>
+                <input
+                  type="text"
+                  id="chmodSymbolic"
+                  class="base-input"
+                  placeholder="e.g. -rwxr-xr-x"
+                  spellcheck="false"
+                  autocomplete="off"
+                  aria-label="Symbolic permission string"
+                  maxlength="10"
+                >
+                <button class="btn btn--sm btn--ghost" id="chmodCopySymbolic">Copy</button>
+              </div>
+
+              <!-- Filename + command -->
+              <div class="base-row">
+                <label class="base-label" for="chmodFilename">FILE</label>
+                <input
+                  type="text"
+                  id="chmodFilename"
+                  class="base-input"
+                  placeholder="filename (optional)"
+                  spellcheck="false"
+                  autocomplete="off"
+                  aria-label="Filename for chmod command"
+                >
+              </div>
+
+              <div class="base-row">
+                <label class="base-label" for="chmodCommand">CMD</label>
+                <input
+                  type="text"
+                  id="chmodCommand"
+                  class="base-input chmod-cmd-output"
+                  readonly
+                  aria-label="Ready-to-paste chmod command"
+                  aria-live="polite"
+                >
+                <button class="btn btn--sm btn--ghost" id="chmodCopyCmd">Copy</button>
+              </div>
+
+            </div>
+
+            <div class="status-bar" id="chmodStatus" aria-live="polite" role="status"></div>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════════════════════════
+           Unicode Character Inspector
+           ═══════════════════════════════ -->
+      <section
+        id="panel-charmap"
+        class="panel"
+        role="tabpanel"
+        aria-labelledby="tab-charmap"
+        hidden
+      >
+        <div class="tool">
+          <div class="tool__header">
+            <div>
+              <h2 class="tool__title">Unicode Character Inspector</h2>
+              <p class="tool__desc">Paste any text to inspect each character: Unicode codepoint, UTF-8 byte sequence, HTML entity, and category. Instantly reveals invisible characters, smart quotes, and encoding issues.</p>
+            </div>
+          </div>
+          <div class="tool__body">
+
+            <div class="tool__pane">
+              <div class="pane__header">
+                <span class="pane__label">Input</span>
+                <div class="pane__actions">
+                  <button class="btn btn--sm btn--ghost" id="cmClear">Clear</button>
+                  <button class="btn btn--sm btn--ghost" id="cmCopy" disabled>Copy TSV</button>
+                </div>
+              </div>
+              <textarea
+                class="code-area"
+                id="cmInput"
+                placeholder="Paste or type text here…"
+                spellcheck="false"
+                autocomplete="off"
+                aria-label="Text to inspect"
+                rows="3"
+              ></textarea>
+              <div class="status-bar" id="cmStatus" aria-live="polite" role="status"></div>
+            </div>
+
+            <div id="cmEmpty" class="cm-empty">
+              <p>Type or paste text above to inspect characters.</p>
+            </div>
+
+            <div class="cm-table-wrap" aria-label="Character inspection results">
+              <table id="cmTable" class="cm-table" hidden aria-label="Character details">
+                <thead>
+                  <tr>
+                    <th class="cm-th" scope="col">Char</th>
+                    <th class="cm-th" scope="col">Codepoint</th>
+                    <th class="cm-th" scope="col">UTF-8</th>
+                    <th class="cm-th" scope="col">HTML Entity</th>
+                    <th class="cm-th" scope="col">Category</th>
+                  </tr>
+                </thead>
+                <tbody id="cmTbody"></tbody>
+              </table>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════════════════════════
+           CSS Specificity Calculator
+           ═══════════════════════════════ -->
+      <section
+        id="panel-cssspec"
+        class="panel"
+        role="tabpanel"
+        aria-labelledby="tab-cssspec"
+        hidden
+      >
+        <div class="tool">
+          <div class="tool__header">
+            <div>
+              <h2 class="tool__title">CSS Specificity Calculator</h2>
+              <p class="tool__desc">Type a CSS selector and instantly see its specificity as an (a,b,c) tuple — IDs, classes/attributes/pseudo-classes, and type selectors. Compare two selectors to find which one wins the cascade.</p>
+            </div>
+          </div>
+          <div class="tool__body">
+
+            <!-- Main selector input -->
+            <div class="tool__pane">
+              <div class="pane__header">
+                <span class="pane__label">Selector</span>
+                <div class="pane__actions">
+                  <button class="btn btn--sm btn--ghost" id="cssSpecClear">Clear</button>
+                  <button class="btn btn--sm btn--ghost" id="cssSpecCopy" disabled>Copy (a,b,c)</button>
+                </div>
+              </div>
+              <input
+                class="code-area css-spec-input"
+                type="text"
+                id="cssSpecInput"
+                placeholder="e.g. nav ul li.active > a:hover"
+                spellcheck="false"
+                autocomplete="off"
+                aria-label="CSS selector input"
+              />
+              <div class="status-bar" id="cssSpecStatus" aria-live="polite" role="status"></div>
+            </div>
+
+            <!-- Result: (a,b,c) display -->
+            <div class="tool__pane css-spec-result-pane" id="cssSpecResult">
+              <span class="css-spec-placeholder">Enter a CSS selector to see its specificity.</span>
+            </div>
+
+            <!-- Token breakdown -->
+            <div class="tool__pane" id="cssSpecBreakdown"></div>
+
+            <!-- Compare two selectors -->
+            <div class="tool__pane">
+              <div class="pane__header">
+                <span class="pane__label">Compare</span>
+              </div>
+              <div class="css-spec-compare">
+                <div class="css-spec-compare__input">
+                  <label class="css-spec-compare__label" for="cssSpecCmp1">&#9312; Selector A</label>
+                  <input
+                    class="code-area css-spec-input"
+                    type="text"
+                    id="cssSpecCmp1"
+                    placeholder="e.g. #header .nav a"
+                    spellcheck="false"
+                    autocomplete="off"
+                    aria-label="First selector for comparison"
+                  />
+                </div>
+                <div class="css-spec-compare__vs" aria-hidden="true">vs</div>
+                <div class="css-spec-compare__input">
+                  <label class="css-spec-compare__label" for="cssSpecCmp2">&#9313; Selector B</label>
+                  <input
+                    class="code-area css-spec-input"
+                    type="text"
+                    id="cssSpecCmp2"
+                    placeholder="e.g. nav ul li a:hover"
+                    spellcheck="false"
+                    autocomplete="off"
+                    aria-label="Second selector for comparison"
+                  />
+                </div>
+              </div>
+              <div class="status-bar css-spec-cmp-result" id="cssSpecCmpResult" aria-live="polite" role="status"></div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════════════════════════
+           Time Zone Converter
+           ═══════════════════════════════ -->
+      <section
+        id="panel-tz"
+        class="panel"
+        role="tabpanel"
+        aria-labelledby="tab-tz"
+        hidden
+      >
+        <div class="tool">
+          <div class="tool__header">
+            <div>
+              <h2 class="tool__title">Time Zone Converter</h2>
+              <p class="tool__desc">Convert a date and time between any two IANA time zones. Handles daylight saving transitions automatically. Search from 600+ zones.</p>
+            </div>
+          </div>
+          <div class="tool__body">
+
+            <!-- Date + time inputs -->
+            <div class="tool__pane">
+              <div class="pane__header">
+                <span class="pane__label">Date &amp; Time</span>
+                <div class="pane__actions">
+                  <button class="btn btn--sm btn--ghost" id="tzNow">Now</button>
+                  <button class="btn btn--sm btn--ghost" id="tzClear">Clear</button>
+                </div>
+              </div>
+              <div class="tz-inputs">
+                <div class="tz-field">
+                  <label class="tz-label" for="tzDate">Date</label>
+                  <input
+                    class="code-area code-area--single"
+                    type="date"
+                    id="tzDate"
+                    aria-label="Date to convert"
+                  />
+                </div>
+                <div class="tz-field">
+                  <label class="tz-label" for="tzTime">Time</label>
+                  <input
+                    class="code-area code-area--single"
+                    type="time"
+                    id="tzTime"
+                    value="12:00"
+                    aria-label="Time to convert"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <!-- Zone pickers -->
+            <div class="tz-zones">
+              <div class="tool__pane tz-zone-pane">
+                <div class="pane__header">
+                  <span class="pane__label">From</span>
+                </div>
+                <input
+                  class="code-area code-area--single tz-search"
+                  type="search"
+                  id="tzFromSearch"
+                  placeholder="Filter zones…"
+                  aria-label="Filter source time zones"
+                  autocomplete="off"
+                />
+                <select
+                  class="tz-select"
+                  id="tzFrom"
+                  size="6"
+                  aria-label="Source time zone"
+                ></select>
+              </div>
+              <div class="tz-zone-arrow" aria-hidden="true">→</div>
+              <div class="tool__pane tz-zone-pane">
+                <div class="pane__header">
+                  <span class="pane__label">To</span>
+                </div>
+                <input
+                  class="code-area code-area--single tz-search"
+                  type="search"
+                  id="tzToSearch"
+                  placeholder="Filter zones…"
+                  aria-label="Filter target time zones"
+                  autocomplete="off"
+                />
+                <select
+                  class="tz-select"
+                  id="tzTo"
+                  size="6"
+                  aria-label="Target time zone"
+                ></select>
+              </div>
+            </div>
+
+            <!-- Convert button -->
+            <div class="tz-actions">
+              <button class="btn" id="tzConvert">Convert</button>
+              <button class="btn btn--ghost" id="tzCopy" disabled>Copy Result</button>
+            </div>
+
+            <!-- Result -->
+            <div class="tool__pane tz-result" id="tzResult" hidden>
+              <div class="tz-result__row">
+                <span class="tz-result__big" aria-live="polite">
+                  <span class="tz-result__value"></span>
+                </span>
+              </div>
+              <dl class="tz-result__meta">
+                <div class="tz-result__meta-row">
+                  <dt>From</dt>
+                  <dd class="tz-result__from"></dd>
+                </div>
+                <div class="tz-result__meta-row">
+                  <dt>To</dt>
+                  <dd class="tz-result__to"></dd>
+                </div>
+                <div class="tz-result__meta-row">
+                  <dt>UTC</dt>
+                  <dd class="tz-result__utc"></dd>
+                </div>
+              </dl>
+            </div>
+
+            <div class="status-bar" id="tzStatus" aria-live="polite" role="status"></div>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════════════════════════
+           Text Diff
+           ═══════════════════════════════ -->
+      <section
+        id="panel-diff"
+        class="panel"
+        role="tabpanel"
+        aria-labelledby="tab-diff"
+        hidden
+      >
+        <div class="tool">
+          <div class="tool__header">
+            <div>
+              <h2 class="tool__title">Text Diff</h2>
+              <p class="tool__desc">Compare two text blocks line-by-line. Paste Before and After to see additions, deletions, and unchanged lines highlighted instantly.</p>
+            </div>
+          </div>
+          <div class="tool__body">
+
+            <div class="tool__body--split">
+              <div class="tool__pane">
+                <div class="pane__header">
+                  <span class="pane__label">Before</span>
+                  <div class="pane__actions">
+                    <button class="btn btn--sm btn--ghost" id="diffSwap" title="Swap Before and After">⇅ Swap</button>
+                    <button class="btn btn--sm btn--ghost" id="diffClear">Clear</button>
+                  </div>
+                </div>
+                <textarea
+                  class="code-area"
+                  id="diffBefore"
+                  placeholder="Paste the original text here…"
+                  spellcheck="false"
+                  autocomplete="off"
+                  aria-label="Before text"
+                ></textarea>
+              </div>
+
+              <div class="tool__pane">
+                <div class="pane__header">
+                  <span class="pane__label">After</span>
+                </div>
+                <textarea
+                  class="code-area"
+                  id="diffAfter"
+                  placeholder="Paste the modified text here…"
+                  spellcheck="false"
+                  autocomplete="off"
+                  aria-label="After text"
+                ></textarea>
+              </div>
+            </div>
+
+            <div class="tool__pane tool__pane--top">
+              <div class="pane__header">
+                <span class="pane__label">Diff</span>
+                <div class="pane__actions">
+                  <button class="btn btn--sm btn--ghost" id="diffCopy" disabled>Copy unified diff</button>
+                </div>
+              </div>
+              <div
+                class="diff-output"
+                id="diffOutput"
+                role="region"
+                aria-label="Diff output"
+                aria-live="polite"
+                tabindex="0"
+              >
+                <span class="diff-empty">Paste text in Before and After to see the diff.</span>
+              </div>
+              <div class="status-bar" id="diffStats" role="status" aria-live="polite"></div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════════════════════════
+           Password Generator
+           ═══════════════════════════════ -->
+      <section
+        id="panel-password"
+        class="panel"
+        role="tabpanel"
+        aria-labelledby="tab-password"
+        hidden
+      >
+        <div class="tool">
+          <div class="tool__header">
+            <div>
+              <h2 class="tool__title">Password Generator</h2>
+              <p class="tool__desc">Generate cryptographically secure passwords using <code>crypto.getRandomValues</code>. No server, no tracking — everything stays in your browser.</p>
+            </div>
+          </div>
+          <div class="tool__body">
+
+            <div class="pw-controls" role="group" aria-label="Password options">
+
+              <div class="pw-row pw-row--slider">
+                <label class="pw-label" for="pwLength">Length</label>
+                <input
+                  type="range"
+                  id="pwLength"
+                  class="pw-slider"
+                  min="8"
+                  max="64"
+                  value="16"
+                  aria-label="Password length"
+                  aria-valuemin="8"
+                  aria-valuemax="64"
+                  aria-valuenow="16"
+                >
+                <span class="pw-len-value" id="pwLenValue" aria-live="polite">16</span>
+              </div>
+
+              <fieldset class="pw-checkboxes">
+                <legend class="pw-label">Characters</legend>
+                <label class="pw-check-label">
+                  <input type="checkbox" id="pwUpper" checked>
+                  <span>A–Z uppercase</span>
+                </label>
+                <label class="pw-check-label">
+                  <input type="checkbox" id="pwLower" checked>
+                  <span>a–z lowercase</span>
+                </label>
+                <label class="pw-check-label">
+                  <input type="checkbox" id="pwDigits" checked>
+                  <span>0–9 digits</span>
+                </label>
+                <label class="pw-check-label">
+                  <input type="checkbox" id="pwSymbols">
+                  <span>!@#$ symbols</span>
+                </label>
+              </fieldset>
+
+              <div class="pw-actions">
+                <button class="btn btn--sm" id="pwGenerate">Generate</button>
+                <button class="btn btn--sm btn--ghost" id="pwCopy" disabled>Copy</button>
+              </div>
+
+            </div>
+
+            <div class="status-bar" id="pwStatus" aria-live="polite" role="status"></div>
+
+            <div class="pw-output-row">
+              <input
+                type="text"
+                id="pwOutput"
+                class="pw-output"
+                readonly
+                spellcheck="false"
+                aria-label="Generated password"
+                placeholder="Password will appear here…"
+              >
+            </div>
+
+            <p class="pw-entropy" id="pwEntropy" aria-live="polite"></p>
+
           </div>
         </div>
       </section>
