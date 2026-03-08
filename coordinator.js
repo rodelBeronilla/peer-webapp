@@ -208,7 +208,20 @@ function getOpenIssues() {
 }
 
 function getOpenPRs() {
-  return ghJson(`pr list -R ${CONFIG.repo} --state open --json number,title,labels,author,headRefName,body,reviewDecision,reviews,createdAt,mergeStateStatus --limit 20`);
+  // Fields and their consumers — update this comment whenever fields change:
+  //   number          — PR identity; used everywhere to reference a PR
+  //   title           — PR identity; displayed in prompt sections and action descriptions
+  //   labels          — agent ownership (agent:alpha/beta) and status:blocked checks (Priority 0-4)
+  //   headRefName     — branch name; used in prompt checkout/push commands and conflict resolution
+  //   body            — PR-issue linkage detection (pr.body.includes(`#${issue.number}`))
+  //   reviewDecision  — Priority 1 merge gate (must be APPROVED) and Priority 2 review queue filter
+  //   reviews         — isPRStale() activity timestamps; agent self-review detection; PR conversation display
+  //   createdAt       — isPRStale() fallback when a PR has zero review/comment activity
+  //   mergeStateStatus — Priority 0 CONFLICTING detection; filtered from merge and review queues
+  //
+  // Candidate for removal: none currently — all fields are actively used.
+  // Note: `author` was removed in #200 — it was fetched but never referenced in coordinator logic.
+  return ghJson(`pr list -R ${CONFIG.repo} --state open --json number,title,labels,headRefName,body,reviewDecision,reviews,createdAt,mergeStateStatus --limit 20`);
 }
 
 function getRecentClosedIssues(limit = 10) {
