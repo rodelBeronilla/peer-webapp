@@ -3246,7 +3246,6 @@ main {
 
 .semver-field-value--muted {
   color: var(--color-text-muted);
-  opacity: 0.7;
 }
 
 .semver-field-note {
