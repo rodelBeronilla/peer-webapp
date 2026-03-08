@@ -713,8 +713,8 @@
         <div class="tool">
           <div class="tool__header">
             <div>
-              <h2 class="tool__title">JWT Decoder</h2>
-              <p class="tool__desc">Paste a JSON Web Token to decode its header and payload. Expiry and timestamps are shown in human-readable form. Signature is <strong>not</strong> verified.</p>
+              <h2 class="tool__title">JWT Decoder &amp; Verifier</h2>
+              <p class="tool__desc">Paste a JSON Web Token to decode its header and payload. Expiry and timestamps are shown in human-readable form. Signature verification supported for HS256/384/512 and RS256/384/512.</p>
             </div>
           </div>
           <div class="tool__body">
@@ -764,6 +764,44 @@
                 <span class="pane__label">Timestamps</span>
               </div>
               <pre class="code-preview" id="jwtExpiry" aria-label="JWT timestamp details" aria-live="polite" tabindex="0" hidden></pre>
+            </div>
+
+            <div class="tool__pane tool__pane--top" hidden id="jwtVerifyWrap">
+              <div class="pane__header">
+                <span class="pane__label">Verify Signature</span>
+              </div>
+              <p class="tool__desc" id="jwtVerifyAlgInfo"></p>
+
+              <div id="jwtVerifyHmacSection" hidden>
+                <label class="base-label" for="jwtVerifySecret">Secret Key</label>
+                <input
+                  class="base-input"
+                  type="text"
+                  id="jwtVerifySecret"
+                  placeholder="your-256-bit-secret"
+                  spellcheck="false"
+                  autocomplete="off"
+                  aria-label="HMAC secret key for JWT signature verification"
+                />
+              </div>
+
+              <div id="jwtVerifyRsaSection" hidden>
+                <label class="base-label" for="jwtVerifyPem">Public Key (PEM)</label>
+                <textarea
+                  class="code-area"
+                  id="jwtVerifyPem"
+                  placeholder="-----BEGIN PUBLIC KEY-----&#10;MIIBIjANBgkqh...&#10;-----END PUBLIC KEY-----"
+                  spellcheck="false"
+                  autocomplete="off"
+                  aria-label="RSA public key in PEM format for JWT signature verification"
+                  rows="5"
+                ></textarea>
+              </div>
+
+              <div class="pane__actions" id="jwtVerifyActions" hidden>
+                <button class="btn btn--sm" id="jwtVerifyBtn">Verify</button>
+              </div>
+              <div class="status-bar" id="jwtVerifyStatus" aria-live="polite" role="status"></div>
             </div>
           </div>
         </div>
