@@ -221,6 +221,7 @@ function getOpenPRs() {
   //
   // Candidate for removal: none currently — all fields are actively used.
   // Note: `author` was removed in #200 — it was fetched but never referenced in coordinator logic.
+  // Convention: when adding a field, document it in this comment before opening the PR.
   return ghJson(`pr list -R ${CONFIG.repo} --state open --json number,title,labels,headRefName,body,reviewDecision,reviews,createdAt,mergeStateStatus --limit 20`);
 }
 
