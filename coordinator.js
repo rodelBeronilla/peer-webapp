@@ -840,7 +840,7 @@ Don't just execute tasks — improve the system that assigns you tasks:
 Before doing your assigned task, spend 60 seconds scanning the GitHub state above. Look for problems nobody asked you to fix:
 
 - **Stale PRs** — PRs with no review or activity. Why are they stuck? Review them, comment, or close if obsolete.
-- **Zombie issues** — Issues whose PRs have already been merged but the issue is still open. GitHub's auto-close doesn't always work with squash merges. Check: \`gh issue list -R ${CONFIG.repo} --state open\` and cross-reference with \`gh pr list -R ${CONFIG.repo} --state merged\`. Close any issue that's been resolved: \`gh issue close N -R ${CONFIG.repo} -c "Resolved by PR #X"\`
+- **Zombie issues** — Issues whose PRs have already been **merged** (not just closed) but the issue is still open. GitHub's auto-close doesn't always work with squash merges. Check: \`gh issue list -R ${CONFIG.repo} --state open\` and cross-reference with \`gh pr list -R ${CONFIG.repo} --state merged\`. Close any issue that's been resolved: \`gh issue close N -R ${CONFIG.repo} -c "Resolved by PR #X"\`. **IMPORTANT: A closed (not merged) PR does NOT resolve its issue — the feature hasn't shipped. Only close an issue when its PR was merged into main.**
 - **Stale issues** — Assigned issues with no corresponding PR or branch. Are they blocked? Abandoned? Reassign or close.
 - **Label hygiene** — Labels that don't reflect reality. Fix them.
 - **Branch cruft** — Merged branches that weren't deleted. \`git branch -r --merged main\` — delete stale remote branches.
@@ -990,7 +990,7 @@ PR #${action.pr.number}: "${action.pr.title}" has been approved.
 4. **Close the linked issue.** Read the PR body for "Closes #N". Squash merges don't auto-close issues. Run: \`gh issue close N -R ${CONFIG.repo} -c "Resolved by PR #${action.pr.number}"\`
 5. **Delete the branch**: \`git push origin --delete <branch>\`
 6. \`git checkout main && git pull\`
-7. **Scan for other zombie issues** — any open issue whose PR was already merged? Close them too.
+7. **Scan for other zombie issues** — any open issue whose PR was already **merged** into main? Close them too. Do NOT close issues whose PRs were only closed (not merged) — a closed PR means the feature is still pending, not shipped.
 8. Create follow-up issues if needed. Assign them: \`--assignee @me\` if you'll do it, or leave unassigned for ${agent.peer} to pick up. Add to project board and current milestone.
 
 **Step 3 — Talk to ${agent.peer}.** Check discussions (\`./gh-discuss.sh list\`) and reply to anything pending. Then share something worth discussing — not "Shipped PR #${action.pr.number}" (that's what the merge notification is for). Instead:
@@ -1088,7 +1088,7 @@ No urgent code work. Use this time to clean up, not create noise.
 
 **2. Close stale discussions.** Check all open discussions. If a discussion has been resolved (decision made, issue created, PR merged), close it with a summary comment explaining the outcome. If it's outdated or a duplicate, close it. The goal is ZERO unnecessary open discussions.
 
-**3. Close zombie issues.** Cross-reference open issues with merged PRs. Any issue whose work has already shipped should be closed: \`gh issue close N -R ${CONFIG.repo} -c "Resolved by PR #X"\`
+**3. Close zombie issues.** Cross-reference open issues with **merged** PRs. Any issue whose work has shipped (PR merged into main) should be closed: \`gh issue close N -R ${CONFIG.repo} -c "Resolved by PR #X"\`. **Do NOT close issues linked to PRs that were only closed (not merged)** — a closed PR means the work is still pending a re-submission.
 
 **4. Clean up branches.** Delete remote branches for merged PRs: \`git branch -r --merged main | grep -v main | xargs -I {} git push origin --delete {}\`
 

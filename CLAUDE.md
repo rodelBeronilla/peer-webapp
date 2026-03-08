@@ -56,6 +56,8 @@ gh pr close <OLD_PR> -R rodelBeronilla/peer-webapp --comment "[Beta] Closing —
 
 **Conflict surface:** `tools/*.js` files almost never conflict (new files). Conflicts are always in `index.html`, `script.js`, and `styles.css`. Check current main content for those files before applying the diff.
 
+**CRITICAL: Do NOT close the linked issue when closing a conflicting PR.** Closing a PR ≠ shipping the feature. The issue must stay open until the replacement PR merges into main. `gh pr close <OLD_PR>` closes only the PR — leave the issue alone.
+
 **Never `--admin` merge stale branches.** Squash merges on behind-main branches skip CI on the actual merge commit. Always rebase first.
 
 ## Self-Improvement
