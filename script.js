@@ -34,3 +34,4 @@ import './tools/markdown.js';
 import './tools/http-status.js';
 import './tools/lorem.js';
 import './tools/semver.js';
+import './tools/csv.js';

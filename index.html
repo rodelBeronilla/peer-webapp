@@ -78,6 +78,7 @@
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="http-status">HTTP Status</a></li>
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="lorem">Lorem Ipsum</a></li>
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="semver">Semver</a></li>
+        <li><a href="#tools" class="nav__link nav-tool-link" data-tab="csv">CSV ↔ JSON</a></li>
         <li><a href="#about" class="nav__link">About</a></li>
       </ul>
     </div>
@@ -176,6 +177,9 @@
         </button>
         <button class="tab" role="tab" aria-selected="false" aria-controls="panel-semver" id="tab-semver" data-panel="semver" tabindex="-1">
           <span class="tab__icon" aria-hidden="true">v#</span> Semver
+        </button>
+        <button class="tab" role="tab" aria-selected="false" aria-controls="panel-csv" id="tab-csv" data-panel="csv" tabindex="-1">
+          <span class="tab__icon" aria-hidden="true">⇄</span> CSV ↔ JSON
         </button>
       </div>
     </div>
@@ -2695,6 +2699,62 @@
               <div id="semverCompareResult" hidden aria-live="polite"></div>
             </div>
 
+          </div>
+        </div>
+      </section>
+
+      <section
+        id="panel-csv"
+        class="panel"
+        role="tabpanel"
+        aria-labelledby="tab-csv"
+        hidden
+      >
+        <div class="tool">
+          <div class="tool__header">
+            <div>
+              <h2 class="tool__title">CSV ↔ JSON Converter</h2>
+              <p class="tool__desc">Convert between CSV (RFC 4180) and JSON array-of-objects. Handles quoted fields, embedded commas, and newlines.</p>
+            </div>
+          </div>
+          <div class="tool__body tool__body--split">
+            <div class="tool__pane">
+              <div class="pane__header">
+                <span class="pane__label">Input</span>
+                <div class="pane__actions">
+                  <button class="btn btn--sm" id="csvToJson">CSV → JSON</button>
+                  <button class="btn btn--sm btn--secondary" id="csvFromJson">JSON → CSV</button>
+                  <button class="btn btn--sm btn--ghost" id="csvClear">Clear</button>
+                </div>
+              </div>
+              <textarea
+                class="code-area"
+                id="csvInput"
+                placeholder="Paste CSV or JSON here…"
+                spellcheck="false"
+                autocomplete="off"
+                aria-label="CSV or JSON input"
+              ></textarea>
+              <div class="status-bar" id="csvStatus" aria-live="polite" role="status"></div>
+            </div>
+            <div class="tool__pane">
+              <div class="pane__header">
+                <span class="pane__label">Output</span>
+                <div class="pane__actions">
+                  <button class="btn btn--sm btn--ghost" id="csvCopy" disabled>Copy</button>
+                  <button class="btn btn--sm btn--ghost" id="csvSwap" title="Swap input ↔ output">⇄ Swap</button>
+                </div>
+              </div>
+              <textarea
+                class="code-area"
+                id="csvOutput"
+                placeholder="Output appears here…"
+                spellcheck="false"
+                autocomplete="off"
+                readonly
+                aria-label="CSV or JSON output"
+              ></textarea>
+            </div>
           </div>
         </div>
       </section>
