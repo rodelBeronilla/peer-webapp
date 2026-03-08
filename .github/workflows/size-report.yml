@@ -66,8 +66,7 @@ jobs:
               fi
             fi
 
-            ROWS="${ROWS}| \`${f}\` | ${cur} B | ${delta} | ${icon} |
-"
+            ROWS="${ROWS}| \`${f}\` | ${cur} B | ${delta} | ${icon} |"$'\n'
           done
 
           if [ "$WARN" -gt 0 ]; then
