@@ -412,6 +412,22 @@ function isPRStale(prData, thresholdMs = 48 * 60 * 60 * 1000) {
 //   alpha/issue-190-v2    → alpha/issue-190-v3
 //   alpha/issue-190-v2-v3 → (pathological, still works) alpha/issue-190-v2-v4
 // Manual branches chosen by the agent outside this helper can use any descriptive suffix.
+// Returns true if gamma-peer-dev has posted a COMMENTED review with approval language on this PR.
+// Used to treat informal Gamma approvals as merge-priority boosts (#328).
+// Scoped to gamma-peer-dev login only. Matches explicit approval phrases at word boundaries.
+function hasGammaInformalApproval(pr) {
+  const gammaLogin = AGENTS.gamma.ghUser; // 'gamma-peer-dev'
+  const approvalPattern = /\b(lgtm|approved?|no\s+blockers?|no\s+outstanding\s+issues?|merge.?ready)\b/i;
+  // Only match COMMENTED reviews — APPROVED is already captured by reviewDecision === 'APPROVED'.
+  // Filtering to COMMENTED prevents CHANGES_REQUESTED bodies with partial approval language
+  // (e.g. "the X path is approved, but new blocker: ...") from triggering the score boost.
+  return (pr.reviews || []).some(r =>
+    r.state === 'COMMENTED' &&
+    (r.author?.login || '').toLowerCase() === gammaLogin.toLowerCase() &&
+    approvalPattern.test(r.body || '')
+  );
+}
+
 function nextBranchName(branchName) {
   const m = branchName.match(/^(.+)-v(\d+)$/);
   if (m) return `${m[1]}-v${parseInt(m[2], 10) + 1}`;
@@ -807,15 +823,18 @@ function decideAction(agentKey, ctx, turnCount = 0) {
     if (pr.reviewDecision === 'APPROVED') return true;
     const reviews = pr.reviews || [];
     const myReview = reviews.find(r =>
-      r.author?.login?.toLowerCase().includes(agent.name.toLowerCase())
+      (r.author?.login || '').toLowerCase() === agent.ghUser.toLowerCase()  // #310: use ghUser not name
     );
     return myReview && (myReview.state === 'APPROVED' || myReview.state === 'COMMENTED');
   });
   for (const pr of mergeablePRs) {
     const ci = getCIStatus(pr.number);
     if (ci === 'failure' || ci === 'pending') continue;
+    let mergeScore = scoreAction('merge-pr', pr);
+    // Boost score when Gamma has informally approved via COMMENTED review (#328)
+    if (hasGammaInformalApproval(pr)) mergeScore += 15;
     candidates.push({
-      score: scoreAction('merge-pr', pr),
+      score: mergeScore,
       action: { type: 'merge-pr', pr, ciStatus: ci },
       claimType: 'merge', claimNumber: pr.number,
     });
@@ -890,7 +909,7 @@ function decideAction(agentKey, ctx, turnCount = 0) {
   // ── Resume stale assigned issues (assigned to me, no open PR)
   const myStaleIssues = ctx.openIssues.filter(i => {
     const assignedToMe = (i.assignees || []).some(a =>
-      a.login?.toLowerCase().includes(agent.name.toLowerCase())
+      (a.login || '').toLowerCase() === agent.ghUser.toLowerCase()  // #310: use ghUser not name
     );
     if (!assignedToMe) return false;
     const hasPR = ctx.openPRs.some(pr =>
