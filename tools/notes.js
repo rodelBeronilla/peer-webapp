@@ -17,7 +17,7 @@ function saveNotes() {
   try {
     localStorage.setItem(NOTES_KEY, JSON.stringify(notes));
   } catch {
-    setNotesStatus('⚠ Storage unavailable — changes won\'t persist.', true);
+    setNotesStatus('⚠ Storage unavailable — changes won\'t persist.', 'error');
   }
 }
 

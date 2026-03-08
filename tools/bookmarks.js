@@ -24,7 +24,7 @@ function saveBookmarks() {
   try {
     localStorage.setItem(BOOKMARKS_KEY, JSON.stringify(bookmarks));
   } catch {
-    setBookmarkStatus('⚠ Storage unavailable — bookmark not saved.', true);
+    setBookmarkStatus('⚠ Storage unavailable — bookmark not saved.', 'error');
   }
 }
 
