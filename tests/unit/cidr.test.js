@@ -13,7 +13,7 @@ function ipToInt(ip) {
   let result = 0;
   for (const part of parts) {
     const n = parseInt(part, 10);
-    if (isNaN(n) || n < 0 || n > 255) return null;
+    if (isNaN(n) || n < 0 || n > 255 || String(n) !== part) return null;
     result = (result << 8) | n;
   }
   return result >>> 0; // force unsigned 32-bit
@@ -50,6 +50,11 @@ describe('ipToInt', () => {
     assert.equal(ipToInt('192.168.1.1.1'), null); // too many octets
     assert.equal(ipToInt('not.an.ip.addr'), null);
     assert.equal(ipToInt(''),             null);
+  });
+
+  test('rejects leading-zero octets (matches production strict check)', () => {
+    assert.equal(ipToInt('01.2.3.4'),     null); // String(1) !== '01'
+    assert.equal(ipToInt('192.168.01.1'), null);
   });
 });
 
@@ -94,7 +99,10 @@ describe('subnet arithmetic (derived from ipToInt / intToIp)', () => {
   }
 
   function hostCount(prefix) {
-    if (prefix >= 32) return 0;
+    // Matches production cidr.js calculate() lines 76-78:
+    // /32 = single host route (RFC), /31 = 2 peers (RFC 3021)
+    if (prefix === 32) return 1;
+    if (prefix === 31) return 2;
     return Math.pow(2, 32 - prefix) - 2;
   }
 
@@ -130,12 +138,12 @@ describe('subnet arithmetic (derived from ipToInt / intToIp)', () => {
     assert.equal(hostCount(24), 254);
   });
 
-  test('/32 has 0 usable hosts', () => {
-    assert.equal(hostCount(32), 0);
+  test('/32 has 1 host (single host route)', () => {
+    assert.equal(hostCount(32), 1);
   });
 
-  test('/31 has 0 usable hosts', () => {
-    assert.equal(hostCount(31), 0);
+  test('/31 has 2 peers (RFC 3021 point-to-point, no network/broadcast)', () => {
+    assert.equal(hostCount(31), 2);
   });
 
   test('/30 has 2 usable hosts', () => {

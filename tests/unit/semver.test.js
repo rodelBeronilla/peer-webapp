@@ -187,15 +187,10 @@ describe('compareSemver — prerelease ordering (semver §11)', () => {
 });
 
 describe('comparePrerelease — issue #283 regression', () => {
-  // Unsafe subtraction: parseInt(aId, 10) - parseInt(bId, 10) can return non-integer
-  // for values above 2^53. BigInt comparison is the safe fix.
-  // This test documents the known issue until #283 is resolved.
-  test('large numeric identifiers: known unsafe subtraction (issue #283)', () => {
-    // 9007199254740992 = 2^53 (MAX_SAFE_INTEGER + 1)
-    // The current subtraction-based comparison may produce wrong results here.
-    // When #283 is fixed, this test should produce 1 (a > b).
-    const result = comparePrerelease('9007199254740993', '9007199254740992');
-    // Document current behavior — after #283 fix, assert.equal(result, 1)
-    assert.ok(typeof result === 'number', 'comparePrerelease should return a number');
-  });
+  // Unsafe subtraction: parseInt(aId, 10) - parseInt(bId, 10) loses precision above 2^53.
+  // 9007199254740993 rounds to 9007199254740992, so subtraction yields 0 instead of 1.
+  // After #283 fix (BigInt comparison), Math.sign(comparePrerelease('9007199254740993', '9007199254740992')) should equal 1.
+  test.todo(
+    'large numeric identifiers (issue #283): comparePrerelease(\'9007199254740993\', \'9007199254740992\') should return 1'
+  );
 });
