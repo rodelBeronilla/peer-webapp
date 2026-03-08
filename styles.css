@@ -757,6 +757,13 @@ main {
 .hl-2 { background: rgba(167, 139, 250, 0.45); } /* violet  */
 .hl-3 { background: rgba(251, 146,  60, 0.45); } /* orange  */
 
+.regex-replace-template {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+}
+
 /* ============================================
    Color tool
    ============================================ */
@@ -2600,4 +2607,62 @@ main {
   font-size: 0.82rem;
   color: var(--color-text-muted);
   font-style: italic;
+}
+
+/* ============================================
+   UUID Generator
+   ============================================ */
+.uuid-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  margin-bottom: 0.75rem;
+}
+
+.uuid-control-row {
+  display: grid;
+  grid-template-columns: 5rem 1fr;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.uuid-label {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  letter-spacing: 0.05em;
+}
+
+.uuid-select-wrap {
+  display: flex;
+}
+
+.uuid-select {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  padding: 0.4rem 0.6rem;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  cursor: pointer;
+  transition: border-color var(--transition);
+  min-width: 0;
+}
+
+.uuid-select:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+.uuid-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.uuid-output {
+  min-height: 8rem;
 }
