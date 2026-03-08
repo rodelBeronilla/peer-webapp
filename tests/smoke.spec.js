@@ -321,3 +321,17 @@ test('Semver — parses a version string', async ({ page }) => {
   await expect(page.locator('#semverParseResult')).toBeVisible({ timeout: OUTPUT_TIMEOUT });
   await expect(page.locator('#semverParseResult')).not.toBeEmpty();
 });
+
+// ─── CSV ─────────────────────────────────────────────────────────────────────
+
+test('CSV — converts CSV to JSON', async ({ page }) => {
+  await activateTab(page, 'tab-csv');
+  await expect(page.locator('#panel-csv')).toBeVisible();
+  await expect(page.locator('#csvInput')).toBeVisible();
+  await expect(page.locator('#csvOutput')).toBeVisible();
+  await expect(page.locator('#csvToJson')).toBeVisible();
+  await expect(page.locator('#csvFromJson')).toBeVisible();
+  await page.fill('#csvInput', 'name,age\nAlice,30\nBob,25');
+  await page.click('#csvToJson');
+  await expectHasValue(page, '#csvOutput');
+});
