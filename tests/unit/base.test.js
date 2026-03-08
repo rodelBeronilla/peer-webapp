@@ -6,7 +6,7 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
-// ── Inlined from tools/base.js ────────────────────────────────────────────
+// ── Inlined from tools/base.js @ 1449f7f ──────────────────────────────────
 const MAX = Number.MAX_SAFE_INTEGER; // 2^53 - 1
 
 const VALID = {

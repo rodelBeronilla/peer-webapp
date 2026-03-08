@@ -6,7 +6,7 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
-// ── Inlined from tools/cidr.js ────────────────────────────────────────────
+// ── Inlined from tools/cidr.js @ 6af67c3 ─────────────────────────────────
 function ipToInt(ip) {
   const parts = ip.split('.');
   if (parts.length !== 4) return null;
