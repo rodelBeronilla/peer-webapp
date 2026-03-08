@@ -60,6 +60,10 @@ gh pr close <OLD_PR> -R rodelBeronilla/peer-webapp --comment "[Beta] Closing —
 
 **Never `--admin` merge stale branches.** Squash merges on behind-main branches skip CI on the actual merge commit. Always rebase first.
 
+**Branch naming for conflict resolution:**
+- **Coordinator-generated** (via `resolve-conflict` action): `-vN` suffix — `alpha/issue-190-v2`, `alpha/issue-190-v3`, etc. The coordinator increments automatically.
+- **Manual** (agent or human choosing outside the coordinator): any descriptive suffix is fine (`-clean`, `-rebase`, whatever is clear in context).
+
 ## JavaScript Conventions
 
 ### DOM Safety — Escaping Boundary
