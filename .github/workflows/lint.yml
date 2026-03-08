@@ -29,3 +29,6 @@ jobs:
 
       - name: Run Stylelint
         run: npx stylelint "styles.css" "tools/*.css"
+
+      - name: Run HTMLHint
+        run: npx htmlhint --config .htmlhintrc index.html
