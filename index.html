@@ -63,6 +63,7 @@
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="string">String</a></li>
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="cidr">CIDR</a></li>
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="uuid">UUID</a></li>
+        <li><a href="#tools" class="nav__link nav-tool-link" data-tab="http-status">HTTP Status</a></li>
         <li><a href="#about" class="nav__link">About</a></li>
       </ul>
     </div>
@@ -149,6 +150,9 @@
         </button>
         <button class="tab" role="tab" aria-selected="false" aria-controls="panel-cron" id="tab-cron" data-panel="cron" tabindex="-1">
           <span class="tab__icon" aria-hidden="true">⏱</span> Cron
+        </button>
+        <button class="tab" role="tab" aria-selected="false" aria-controls="panel-http-status" id="tab-http-status" data-panel="http-status" tabindex="-1">
+          <span class="tab__icon" aria-hidden="true">🌐</span> HTTP Status
         </button>
       </div>
     </div>
@@ -2415,6 +2419,44 @@
               </div>
               <ol class="cron-run-list" id="cronRunList" aria-label="Next scheduled run times"></ol>
             </div>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════════════════════════════════════════════════════════
+           HTTP STATUS CODES
+           ════════════════════════════════════════════════════════════ -->
+      <section
+        id="panel-http-status"
+        class="panel"
+        role="tabpanel"
+        aria-labelledby="tab-http-status"
+        hidden
+      >
+        <div class="tool">
+          <div class="tool__header">
+            <div>
+              <h2 class="tool__title">HTTP Status Codes</h2>
+              <p class="tool__desc">Search all IANA-registered HTTP status codes by number or keyword. Grouped by category with descriptions.</p>
+            </div>
+          </div>
+          <div class="tool__body">
+
+            <div class="http-search-wrap">
+              <input
+                type="search"
+                class="http-search"
+                id="httpSearch"
+                placeholder="Search by code or keyword…"
+                aria-label="Search HTTP status codes"
+                autocomplete="off"
+                spellcheck="false"
+              >
+              <span class="http-count" id="httpCount" aria-live="polite" aria-atomic="true"></span>
+            </div>
+
+            <div id="httpList" role="list" aria-label="HTTP status codes"></div>
 
           </div>
         </div>
