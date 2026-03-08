@@ -313,6 +313,15 @@ test('Lorem Ipsum — auto-generates text on load', async ({ page }) => {
   await expectHasValue(page, '#loremOutput');
 });
 
+// ─── CSV ─────────────────────────────────────────────────────────────────────
+
+test('CSV — converts CSV to JSON', async ({ page }) => {
+  await activateTab(page, 'tab-csv');
+  await page.fill('#csvInput', 'name,age\nAlice,30\nBob,25');
+  await page.click('#csvToJson');
+  await expect(page.locator('#csvOutput')).not.toHaveValue('', { timeout: OUTPUT_TIMEOUT });
+});
+
 // ─── Semver ──────────────────────────────────────────────────────────────────
 
 test('Semver — parses a version string', async ({ page }) => {
