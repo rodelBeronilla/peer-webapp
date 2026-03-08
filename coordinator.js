@@ -874,10 +874,23 @@ function decideAction(agentKey, ctx, turnCount = 0) {
     // Stale peer PRs are already captured as review candidates with stale bonus above
   }
 
+  // ── Skip issues already covered by an open PR via 'Closes/Fixes/Resolves #N' body keyword
+  // GitHub auto-closes issues on merge when a PR body contains these keywords, but the issue
+  // remains open until then. Without this check, unassigned issues with open covering PRs
+  // get dispatched to workers who re-discover the work is already done.
+  const CLOSES_PATTERN = /(?:closes?|fixes?|resolves?)\s+#(\d+)/gi;
+  const coveredByOpenPR = new Set();
+  for (const pr of ctx.openPRs) {
+    for (const match of (pr.body || '').matchAll(CLOSES_PATTERN)) {
+      coveredByOpenPR.add(Number(match[1]));
+    }
+  }
+
   // ── Implement unassigned issues
   const unassigned = ctx.openIssues.filter(i =>
     (i.assignees || []).length === 0 &&
-    !(i.labels || []).some(l => l.name === 'status:blocked')
+    !(i.labels || []).some(l => l.name === 'status:blocked') &&
+    !coveredByOpenPR.has(i.number)
   );
   for (const issue of unassigned) {
     candidates.push({
@@ -893,10 +906,11 @@ function decideAction(agentKey, ctx, turnCount = 0) {
       a.login?.toLowerCase().includes(agent.name.toLowerCase())
     );
     if (!assignedToMe) return false;
+    // Check both: direct title/body mention AND keyword-close pattern
     const hasPR = ctx.openPRs.some(pr =>
       pr.title?.includes(`#${i.number}`) || pr.body?.includes(`#${i.number}`)
     );
-    return !hasPR;
+    return !hasPR && !coveredByOpenPR.has(i.number);
   });
   for (const issue of myStaleIssues) {
     candidates.push({
