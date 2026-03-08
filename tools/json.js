@@ -9,11 +9,10 @@ const jsonCopy   = document.getElementById('jsonCopy');
 let   jsonFormatted = '';
 
 function jsonSyntaxHighlight(str) {
-  // Escape HTML first
-  str = str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
+  // Intentionally does NOT use escapeHtml() — the colorizer regex matches literal `"` to identify
+  // JSON strings and keys. escapeHtml() converts `"` → `&quot;`, breaking the regex. Only `&`, `<`,
+  // `>` need escaping here; `"` must survive unescaped through the regex phase.
+  str = str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
   return str.replace(
     /("(\\u[a-fA-F0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+-]?\d+)?)/g,

@@ -2,7 +2,7 @@
 // Compares two text blocks line-by-line using the Myers O(ND) diff algorithm.
 // Highlights additions (+, green) and deletions (-, red) with line numbers.
 
-import { copyText } from './utils.js';
+import { copyText, escapeHtml } from './utils.js';
 
 const beforeInput = document.getElementById('diffBefore');
 const afterInput  = document.getElementById('diffAfter');
@@ -80,15 +80,6 @@ function myersDiff(a, b) {
   return edits.reverse();
 }
 
-// ---------------------------------------------------------------------------
-// Escape HTML for safe innerHTML insertion
-// ---------------------------------------------------------------------------
-function esc(str) {
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
-}
 
 // ---------------------------------------------------------------------------
 // Render diff output and update stats
@@ -113,7 +104,7 @@ function renderDiff(edits, hasInput) {
         `<span class="diff-linenum" aria-hidden="true">${bLine}</span>` +
         `<span class="diff-linenum" aria-hidden="true">${aLine}</span>` +
         `<span class="diff-sign" aria-hidden="true"> </span>` +
-        `<span class="diff-content">${esc(value)}</span>` +
+        `<span class="diff-content">${escapeHtml(value)}</span>` +
         `</div>`
       );
     } else if (type === 'delete') {
@@ -123,7 +114,7 @@ function renderDiff(edits, hasInput) {
         `<span class="diff-linenum" aria-hidden="true">${bLine}</span>` +
         `<span class="diff-linenum" aria-hidden="true"></span>` +
         `<span class="diff-sign" aria-label="removed">-</span>` +
-        `<span class="diff-content">${esc(value)}</span>` +
+        `<span class="diff-content">${escapeHtml(value)}</span>` +
         `</div>`
       );
     } else {
@@ -133,7 +124,7 @@ function renderDiff(edits, hasInput) {
         `<span class="diff-linenum" aria-hidden="true"></span>` +
         `<span class="diff-linenum" aria-hidden="true">${aLine}</span>` +
         `<span class="diff-sign" aria-label="added">+</span>` +
-        `<span class="diff-content">${esc(value)}</span>` +
+        `<span class="diff-content">${escapeHtml(value)}</span>` +
         `</div>`
       );
     }

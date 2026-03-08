@@ -1,6 +1,6 @@
 // Unicode Character Inspector
 
-import { copyText } from './utils.js';
+import { copyText, escapeHtml } from './utils.js';
 
 const cmInput   = document.getElementById('cmInput');
 const cmClear   = document.getElementById('cmClear');
@@ -71,9 +71,6 @@ function utf8Bytes(char) {
   return Array.from(bytes).map(b => b.toString(16).toUpperCase().padStart(2,'0')).join(' ');
 }
 
-function escCell(str) {
-  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
 
 function render(text) {
   if (!text) {
@@ -104,10 +101,10 @@ function render(text) {
       ? 'cm-row cm-row--special' : 'cm-row';
 
     return `<tr class="${rowClass}" aria-rowindex="${i+2}">
-      <td class="cm-cell cm-cell--char"><span class="cm-char${cat==='control'?' cm-char--control':''}" aria-label="character">${escCell(disp)}</span></td>
+      <td class="cm-cell cm-cell--char"><span class="cm-char${cat==='control'?' cm-char--control':''}" aria-label="character">${escapeHtml(disp)}</span></td>
       <td class="cm-cell cm-cell--cp"><code>U+${hex}</code></td>
-      <td class="cm-cell cm-cell--bytes"><code>${escCell(bytes)}</code></td>
-      <td class="cm-cell cm-cell--entity"><code>${escCell(entity)}</code></td>
+      <td class="cm-cell cm-cell--bytes"><code>${escapeHtml(bytes)}</code></td>
+      <td class="cm-cell cm-cell--entity"><code>${escapeHtml(entity)}</code></td>
       <td class="cm-cell cm-cell--cat"><span class="${catClass}">${categoryLabel(cat)}</span></td>
     </tr>`;
   });
