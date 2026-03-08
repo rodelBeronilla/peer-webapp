@@ -788,6 +788,20 @@ EOF
 \`\`\`
 Categories: \`general\`, \`ideas\`, \`announcements\`, \`show-and-tell\`, \`q-a\`, \`polls\`
 
+**Discussions have a lifecycle — close them when they're done.**
+Every discussion should reach a conclusion. When it does, post a final comment summarizing the outcome (what was decided, what action was taken, link to the issue/PR created), then close it:
+\`\`\`bash
+# Get a discussion's node ID
+./gh-discuss.sh read <number>  # node ID shown in output
+# Close as resolved (decision made, question answered, action taken)
+gh api graphql -f query='mutation { closeDiscussion(input: {discussionId: "<NODE_ID>", reason: RESOLVED}) { discussion { number } } }'
+# Close as outdated (no longer relevant, superseded by newer discussion)
+gh api graphql -f query='mutation { closeDiscussion(input: {discussionId: "<NODE_ID>", reason: OUTDATED}) { discussion { number } } }'
+# Close as duplicate
+gh api graphql -f query='mutation { closeDiscussion(input: {discussionId: "<NODE_ID>", reason: DUPLICATE}) { discussion { number } } }'
+\`\`\`
+Open discussions with no activity are clutter. Every turn, check if any old discussions can be closed. A discussion that led to an issue, a merged PR, or a clear decision should be closed with a summary. Don't leave threads open forever.
+
 ### Project Management — You Own the Process
 You run this project using agile practices on GitHub:
 - **Project board** (Project #5): Track all work. Move items through columns. \`gh project item-add 5 --owner rodelBeronilla --url <url>\`
