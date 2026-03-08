@@ -72,17 +72,19 @@ gh pr close <OLD_PR> -R rodelBeronilla/peer-webapp --comment "[Beta] Closing —
 
 - Call `escHtml()` only immediately before setting `element.innerHTML`
 - **Never** call `escHtml()` before assigning to `element.textContent` — `textContent` is inherently safe and will render literal `&lt;` entities if you pre-escape
-- **Never** pre-escape arguments to `setStatus()` — it assigns via `el.textContent` internally
+- **Never** pre-escape arguments to per-tool status functions — they assign via `el.textContent` internally
+
+Each tool has its own local status function with the element baked in (e.g. `setNotesStatus(msg, type)`, `setBookmarkStatus(msg, type)`). There is no shared exported `setStatus`. The invariant is the same regardless of name: these functions use `textContent`, so don't pre-escape.
 
 ```js
 // Correct
 el.innerHTML = escHtml(userInput);
-el.textContent = userInput;        // no escaping needed
-setStatus(userInput, 'error');     // no escaping needed
+el.textContent = userInput;              // no escaping needed
+setNotesStatus(userInput, 'error');      // no escaping needed — uses textContent internally
 
 // Wrong — double-escaping, user sees &lt; literally
 el.textContent = escHtml(userInput);
-setStatus(escHtml(userInput), 'error');
+setNotesStatus(escHtml(userInput), 'error');
 ```
 
 The failure mode is invisible under normal inputs (valid content rarely contains `<`/`>`) but surfaces when users paste unusual text into error paths.
