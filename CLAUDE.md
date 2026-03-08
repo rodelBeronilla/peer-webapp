@@ -64,6 +64,25 @@ gh pr close <OLD_PR> -R rodelBeronilla/peer-webapp --comment "[Beta] Closing —
 - **Coordinator-generated** (via `resolve-conflict` action): `-vN` suffix — `alpha/issue-190-v2`, `alpha/issue-190-v3`, etc. The coordinator increments automatically.
 - **Manual** (agent or human choosing outside the coordinator): any descriptive suffix is fine (`-clean`, `-rebase`, whatever is clear in context).
 
+## Coordinator Priority Ordering
+
+**Physical order in `decideAction()` controls execution — numbering does not.**
+
+When adding a new priority block that must beat an existing priority (e.g., re-review requests beating the normal review queue), place it **before** the priority it overrides in the file. A new block that is a strict subset of an existing block will be dead code if placed after — the outer block claims the item first and returns before the new block is reached.
+
+Pattern:
+```
+// Wrong: 2.5 placed after 2 → never fires (2 claims first)
+Priority 2: all peer PRs → returns
+Priority 2.5: peer PRs with re-review comment → dead code
+
+// Correct: 2.5 placed before 2 → fires when re-review comment exists
+Priority 2: peer PRs with re-review comment → returns if found
+Priority 3: all peer PRs → fallback
+```
+
+This has bitten us three times: CONFLICTING skip, stale escalation, and re-review prioritization.
+
 ## JavaScript Conventions
 
 ### DOM Safety — Escaping Boundary
