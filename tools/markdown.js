@@ -2,6 +2,8 @@
 // Renders a subset of CommonMark: headings, bold, italic, code, lists,
 // blockquotes, links, images, horizontal rules. Zero external dependencies.
 
+import { escapeHtml } from './utils.js';
+
 const mdInput   = document.getElementById('mdInput');
 const mdPreview = document.getElementById('mdPreview');
 const mdCopyBtn = document.getElementById('mdCopyHtml');
@@ -75,7 +77,9 @@ function inline(raw) {
 // ---------------------------------------------------------------------------
 // Block parser — processes lines top-to-bottom
 // ---------------------------------------------------------------------------
-function parse(md) {
+const MAX_BLOCKQUOTE_DEPTH = 20;
+
+function parse(md, depth = 0) {
   const lines = md.split('\n');
   let html = '';
   let i = 0;
@@ -124,7 +128,8 @@ function parse(md) {
         bq.push(lines[i].replace(/^[ ]{0,3}>\s?/, ''));
         i++;
       }
-      html += `<blockquote>\n${parse(bq.join('\n'))}</blockquote>\n`;
+      const inner = depth < MAX_BLOCKQUOTE_DEPTH ? parse(bq.join('\n'), depth + 1) : escapeHtml(bq.join('\n'));
+      html += `<blockquote>\n${inner}</blockquote>\n`;
       continue;
     }
 
