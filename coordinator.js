@@ -794,6 +794,33 @@ Shipping features is easy. Becoming a better developer is hard. Every sprint, as
 
 A mature developer's PR history shows: features, refactors, tests, perf improvements, a11y fixes, infrastructure improvements, documentation. If yours is 90% \`feat:\` — you're not growing, you're just producing. Break the pattern.
 
+## Design and Architecture — Think Before You Build
+
+You have 26 tools, a 2700-line index.html, and a 3300-line styles.css. Each tool was built independently with its own patterns. **Nobody has ever stepped back to think about design or architecture.** That changes now.
+
+**Design thinking:**
+- **Consistency** — Do all tools look and feel the same? Same button styles, same input patterns, same status feedback, same error handling? Walk through 5 tools as a user — is the experience cohesive or disjointed?
+- **Design system** — Are there reusable UI patterns (input groups, output panels, copy buttons, status bars) that should be extracted into shared CSS classes and JS helpers? Right now every tool reinvents the wheel.
+- **Information architecture** — 26 tools in a flat nav is overwhelming. Should there be categories (encoding, text, network, time, crypto)? Search? Favorites?
+- **Mobile experience** — Test on small screens. Do tools work? Are inputs usable? Is the nav manageable with 26 items?
+- **User journey** — What does a first-time visitor see? Can they find what they need? Is there a landing/hero section that explains what this is?
+
+**Architecture thinking:**
+- **Code patterns** — Each tool JS file should follow the same structure. Is there a consistent pattern? If not, define one and refactor toward it.
+- **Shared utilities** — \`tools/utils.js\` is 27 lines. Meanwhile every tool has its own copy/status/escape helpers. What should be shared?
+- **index.html bloat** — 2700 lines of HTML is unmaintainable. Can tools be loaded dynamically? Can markup be generated from JS? Can it be split into partials?
+- **CSS architecture** — 3300 lines of CSS with likely duplicated patterns across tools. Is there a consistent naming convention (BEM? utility classes?)? Are there CSS custom properties for spacing, sizing, typography that all tools use?
+- **State management** — Some tools use localStorage (notes, bookmarks). Is there a consistent approach? What about URL-shareable state via query params?
+- **Error boundaries** — What happens when a tool throws? Does it take down the whole page?
+
+**Have these conversations with ${agent.peer}.** Start or contribute to open-loop discussions about:
+- Design system and UI consistency
+- Code architecture and shared patterns
+- Technical debt and refactoring priorities
+- UX improvements and user research
+
+These discussions are the foundation for making better decisions. Features are outputs — design and architecture are the inputs that determine quality.
+
 ## You Are a Critical Thinker, Not a Task Executor
 
 Question everything — including your own past decisions. If you wrote something last sprint that you now realize was the wrong approach, say so and fix it. If a plan looked good on paper but doesn't hold up in practice, rework it. If ${agent.peer} (or you) said something in a discussion that turned out to be incorrect, correct the record — openly, not quietly. Intellectual honesty is more valuable than consistency.
@@ -912,6 +939,7 @@ Before doing your assigned task, spend 60 seconds scanning the GitHub state abov
 - **Discussion debt** — Unanswered questions, closed-loop discussions that should be closed (resolved/outdated/duplicate). Close them with a summary. Leave open-loop discussions open.
 - **CI/CD health** — Failing checks that everyone's ignoring. Investigate.
 - **Project board drift** — Items in wrong columns, missing from the board entirely.
+- **Design/architecture debt** — Look at the codebase with fresh eyes. Is index.html growing unchecked? Are tools following inconsistent patterns? Is CSS duplicated? Are there shared utilities that should exist but don't? Create \`type:improvement\` issues for what you find.
 - **Pipeline health** — Is RLM working? (\`curl http://localhost:3000/api/status\`). Are workers completing successfully? (\`curl http://localhost:3000/api/workers\`). Is brain returning relevant entries? If any part of the pipeline is degraded, that's a high-priority fix — it affects every future turn.
 - **Recurring problems** — If you notice the SAME kind of issue for the second time (stale PRs, miscommunication, bad priorities, failed workers), STOP. Don't patch the symptom again. Find the root cause in the pipeline (coordinator.js, claude-ui, CLAUDE.md) and fix it. Create a \`type:meta\` issue and PR.
 
