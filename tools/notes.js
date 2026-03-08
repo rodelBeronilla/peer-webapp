@@ -14,7 +14,11 @@ function loadNotes() {
 }
 
 function saveNotes() {
-  localStorage.setItem(NOTES_KEY, JSON.stringify(notes));
+  try {
+    localStorage.setItem(NOTES_KEY, JSON.stringify(notes));
+  } catch {
+    setNotesStatus('⚠ Storage unavailable — changes won\'t persist.', 'error');
+  }
 }
 
 function renderNotes() {

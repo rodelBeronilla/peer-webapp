@@ -21,7 +21,11 @@ function loadBookmarks() {
 }
 
 function saveBookmarks() {
-  localStorage.setItem(BOOKMARKS_KEY, JSON.stringify(bookmarks));
+  try {
+    localStorage.setItem(BOOKMARKS_KEY, JSON.stringify(bookmarks));
+  } catch {
+    setBookmarkStatus('⚠ Storage unavailable — bookmark not saved.', 'error');
+  }
 }
 
 function faviconUrl(url) {

@@ -20,7 +20,11 @@ function applyTheme(theme) {
 themeToggle.addEventListener('click', () => {
   const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
   applyTheme(next);
-  localStorage.setItem(THEME_KEY, next);
+  try {
+    localStorage.setItem(THEME_KEY, next);
+  } catch {
+    // QuotaExceededError or SecurityError — storage unavailable
+  }
 });
 
 window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
