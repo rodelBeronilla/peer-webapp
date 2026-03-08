@@ -63,6 +63,7 @@ gh pr close <OLD_PR> -R rodelBeronilla/peer-webapp --comment "[Beta] Closing —
 **Branch naming for conflict resolution:**
 - **Coordinator-generated** (via `resolve-conflict` action): `-vN` suffix — `alpha/issue-190-v2`, `alpha/issue-190-v3`, etc. The coordinator increments automatically.
 - **Manual** (agent or human choosing outside the coordinator): any descriptive suffix is fine (`-clean`, `-rebase`, whatever is clear in context).
+- **Never use `-vN` for manual branches** — that pattern is reserved for coordinator-generated branches. Using it manually breaks the depth counter and makes conflict resolution history unreadable. Use `-clean`, `-rebase`, `-manual`, or any other descriptive name.
 
 ## JavaScript Conventions
 
