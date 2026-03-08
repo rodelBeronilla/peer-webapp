@@ -52,6 +52,7 @@
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="jwt">JWT</a></li>
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="timestamp">Timestamp</a></li>
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="base">Base</a></li>
+        <li><a href="#tools" class="nav__link nav-tool-link" data-tab="htmlentity">HTML Entity</a></li>
         <li><a href="#about" class="nav__link">About</a></li>
       </ul>
     </div>
@@ -102,6 +103,9 @@
         </button>
         <button class="tab" role="tab" aria-selected="false" aria-controls="panel-base" id="tab-base" data-panel="base" tabindex="-1">
           <span class="tab__icon" aria-hidden="true">01</span> Base
+        </button>
+        <button class="tab" role="tab" aria-selected="false" aria-controls="panel-htmlentity" id="tab-htmlentity" data-panel="htmlentity" tabindex="-1">
+          <span class="tab__icon" aria-hidden="true">&amp;</span> HTML Entity
         </button>
       </div>
     </div>
@@ -890,6 +894,64 @@
 
             <div class="status-bar" id="baseStatus" aria-live="polite" role="status"></div>
             <p class="base-bits" id="baseBits" aria-live="polite"></p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════════════════════════
+           HTML Entity Encoder / Decoder
+           ═══════════════════════════════ -->
+      <section
+        id="panel-htmlentity"
+        class="panel"
+        role="tabpanel"
+        aria-labelledby="tab-htmlentity"
+        hidden
+      >
+        <div class="tool">
+          <div class="tool__header">
+            <div>
+              <h2 class="tool__title">HTML Entity Encoder / Decoder</h2>
+              <p class="tool__desc">Escape special characters to HTML entities (<code>&amp;amp;</code> <code>&amp;lt;</code> <code>&amp;gt;</code> <code>&amp;quot;</code> <code>&amp;#39;</code>), or decode any entity — named, decimal, or hex — back to plain text.</p>
+            </div>
+          </div>
+          <div class="tool__body tool__body--split">
+            <div class="tool__pane">
+              <div class="pane__header">
+                <span class="pane__label">Input</span>
+                <div class="pane__actions">
+                  <button class="btn btn--sm" id="heEncode">Encode →</button>
+                  <button class="btn btn--sm btn--secondary" id="heDecode">← Decode</button>
+                  <button class="btn btn--sm btn--ghost" id="heClear">Clear</button>
+                </div>
+              </div>
+              <textarea
+                class="code-area"
+                id="heInput"
+                placeholder="Enter plain text to encode, or HTML with entities to decode…"
+                spellcheck="false"
+                autocomplete="off"
+                aria-label="HTML entity input"
+              ></textarea>
+              <div class="status-bar" id="heStatus" aria-live="polite" role="status"></div>
+            </div>
+            <div class="tool__pane">
+              <div class="pane__header">
+                <span class="pane__label">Output</span>
+                <div class="pane__actions">
+                  <button class="btn btn--sm btn--ghost" id="heCopy" disabled>Copy</button>
+                  <button class="btn btn--sm btn--ghost" id="heSwap" title="Swap input ↔ output">⇄ Swap</button>
+                </div>
+              </div>
+              <textarea
+                class="code-area"
+                id="heOutput"
+                placeholder="Result will appear here…"
+                readonly
+                spellcheck="false"
+                aria-label="HTML entity output"
+              ></textarea>
+            </div>
           </div>
         </div>
       </section>
