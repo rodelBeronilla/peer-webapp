@@ -1643,3 +1643,101 @@ main {
   align-items: center;
   word-break: break-all;
 }
+
+/* ============================================
+   chmod Calculator
+   ============================================ */
+.chmod-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-bottom: 1.25rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.chmod-header-row,
+.chmod-bit-row {
+  display: grid;
+  grid-template-columns: 7rem 1fr 1fr 1fr;
+  align-items: center;
+}
+
+.chmod-header-row {
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.chmod-bit-row {
+  border-bottom: 1px solid var(--color-border);
+}
+.chmod-bit-row:last-child {
+  border-bottom: none;
+}
+
+.chmod-col-head {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  letter-spacing: 0.04em;
+  text-align: center;
+  padding: 0.4rem 0;
+  text-transform: uppercase;
+}
+
+.chmod-bit-label {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--color-text);
+  padding: 0.55rem 0.75rem;
+  border-right: 1px solid var(--color-border);
+}
+
+.chmod-bit-label--muted {
+  color: var(--color-text-muted);
+}
+
+.chmod-check {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.55rem 0;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--color-text);
+  cursor: pointer;
+  user-select: none;
+  border-right: 1px solid var(--color-border);
+  transition: background var(--transition);
+}
+.chmod-check:last-child {
+  border-right: none;
+}
+.chmod-check:hover {
+  background: var(--color-surface);
+}
+.chmod-check input[type="checkbox"] {
+  accent-color: var(--color-primary);
+  width: 1rem;
+  height: 1rem;
+  cursor: pointer;
+}
+
+.chmod-check--special {
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+}
+
+.chmod-special-row {
+  background: var(--color-surface);
+}
+
+.chmod-outputs {
+  margin-top: 0;
+}
+
+.chmod-cmd-output {
+  color: var(--color-text-muted);
+}

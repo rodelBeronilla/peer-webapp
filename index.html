@@ -53,6 +53,7 @@
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="timestamp">Timestamp</a></li>
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="base">Base</a></li>
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="htmlentity">HTML Entity</a></li>
+        <li><a href="#tools" class="nav__link nav-tool-link" data-tab="chmod">Chmod</a></li>
         <li><a href="#about" class="nav__link">About</a></li>
       </ul>
     </div>
@@ -106,6 +107,9 @@
         </button>
         <button class="tab" role="tab" aria-selected="false" aria-controls="panel-htmlentity" id="tab-htmlentity" data-panel="htmlentity" tabindex="-1">
           <span class="tab__icon" aria-hidden="true">&amp;</span> HTML Entity
+        </button>
+        <button class="tab" role="tab" aria-selected="false" aria-controls="panel-chmod" id="tab-chmod" data-panel="chmod" tabindex="-1">
+          <span class="tab__icon" aria-hidden="true">🔒</span> Chmod
         </button>
       </div>
     </div>
@@ -952,6 +956,157 @@
                 aria-label="HTML entity output"
               ></textarea>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════════════════════════
+           Unix Permissions / chmod Calculator
+           ═══════════════════════════════ -->
+      <section
+        id="panel-chmod"
+        class="panel"
+        role="tabpanel"
+        aria-labelledby="tab-chmod"
+        hidden
+      >
+        <div class="tool">
+          <div class="tool__header">
+            <div>
+              <h2 class="tool__title">chmod Calculator</h2>
+              <p class="tool__desc">Click permission bits, or type an octal code (e.g. <code>755</code>) or symbolic string (e.g. <code>-rwxr-xr-x</code>). Generates a ready-to-paste <code>chmod</code> command.</p>
+            </div>
+          </div>
+          <div class="tool__body">
+
+            <!-- Permission grid -->
+            <div class="chmod-grid" role="group" aria-label="Permission bits">
+              <div class="chmod-header-row">
+                <span class="chmod-bit-label"></span>
+                <span class="chmod-col-head">Owner</span>
+                <span class="chmod-col-head">Group</span>
+                <span class="chmod-col-head">Others</span>
+              </div>
+
+              <div class="chmod-bit-row">
+                <span class="chmod-bit-label">Read (r)</span>
+                <label class="chmod-check">
+                  <input type="checkbox" id="chmodOwnerR" aria-label="Owner read"> r
+                </label>
+                <label class="chmod-check">
+                  <input type="checkbox" id="chmodGroupR" aria-label="Group read"> r
+                </label>
+                <label class="chmod-check">
+                  <input type="checkbox" id="chmodOtherR" aria-label="Others read"> r
+                </label>
+              </div>
+
+              <div class="chmod-bit-row">
+                <span class="chmod-bit-label">Write (w)</span>
+                <label class="chmod-check">
+                  <input type="checkbox" id="chmodOwnerW" aria-label="Owner write"> w
+                </label>
+                <label class="chmod-check">
+                  <input type="checkbox" id="chmodGroupW" aria-label="Group write"> w
+                </label>
+                <label class="chmod-check">
+                  <input type="checkbox" id="chmodOtherW" aria-label="Others write"> w
+                </label>
+              </div>
+
+              <div class="chmod-bit-row">
+                <span class="chmod-bit-label">Execute (x)</span>
+                <label class="chmod-check">
+                  <input type="checkbox" id="chmodOwnerX" aria-label="Owner execute"> x
+                </label>
+                <label class="chmod-check">
+                  <input type="checkbox" id="chmodGroupX" aria-label="Group execute"> x
+                </label>
+                <label class="chmod-check">
+                  <input type="checkbox" id="chmodOtherX" aria-label="Others execute"> x
+                </label>
+              </div>
+
+              <!-- Special bits -->
+              <div class="chmod-bit-row chmod-special-row">
+                <span class="chmod-bit-label chmod-bit-label--muted">Special</span>
+                <label class="chmod-check chmod-check--special" title="setUID — run as owner">
+                  <input type="checkbox" id="chmodSUID" aria-label="setUID"> setUID
+                </label>
+                <label class="chmod-check chmod-check--special" title="setGID — run as group">
+                  <input type="checkbox" id="chmodSGID" aria-label="setGID"> setGID
+                </label>
+                <label class="chmod-check chmod-check--special" title="Sticky bit — restrict deletion">
+                  <input type="checkbox" id="chmodSticky" aria-label="Sticky bit"> sticky
+                </label>
+              </div>
+            </div>
+
+            <!-- Octal / symbolic inputs -->
+            <div class="base-grid chmod-outputs" role="group" aria-label="Permission notation">
+
+              <div class="base-row">
+                <label class="base-label" for="chmodOctal">OCT</label>
+                <input
+                  type="text"
+                  id="chmodOctal"
+                  class="base-input"
+                  placeholder="e.g. 755"
+                  spellcheck="false"
+                  autocomplete="off"
+                  inputmode="numeric"
+                  aria-label="Octal permission code"
+                  maxlength="5"
+                >
+                <button class="btn btn--sm btn--ghost" id="chmodCopyOctal">Copy</button>
+              </div>
+
+              <div class="base-row">
+                <label class="base-label" for="chmodSymbolic">SYM</label>
+                <input
+                  type="text"
+                  id="chmodSymbolic"
+                  class="base-input"
+                  placeholder="e.g. -rwxr-xr-x"
+                  spellcheck="false"
+                  autocomplete="off"
+                  aria-label="Symbolic permission string"
+                  maxlength="10"
+                >
+                <button class="btn btn--sm btn--ghost" id="chmodCopySymbolic">Copy</button>
+              </div>
+
+              <!-- Filename + command -->
+              <div class="base-row">
+                <label class="base-label" for="chmodFilename">FILE</label>
+                <input
+                  type="text"
+                  id="chmodFilename"
+                  class="base-input"
+                  placeholder="filename (optional)"
+                  spellcheck="false"
+                  autocomplete="off"
+                  aria-label="Filename for chmod command"
+                >
+              </div>
+
+              <div class="base-row">
+                <label class="base-label" for="chmodCommand">CMD</label>
+                <input
+                  type="text"
+                  id="chmodCommand"
+                  class="base-input chmod-cmd-output"
+                  readonly
+                  aria-label="Ready-to-paste chmod command"
+                  aria-live="polite"
+                >
+                <button class="btn btn--sm btn--ghost" id="chmodCopyCmd">Copy</button>
+              </div>
+
+            </div>
+
+            <div class="status-bar" id="chmodStatus" aria-live="polite" role="status"></div>
+
           </div>
         </div>
       </section>
