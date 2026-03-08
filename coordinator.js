@@ -343,6 +343,17 @@ function nextBranchName(branchName) {
   return `${branchName}-v2`;
 }
 
+// Symmetric with nextBranchName() — reads the -vN depth of a branch name.
+// Returns 1 for branches with no suffix (first attempt), N for -vN branches.
+// Examples:
+//   alpha/issue-190       → 1
+//   alpha/issue-190-v2    → 2
+//   alpha/issue-190-v3    → 3
+function currentVersionDepth(branchName) {
+  const m = branchName.match(/^.+-v(\d+)$/);
+  return m ? parseInt(m[1], 10) : 1;
+}
+
 // ─── GitHub state summary ───────────────────────────────────────────────────
 
 function buildGitHubContext(agentName = '') {
@@ -499,6 +510,25 @@ function decideAction(agentKey, ctx, turnCount = 0) {
   ).sort((a, b) => a.number - b.number);
   for (const pr of conflictingOwnPRs) {
     if (claimWork(agentKey, 'conflict', pr.number)) {
+      // Escalate when the conflict has recurred enough times that automated cycling isn't working.
+      // Depth ≥ 3 means we're on branch -v3 or beyond — time to flag for human intervention.
+      const depth = currentVersionDepth(pr.headRefName);
+      if (depth >= 3) {
+        try {
+          const data = getPRComments(pr.number);
+          const comments = data?.comments || [];
+          const alreadyEscalated = comments.some(c =>
+            (c.body || '').includes('manual intervention')
+          );
+          if (!alreadyEscalated) {
+            const body = `[Coordinator] This conflict has recurred ${depth} times (currently on branch \`${pr.headRefName}\`). Automated conflict resolution is not converging — manual intervention may be needed.`;
+            gh(`pr comment ${pr.number} -R ${CONFIG.repo} --body ${JSON.stringify(body)}`);
+            log(`[${agent.name}] Posted escalation comment on PR #${pr.number} (depth=${depth})`);
+          }
+        } catch (e) {
+          log(`[${agent.name}] Failed to post escalation comment on #${pr.number}: ${e.message}`);
+        }
+      }
       return { type: 'resolve-conflict', pr };
     }
   }
@@ -1209,7 +1239,11 @@ PR #${action.pr.number}: "${action.pr.title}" has been approved.
 - In an existing thread: Connect this merge to an ongoing conversation.
 `;
 
-    case 'resolve-conflict':
+    case 'resolve-conflict': {
+      // Compute newBranch once — nextBranchName() is pure but calling it three times in a
+      // template literal obscures intent and would silently produce wrong output if it ever
+      // gained state (e.g. a counter). One variable makes the derivation explicit.
+      const newBranch = nextBranchName(action.pr.headRefName);
       return `${preamble}
 ## Your Task: Resolve Merge Conflict on PR #${action.pr.number}
 
@@ -1226,6 +1260,9 @@ Your PR #${action.pr.number}: "${action.pr.title}" is in a **CONFLICTING** merge
 \`\`\`bash
 git config user.name "${agent.gitName}"
 git config user.email "${agent.gitEmail}"
+# -B (force-create) is deliberate: if a previous conflict resolution attempt was interrupted,
+# the branch may already exist locally in a partial state. -B overwrites it cleanly, making
+# mid-cycle crash recovery self-healing. Do NOT change this to -b.
 git checkout -B ${action.pr.headRefName} origin/main
 
 # Re-apply your changes — new tool files first (no conflicts), then edits to index.html/script.js/styles.css
@@ -1243,10 +1280,10 @@ git push origin ${action.pr.headRefName} --force
 **Step 4 — If force-push is insufficient, close this PR and open a fresh one:**
 \`\`\`bash
 # Coordinator-generated branch name follows the -vN convention (see CLAUDE.md)
-git checkout -b ${nextBranchName(action.pr.headRefName)} origin/main
+git checkout -b ${newBranch} origin/main
 # Re-apply your changes on the new branch, then:
-git push origin ${nextBranchName(action.pr.headRefName)}
-gh pr create -R ${CONFIG.repo} --title "${action.pr.title}" --head ${nextBranchName(action.pr.headRefName)}
+git push origin ${newBranch}
+gh pr create -R ${CONFIG.repo} --title "${action.pr.title}" --head ${newBranch}
 gh pr close ${action.pr.number} -R ${CONFIG.repo} --comment "[${agent.name}] Closing — replaced by PR #NEW (conflict resolution)"
 # Do NOT close the linked issue; it stays open until the new PR merges
 \`\`\`
@@ -1255,6 +1292,7 @@ gh pr close ${action.pr.number} -R ${CONFIG.repo} --comment "[${agent.name}] Clo
 
 **Do NOT close the linked issue at any point in this workflow.** Closing a PR (even a conflicting one) does not ship the feature. The issue stays open until a PR is merged into \`main\`.
 `;
+    }
 
     case 'ping-pr':
       return `${preamble}
