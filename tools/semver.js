@@ -130,8 +130,10 @@ function comparePrerelease(a, b) {
     const bNum = /^\d+$/.test(bId);
 
     if (aNum && bNum) {
-      const diff = parseInt(aId, 10) - parseInt(bId, 10);
-      if (diff !== 0) return diff;
+      // Use explicit comparison — subtraction is unsafe for integers above 2^53
+      const aInt = parseInt(aId, 10), bInt = parseInt(bId, 10);
+      if (aInt < bInt) return -1;
+      if (aInt > bInt) return 1;
     } else if (aNum) {
       return -1; // numeric < alphanumeric
     } else if (bNum) {
@@ -145,9 +147,9 @@ function comparePrerelease(a, b) {
 }
 
 function compareSemver(a, b) {
-  if (a.major !== b.major) return a.major - b.major;
-  if (a.minor !== b.minor) return a.minor - b.minor;
-  if (a.patch !== b.patch) return a.patch - b.patch;
+  if (a.major !== b.major) return a.major < b.major ? -1 : 1;
+  if (a.minor !== b.minor) return a.minor < b.minor ? -1 : 1;
+  if (a.patch !== b.patch) return a.patch < b.patch ? -1 : 1;
   return comparePrerelease(a.prerelease, b.prerelease);
 }
 
