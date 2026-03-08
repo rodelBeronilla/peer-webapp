@@ -7,6 +7,14 @@
 
 import { test, expect } from '@playwright/test';
 
+// Timeout constants — two distinct categories:
+// ASYNC_TIMEOUT: tools that use async browser APIs (WebCrypto, etc.) where computation
+//   is genuinely asynchronous and the output delay is non-deterministic.
+// OUTPUT_TIMEOUT: synchronous tools where output appears on the next microtask tick;
+//   a generous margin guards against slow CI runners without implying real async work.
+const ASYNC_TIMEOUT = 10_000;
+const OUTPUT_TIMEOUT = 5_000;
+
 // Navigate fresh for each test so localStorage state doesn't bleed between tools.
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
@@ -153,7 +161,7 @@ test('Hash — computes SHA-256 of input text', async ({ page }) => {
   await activateTab(page, 'tab-hash');
   await page.fill('#hashInput', 'hello');
   // WebCrypto is async — wait for the output field to be filled
-  await expect(page.locator('#hashOut256')).not.toHaveValue('', { timeout: 10_000 });
+  await expect(page.locator('#hashOut256')).not.toHaveValue('', { timeout: ASYNC_TIMEOUT });
 });
 
 // ─── HTML Entity ─────────────────────────────────────────────────────────────
@@ -201,11 +209,15 @@ test('Time Zone — converts a time between zones', async ({ page }) => {
   await activateTab(page, 'tab-tz');
   // Fill in current time
   await page.click('#tzNow');
-  // Wait for zone selects to populate and select a default zone
-  await expect(page.locator('#tzFrom option').first()).toBeVisible({ timeout: 5_000 });
+  // Wait for zone selects to populate and select a default zone.
+  // Note: Intl.supportedValuesOf('timeZone') is synchronous, so this resolves
+  // instantly in practice. The wait documents intent and guards against future
+  // refactors to async zone loading. CI runner timezone (typically UTC or
+  // America/New_York on ubuntu-latest) is a valid IANA name — no fallback needed.
+  await expect(page.locator('#tzFrom option').first()).toBeVisible({ timeout: OUTPUT_TIMEOUT });
   await page.click('#tzConvert');
   // Result panel should be visible after conversion
-  await expect(page.locator('#tzResult')).toBeVisible({ timeout: 8_000 });
+  await expect(page.locator('#tzResult')).toBeVisible({ timeout: OUTPUT_TIMEOUT });
 });
 
 // ─── Diff ─────────────────────────────────────────────────────────────────────
@@ -241,7 +253,7 @@ test('CIDR — calculates subnet details', async ({ page }) => {
   await activateTab(page, 'tab-cidr');
   await page.fill('#cidrInput', '192.168.1.0/24');
   await page.click('#cidrCalc');
-  await expect(page.locator('#cidrResult')).toBeVisible({ timeout: 5_000 });
+  await expect(page.locator('#cidrResult')).toBeVisible({ timeout: OUTPUT_TIMEOUT });
   await expect(page.locator('#cidrResult')).not.toBeEmpty();
 });
 
@@ -259,7 +271,7 @@ test('Cron — parses a cron expression and shows next runs', async ({ page }) =
   await activateTab(page, 'tab-cron');
   await page.fill('#cronInput', '0 9 * * 1-5');
   // Description and next-runs panels appear after a valid expression
-  await expect(page.locator('#cronDesc')).toBeVisible({ timeout: 5_000 });
+  await expect(page.locator('#cronDesc')).toBeVisible({ timeout: OUTPUT_TIMEOUT });
   await expect(page.locator('#cronRuns')).toBeVisible();
 });
 
@@ -297,6 +309,6 @@ test('Lorem Ipsum — auto-generates text on load', async ({ page }) => {
 test('Semver — parses a version string', async ({ page }) => {
   await activateTab(page, 'tab-semver');
   await page.fill('#semverParseInput', '1.2.3-beta.1+build.456');
-  await expect(page.locator('#semverParseResult')).toBeVisible({ timeout: 5_000 });
+  await expect(page.locator('#semverParseResult')).toBeVisible({ timeout: OUTPUT_TIMEOUT });
   await expect(page.locator('#semverParseResult')).not.toBeEmpty();
 });
