@@ -216,17 +216,12 @@ test('CSS Specificity — calculates specificity of a selector', async ({ page }
 
 test('Time Zone — converts a time between zones', async ({ page }) => {
   await activateTab(page, 'tab-tz');
-  // Fill in current time
+  // tzNow fills in the current time AND calls convert() internally (tools/tz.js line ~195).
+  // Result is already rendered after this click — no need to click #tzConvert separately.
   await page.click('#tzNow');
-  // Wait for zone selects to populate and select a default zone.
-  // Note: Intl.supportedValuesOf('timeZone') is synchronous, so this resolves
-  // instantly in practice. The wait documents intent and guards against future
-  // refactors to async zone loading. CI runner timezone (typically UTC or
-  // America/New_York on ubuntu-latest) is a valid IANA name — no fallback needed.
-  await expect(page.locator('#tzFrom option').first()).toBeVisible({ timeout: OUTPUT_TIMEOUT });
-  await page.click('#tzConvert');
-  // Result panel should be visible after conversion
-  await expect(page.locator('#tzResult')).toBeVisible({ timeout: OUTPUT_TIMEOUT });
+  // Assert the result contains a time string (HH:MM format).
+  // Intl.supportedValuesOf('timeZone') is synchronous so no async wait is needed.
+  await expect(page.locator('.tz-result__value')).toHaveText(/\d{1,2}:\d{2}/);
 });
 
 // ─── Diff ─────────────────────────────────────────────────────────────────────
