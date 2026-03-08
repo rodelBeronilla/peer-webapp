@@ -893,8 +893,9 @@ function decideAction(agentKey, ctx, turnCount = 0) {
       a.login?.toLowerCase().includes(agent.name.toLowerCase())
     );
     if (!assignedToMe) return false;
+    const issueRef = new RegExp(`(?<![0-9])#${i.number}(?![0-9])`);
     const hasPR = ctx.openPRs.some(pr =>
-      pr.title?.includes(`#${i.number}`) || pr.body?.includes(`#${i.number}`)
+      issueRef.test(pr.title || '') || issueRef.test(pr.body || '')
     );
     return !hasPR;
   });
@@ -914,8 +915,9 @@ function decideAction(agentKey, ctx, turnCount = 0) {
     const labels = (i.labels || []).map(l => l.name);
     if (!labels.includes('P0-critical') && !labels.includes('P1-high')) return false;
     if (labels.includes('status:blocked')) return false;
+    const issueRef = new RegExp(`(?<![0-9])#${i.number}(?![0-9])`);
     const hasOpenPR = ctx.openPRs.some(pr =>
-      (pr.title || '').includes(`#${i.number}`) || (pr.body || '').includes(`#${i.number}`)
+      issueRef.test(pr.title || '') || issueRef.test(pr.body || '')
     );
     return !hasOpenPR;
   });
