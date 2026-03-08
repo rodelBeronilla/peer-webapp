@@ -1964,7 +1964,9 @@ async function main() {
 
   bootstrapGitHub();
 
-  try { git('checkout main'); git('pull origin main'); } catch {}
+  // Fetch first so local main reflects origin/main exactly — avoids stale local state
+  // that could cause false "already merged" checks if main is behind or ahead. (#339)
+  try { git('fetch origin'); git('checkout main'); git('reset --hard origin/main'); } catch {}
 
   log('Launching Alpha, Beta, and Gamma concurrently...');
   const alphaLoop = agentLoop('alpha');
