@@ -32,7 +32,7 @@ function buildPool() {
 
 function calcEntropy(poolSize, length) {
   if (poolSize === 0 || length === 0) return 0;
-  return Math.log2(Math.pow(poolSize, length));
+  return length * Math.log2(poolSize);
 }
 
 function entropyLabel(bits) {
