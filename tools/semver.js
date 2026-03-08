@@ -156,12 +156,12 @@ function onCompare() {
   const parsedB = parseSemver(rawB);
 
   if (!parsedA) {
-    setStatus(compareStatus, `Version A is not valid semver: "${escHtml(rawA)}"`, 'error');
+    setStatus(compareStatus, `Version A is not valid semver: "${rawA}"`, 'error');
     compareResult.hidden = true;
     return;
   }
   if (!parsedB) {
-    setStatus(compareStatus, `Version B is not valid semver: "${escHtml(rawB)}"`, 'error');
+    setStatus(compareStatus, `Version B is not valid semver: "${rawB}"`, 'error');
     compareResult.hidden = true;
     return;
   }
@@ -190,7 +190,7 @@ function onCompare() {
     ${notesBuild}
   `;
   compareResult.hidden = false;
-  setStatus(compareStatus, label, cmp === 0 ? 'ok' : 'ok');
+  setStatus(compareStatus, label, cmp === 0 ? 'ok' : '');
 }
 
 // ── Utils ──────────────────────────────────────────────────────────────────

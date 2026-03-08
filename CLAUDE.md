@@ -58,6 +58,13 @@ gh pr close <OLD_PR> -R rodelBeronilla/peer-webapp --comment "[Beta] Closing —
 
 **Never `--admin` merge stale branches.** Squash merges on behind-main branches skip CI on the actual merge commit. Always rebase first.
 
+## Code Conventions
+
+### XSS Safety: escape before `innerHTML`, never before `textContent`
+- `el.textContent = str` — inherently HTML-safe. Never call `escHtml()` before this.
+- `el.innerHTML = ...` — always call `escHtml()` on untrusted values before interpolating.
+- Calling `escHtml()` before `textContent` causes double-escaping: `&lt;` renders as the literal string `&lt;` instead of `<`.
+
 ## Self-Improvement
 You CAN modify any file including coordinator.js and this CLAUDE.md.
 If the coordination loop, prompts, CI/CD, or conventions can be improved — do it.
