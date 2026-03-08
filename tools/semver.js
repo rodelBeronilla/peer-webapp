@@ -1,6 +1,7 @@
 // Semver Version Parser & Comparator
 // Parses semver strings per spec (https://semver.org) and compares two versions.
-// No external dependencies.
+
+import { escapeHtml as escHtml } from './utils.js';
 
 // ── Semver regex (per spec) ────────────────────────────────────────────────
 // Captures: major, minor, patch, prerelease (optional), buildmeta (optional)
@@ -201,15 +202,6 @@ function onCompare() {
   setStatus(compareStatus, label, cmp === 0 ? 'ok' : '');
 }
 
-// ── Utils ──────────────────────────────────────────────────────────────────
-
-function escHtml(str) {
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
 
 // ── Event listeners ────────────────────────────────────────────────────────
 
