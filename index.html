@@ -147,6 +147,9 @@
         <button class="tab" role="tab" aria-selected="false" aria-controls="panel-uuid" id="tab-uuid" data-panel="uuid" tabindex="-1">
           <span class="tab__icon" aria-hidden="true">⟳</span> UUID
         </button>
+        <button class="tab" role="tab" aria-selected="false" aria-controls="panel-cron" id="tab-cron" data-panel="cron" tabindex="-1">
+          <span class="tab__icon" aria-hidden="true">⏱</span> Cron
+        </button>
       </div>
     </div>
 
@@ -2342,6 +2345,76 @@
               aria-label="Generated UUIDs"
               aria-live="polite"
             ></textarea>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════════════════════════
+           Cron
+           ═══════════════════════════════ -->
+      <section
+        id="panel-cron"
+        class="panel"
+        role="tabpanel"
+        aria-labelledby="tab-cron"
+        hidden
+      >
+        <div class="tool">
+          <div class="tool__header">
+            <div>
+              <h2 class="tool__title">Cron Expression Parser</h2>
+              <p class="tool__desc">Enter a cron expression to see it explained in plain English and preview the next 10 scheduled run times.</p>
+            </div>
+          </div>
+          <div class="tool__body">
+
+            <div class="cron-input-wrap">
+              <div class="pane__header">
+                <span class="pane__label">Expression</span>
+                <div class="pane__actions">
+                  <button class="btn btn--sm btn--ghost" id="cronCopy" disabled>Copy</button>
+                  <button class="btn btn--sm btn--ghost" id="cronClear">Clear</button>
+                </div>
+              </div>
+              <input
+                type="text"
+                class="cron-input"
+                id="cronInput"
+                placeholder="* * * * *  (minute  hour  day  month  weekday)"
+                spellcheck="false"
+                autocomplete="off"
+                aria-label="Cron expression"
+              >
+              <div class="status-bar" id="cronStatus" aria-live="polite" role="status"></div>
+            </div>
+
+            <div class="cron-presets" role="group" aria-label="Example expressions">
+              <span class="cron-presets__label">Examples:</span>
+              <button class="btn btn--sm btn--ghost cron-preset" data-expr="0 9 * * 1-5" aria-label="9 AM weekdays">0 9 * * 1-5</button>
+              <button class="btn btn--sm btn--ghost cron-preset" data-expr="*/15 * * * *" aria-label="every 15 minutes">*/15 * * * *</button>
+              <button class="btn btn--sm btn--ghost cron-preset" data-expr="0 0 1 * *" aria-label="midnight first of month">0 0 1 * *</button>
+              <button class="btn btn--sm btn--ghost cron-preset" data-expr="@daily" aria-label="daily alias">@daily</button>
+              <button class="btn btn--sm btn--ghost cron-preset" data-expr="30 4 1,15 * *" aria-label="1st and 15th">30 4 1,15 * *</button>
+            </div>
+
+            <div class="cron-desc" id="cronDesc" hidden aria-live="polite">
+              <div class="cron-desc__text" id="cronDescText"></div>
+              <div class="cron-fields">
+                <span class="cron-field" id="cronFieldMin"></span>
+                <span class="cron-field" id="cronFieldHour"></span>
+                <span class="cron-field" id="cronFieldDom"></span>
+                <span class="cron-field" id="cronFieldMon"></span>
+                <span class="cron-field" id="cronFieldDow"></span>
+              </div>
+            </div>
+
+            <div class="cron-runs" id="cronRuns" hidden>
+              <div class="pane__header">
+                <span class="pane__label">Next 10 runs</span>
+              </div>
+              <ol class="cron-run-list" id="cronRunList" aria-label="Next scheduled run times"></ol>
+            </div>
 
           </div>
         </div>
