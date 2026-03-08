@@ -733,25 +733,12 @@ function decideAction(agentKey, ctx, turnCount = 0) {
   const peerLabel = AGENTS[agentKey === 'alpha' ? 'beta' : 'alpha'].label;
 
   // ── Phase 1: Unconditional gates ──────────────────────────────────────────
+  // ORDER MATTERS: CONFLICTING must come before checkpoint. A CONFLICTING PR
+  // is an absolute blocker — nothing else can be delivered until it resolves.
+  // Checkpoint is a housekeeping obligation that can wait one more turn.
+  // Violations of this ordering have caused bugs four times (#190, #272, #273).
 
-  if (workSinceCheckpoint >= CHECKPOINT_WORK_THRESHOLD) return { type: 'checkpoint', turnCount, workDelivered: workSinceCheckpoint };
-
-  if (ctx.discussions && ctx.discussions.length > 0) {
-    const ownerDiscussions = findOwnerUnansweredDiscussions(ctx.discussions, agent.name);
-    if (ownerDiscussions.length > 0) {
-      log(`[${agent.name}] Owner comment needs response in discussion #${ownerDiscussions[0].discussion.number}`);
-      return { type: 'discuss', discussion: ownerDiscussions[0].discussion, respond: true, ownerTriggered: true };
-    }
-  }
-  if (ctx.discussions && ctx.discussions.length > 0 && agent.ghUser) {
-    const mentioned = findMentionedDiscussions(ctx.discussions, agent.ghUser, agent.name);
-    if (mentioned.length > 0) {
-      log(`[${agent.name}] @mentioned in discussion #${mentioned[0].discussion.number}`);
-      return { type: 'discuss', discussion: mentioned[0].discussion, respond: true, mentionTriggered: true };
-    }
-  }
-
-  // Own CONFLICTING PRs — must resolve before pipeline can flow
+  // Own CONFLICTING PRs — must resolve before pipeline can flow (P0, beats checkpoint)
   const conflictingOwnPRs = ctx.openPRs.filter(pr =>
     (pr.labels || []).some(l => l.name === agent.label) &&
     pr.mergeStateStatus === 'CONFLICTING'
@@ -776,6 +763,23 @@ function decideAction(agentKey, ctx, turnCount = 0) {
         }
       }
       return { type: 'resolve-conflict', pr };
+    }
+  }
+
+  if (workSinceCheckpoint >= CHECKPOINT_WORK_THRESHOLD) return { type: 'checkpoint', turnCount, workDelivered: workSinceCheckpoint };
+
+  if (ctx.discussions && ctx.discussions.length > 0) {
+    const ownerDiscussions = findOwnerUnansweredDiscussions(ctx.discussions, agent.name);
+    if (ownerDiscussions.length > 0) {
+      log(`[${agent.name}] Owner comment needs response in discussion #${ownerDiscussions[0].discussion.number}`);
+      return { type: 'discuss', discussion: ownerDiscussions[0].discussion, respond: true, ownerTriggered: true };
+    }
+  }
+  if (ctx.discussions && ctx.discussions.length > 0 && agent.ghUser) {
+    const mentioned = findMentionedDiscussions(ctx.discussions, agent.ghUser, agent.name);
+    if (mentioned.length > 0) {
+      log(`[${agent.name}] @mentioned in discussion #${mentioned[0].discussion.number}`);
+      return { type: 'discuss', discussion: mentioned[0].discussion, respond: true, mentionTriggered: true };
     }
   }
 
