@@ -238,12 +238,14 @@ function getOpenPRs() {
   //   reviewDecision  — Priority 1 merge gate (must be APPROVED) and Priority 2/3 review queue filter
   //   reviews         — isPRStale() activity timestamps; agent self-review detection; PR conversation display
   //   createdAt       — isPRStale() fallback when a PR has zero review/comment activity
+  //   updatedAt       — display only; NOT used for commit detection (too broad — bumped by labels, comments, etc.)
+  //   commits         — hasStaleChangesRequested() compares latest commit timestamp against CR time
   //   mergeStateStatus — Priority 0 CONFLICTING detection; filtered from merge and review queues
   //
   // Candidate for removal: none currently — all fields are actively used.
   // Note: `author` was removed in #200 — it was fetched but never referenced in coordinator logic.
   // Convention: when adding a field, document it in this comment before opening the PR.
-  return ghJson(`pr list -R ${CONFIG.repo} --state open --json number,title,labels,headRefName,body,reviewDecision,reviews,createdAt,mergeStateStatus --limit 20`);
+  return ghJson(`pr list -R ${CONFIG.repo} --state open --json number,title,labels,headRefName,body,reviewDecision,reviews,createdAt,updatedAt,commits,mergeStateStatus --limit 20`);
 }
 
 function getRecentClosedIssues(limit = 10) {
@@ -404,6 +406,54 @@ function isPRStale(prData, thresholdMs = 48 * 60 * 60 * 1000) {
   }
   const latest = Math.max(...timestamps);
   return now - latest > thresholdMs;
+}
+
+/**
+ * Returns true if a PR has a stale CHANGES_REQUESTED from gamma — i.e., the author pushed
+ * fixes after gamma's CR but gamma has not yet re-reviewed (no APPROVED or COMMENTED
+ * from gamma after the CR timestamp).
+ *
+ * Used to give review-pr candidates a higher score so the peer agent prioritises
+ * leaving a comment that nudges gamma to re-review, rather than treating it as a
+ * fresh unreviewed PR. (#315)
+ *
+ * Detection logic:
+ *   1. Find the most-recent CHANGES_REQUESTED review from gamma.
+ *   2. If no such review → not stale, return false.
+ *   3. If gamma posted a COMMENTED or APPROVED review AFTER the CR → already re-reviewed, return false.
+ *   4. If the latest commit on the PR was pushed after the CR → stale, return true.
+ *      Uses pr.commits (not pr.updatedAt) — updatedAt is bumped by any event (labels, comments,
+ *      assignee changes) and would produce false positives for non-commit activity.
+ */
+function hasStaleChangesRequested(pr) {
+  const reviews = pr.reviews || [];
+  const gammaLogin = AGENTS.gamma.ghUser.toLowerCase();
+
+  // Step 1: most-recent CHANGES_REQUESTED from gamma
+  const crReviews = reviews
+    .filter(r =>
+      r.state === 'CHANGES_REQUESTED' &&
+      (r.author?.login || '').toLowerCase() === gammaLogin
+    )
+    .sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
+  if (crReviews.length === 0) return false;
+  const crTime = new Date(crReviews[0].submittedAt).getTime();
+
+  // Step 2: check if gamma has since re-reviewed
+  const gammaReReview = reviews.find(r =>
+    (r.author?.login || '').toLowerCase() === gammaLogin &&
+    (r.state === 'APPROVED' || r.state === 'COMMENTED') &&
+    new Date(r.submittedAt).getTime() > crTime
+  );
+  if (gammaReReview) return false;
+
+  // Step 3: author pushed commits after the CR → stale
+  // Use commits (not updatedAt) to avoid false positives from label changes, comments, etc.
+  const commits = pr.commits || [];
+  const latestCommitTime = Math.max(0, ...commits.map(c =>
+    new Date(c.committedDate || c.authoredDate || 0).getTime()
+  ));
+  return latestCommitTime > crTime;
 }
 
 // Returns the next branch name for a coordinator-generated conflict resolution branch.
@@ -832,11 +882,18 @@ function decideAction(agentKey, ctx, turnCount = 0) {
     // Re-review request bonus (+15)
     const pc = ctx.prConversations.find(c => c.pr === pr.number);
     if (pc && (pc.comments || []).some(c => RE_REVIEW_PATTERN.test(c.body || ''))) bonus += 15;
-    // Stale PR bonus (+10)
-    if (isPRStale(pc || pr, staleThresholdMs)) bonus += 10;
+    // Stale CHANGES_REQUESTED bonus (+20) — author pushed fixes, gamma hasn't re-reviewed (#315)
+    // Higher than re-review request (+15) so these surface first; peer agent should comment
+    // to nudge gamma rather than reviewing from scratch.
+    const staleCR = hasStaleChangesRequested(pr);
+    if (staleCR) bonus += 20;
+    // Stale PR flag and bonus (+10) — computed independently before accumulation so the flag
+    // reflects actual staleness, not whether any bonus reached the 10-point threshold.
+    const isStale = isPRStale(pc || pr, staleThresholdMs);
+    if (isStale) bonus += 10;
     candidates.push({
       score: scoreAction('review-pr', pr) + bonus,
-      action: { type: 'review-pr', pr, stale: bonus >= 10 },
+      action: { type: 'review-pr', pr, stale: isStale, staleCR },
       claimType: 'pr', claimNumber: pr.number,
     });
   }
@@ -1453,10 +1510,16 @@ You run this project using agile practices on GitHub:
   switch (action.type) {
     case 'review-pr':
       return `${preamble}
-## Your Task: Review PR #${action.pr.number}
+## Your Task: Review PR #${action.pr.number}${action.staleCR ? ' ⚠️ Stale CHANGES_REQUESTED' : ''}
 
 ${agent.peer} opened PR #${action.pr.number}: "${action.pr.title}" on branch \`${action.pr.headRefName}\`.
+${action.staleCR ? `
+**⚠️ Stale CHANGES_REQUESTED:** gamma-peer-dev filed CHANGES_REQUESTED on this PR and the author has since pushed fixes, but gamma has not yet re-reviewed. **Do not do a full re-review yourself.** Instead:
+1. Read the PR diff to confirm the fixes address the reported blockers
+2. Leave a comment summarising what was fixed and explicitly asking gamma to re-review: \`gh pr comment ${action.pr.number} -R ${CONFIG.repo} --body "[${agent.name}] Fixes landed for gamma's CHANGES_REQUESTED blockers — @gamma-peer-dev please re-review when you have a moment."\`
+3. Do NOT submit a formal review (approve/request-changes) — that belongs to gamma.
 
+` : ''}
 **Step 1 — Check discussions first.** Read recent discussions and reply to anything ${agent.peer} has said. If this PR relates to an ongoing discussion, reference it.
 
 **Step 2 — Review the PR:**
