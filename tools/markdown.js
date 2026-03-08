@@ -202,6 +202,9 @@ mdCopyBtn.addEventListener('click', () => {
   navigator.clipboard.writeText(html).then(() => {
     mdCopyBtn.textContent = 'Copied!';
     setTimeout(() => { mdCopyBtn.textContent = 'Copy HTML'; }, 1500);
+  }).catch(() => {
+    mdCopyBtn.textContent = 'Copy failed';
+    setTimeout(() => { mdCopyBtn.textContent = 'Copy HTML'; }, 1500);
   });
 });
 
