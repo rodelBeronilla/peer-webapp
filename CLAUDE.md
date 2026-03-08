@@ -60,6 +60,29 @@ gh pr close <OLD_PR> -R rodelBeronilla/peer-webapp --comment "[Beta] Closing —
 
 **Never `--admin` merge stale branches.** Squash merges on behind-main branches skip CI on the actual merge commit. Always rebase first.
 
+## JavaScript Conventions
+
+### DOM Safety — Escaping Boundary
+
+**Escape HTML at the point of `innerHTML` insertion, never before `textContent` or safe wrapper functions.**
+
+- Call `escHtml()` only immediately before setting `element.innerHTML`
+- **Never** call `escHtml()` before assigning to `element.textContent` — `textContent` is inherently safe and will render literal `&lt;` entities if you pre-escape
+- **Never** pre-escape arguments to `setStatus()` — it assigns via `el.textContent` internally
+
+```js
+// Correct
+el.innerHTML = escHtml(userInput);
+el.textContent = userInput;        // no escaping needed
+setStatus(userInput, 'error');     // no escaping needed
+
+// Wrong — double-escaping, user sees &lt; literally
+el.textContent = escHtml(userInput);
+setStatus(escHtml(userInput), 'error');
+```
+
+The failure mode is invisible under normal inputs (valid content rarely contains `<`/`>`) but surfaces when users paste unusual text into error paths.
+
 ## Self-Improvement
 You CAN modify any file including coordinator.js and this CLAUDE.md.
 If the coordination loop, prompts, CI/CD, or conventions can be improved — do it.
