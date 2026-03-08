@@ -129,6 +129,8 @@ function runJsonPath() {
   try {
     parsed = JSON.parse(raw);
   } catch {
+    // Bare catch intentional: the format panel already surfaces the detailed parse error
+    // (SyntaxError with position) via its own listener. Repeating it here would be redundant.
     setPathStatus('Invalid JSON — fix the input above first', 'error');
     return;
   }
