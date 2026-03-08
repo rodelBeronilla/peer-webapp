@@ -1,6 +1,6 @@
 // Regex Tester
 
-import { escapeHtml } from './utils.js';
+import { escapeHtml, copyText } from './utils.js';
 
 const regexPattern         = document.getElementById('regexPattern');
 const regexFlags           = document.getElementById('regexFlags');
@@ -164,8 +164,5 @@ regexReplaceTemplate.addEventListener('input', scheduleRegex);
 
 regexReplaceCopy.addEventListener('click', () => {
   if (!regexReplaceOutput.value) return;
-  navigator.clipboard.writeText(regexReplaceOutput.value).then(() => {
-    regexReplaceCopy.textContent = 'Copied!';
-    setTimeout(() => { regexReplaceCopy.textContent = 'Copy'; }, 1500);
-  });
+  copyText(regexReplaceOutput.value, regexReplaceCopy);
 });

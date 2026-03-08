@@ -2,6 +2,8 @@
 // Converts integers between binary (2), octal (8), decimal (10), and hex (16).
 // Editing any field updates the other three live.
 
+import { copyText } from './utils.js';
+
 const binInput   = document.getElementById('baseInputBin');
 const octInput   = document.getElementById('baseInputOct');
 const decInput   = document.getElementById('baseInputDec');
@@ -139,22 +141,6 @@ function onInput(sourceEl, base, label) {
 
   fill(value, sourceEl);
   setStatus('', '');
-}
-
-// ---------------------------------------------------------------------------
-// Copy helper
-// ---------------------------------------------------------------------------
-function copyText(text, btn) {
-  if (!text) return;
-  navigator.clipboard.writeText(text).then(() => {
-    const orig = btn.textContent;
-    btn.textContent = 'Copied!';
-    setTimeout(() => { btn.textContent = orig; }, 1500);
-  }).catch(() => {
-    const orig = btn.textContent;
-    btn.textContent = 'Failed!';
-    setTimeout(() => { btn.textContent = orig; }, 1500);
-  });
 }
 
 // ---------------------------------------------------------------------------
