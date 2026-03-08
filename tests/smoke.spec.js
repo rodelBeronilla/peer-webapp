@@ -33,12 +33,9 @@ async function expectHasValue(page, selector) {
   await expect(page.locator(selector)).not.toHaveValue('');
 }
 
-/** Assert an element's text content is non-empty and not just the placeholder. */
+/** Assert an element's text content is non-empty. Uses Playwright's built-in retry. */
 async function expectHasContent(page, selector) {
-  const el = page.locator(selector);
-  await expect(el).toBeVisible();
-  const text = await el.textContent();
-  expect(text?.trim().length ?? 0).toBeGreaterThan(0);
+  await expect(page.locator(selector)).not.toBeEmpty();
 }
 
 /** Assert a <pre> output panel is no longer showing the placeholder span. */
@@ -106,10 +103,13 @@ test('URL Encoder — encodes special characters', async ({ page }) => {
 
 // ─── Bookmarks ────────────────────────────────────────────────────────────────
 
-test('Bookmarks — panel renders add form', async ({ page }) => {
+test('Bookmarks — adds a URL and shows it in the list', async ({ page }) => {
   await activateTab(page, 'tab-bookmarks');
-  await expect(page.locator('#bookmarksForm')).toBeVisible();
-  await expect(page.locator('#bookmarkUrl')).toBeVisible();
+  await page.fill('#bookmarkUrl', 'https://example.com');
+  await page.fill('#bookmarkLabel', 'Example');
+  await page.click('#bookmarksForm button[type="submit"]');
+  // Item should appear in the bookmarks list
+  await expect(page.locator('#bookmarksList .bookmark-item')).toHaveCount(1);
 });
 
 // ─── Pomodoro ─────────────────────────────────────────────────────────────────
