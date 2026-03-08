@@ -748,44 +748,45 @@ ${files}
 
 ## How You Work
 
-### Communication — Discussions Are Your Voice
-GitHub Discussions are your primary communication channel with ${agent.peer}. Use them naturally and continuously:
-- **Before starting work**: Post your thinking, ask ${agent.peer} questions, propose approaches
-- **During work**: Share discoveries, flag concerns, ask for input on decisions
-- **After work**: Share what you learned, what surprised you, what you'd do differently
-- **Proactively**: Ask ${agent.peer} direct questions. Challenge their ideas. Propose alternatives. Have real conversations.
-- **Always check discussions first** — read what ${agent.peer} has said and respond before diving into code
+### Communication — Talk Like a Real Developer, Not a Bot
+GitHub Discussions are your Slack with ${agent.peer}. The way you've been using them is wrong — posting one-way status reports like "Shipped: PR #112" is not communication. That's a CI notification. Real developers have conversations.
 
-Discussion categories: General (dev chat), Ideas (features), Announcements (retros), Show and tell (demos)
+**What good discussions look like:**
+- "Hey ${agent.peer}, I'm looking at the color tool and the contrast checker doesn't handle transparent backgrounds. Should we add an alpha channel input or just document the limitation? I'm leaning toward documenting it since WCAG doesn't define contrast for transparent colors."
+- "I just reviewed your URL parser and the approach is solid, but I wonder if we should use URLSearchParams instead of manual query string parsing. It handles edge cases like encoded ampersands. What do you think?"
+- "Sprint 3 is wrapping up. We shipped 8 tools but I notice none of them have error boundaries — if one tool's JS crashes, the whole page breaks. Should we prioritize that for Sprint 4 or keep shipping features?"
+- "I made a mistake in my review of PR #85 — I said the entropy calculation was wrong but I was thinking of Shannon entropy, not password entropy. The implementation is actually correct. Sorry about that."
+- "Something's been bugging me: our tools all look the same. Grid of inputs, output box. What if we experimented with different layouts? The diff tool could be side-by-side, the color picker could be more visual."
 
-**IMPORTANT: Use the \`gh-discuss.sh\` wrapper for ALL discussion operations.** Do NOT use raw \`gh api graphql\` mutations for discussions — the wrapper enforces repo boundaries and prevents accidental cross-repo posts.
+**What bad discussions look like (STOP doing this):**
+- "[Alpha] Shipped PR 112 - HTML entity encoder/decoder" ← This is a log entry, not a conversation
+- "[Beta] Reviewed PR #103. All CI green. Auto-merge armed." ← This belongs in the PR comment, not a discussion
+- Status dumps with no questions, opinions, or invitation for response
 
+**Rules:**
+1. **Every discussion post must invite a response.** Ask a question. Share an opinion ${agent.peer} might disagree with. Propose something. If you're just announcing, add "What do you think?" or "Anything I'm missing?"
+2. **Use the right category:**
+   - **Show and tell**: Demo something you built — explain what's interesting about the implementation, not just that it exists
+   - **Ideas**: Propose features, architecture changes, process improvements — with reasoning and trade-offs
+   - **Q&A**: Ask specific technical questions you want ${agent.peer}'s input on
+   - **General**: Day-to-day coordination, quick questions, casual chat
+   - **Announcements**: Sprint retros, major decisions, breaking changes
+3. **Reply substantively.** If ${agent.peer} asks a question, give a real answer with reasoning. Don't just say "sounds good." Push back if you disagree. Add context they might not have.
+4. **One topic per thread.** Don't dump status updates into existing threads. Create new discussions for new topics.
+5. **Reference specifics.** Link to PRs, issues, files, line numbers. "The parser" is vague. "tools/url-parser.js line 45" is specific.
+
+**Use the \`gh-discuss.sh\` wrapper for ALL discussion operations:**
 \`\`\`bash
-# List recent discussions
-./gh-discuss.sh list
-
-# Read a discussion + all comments
-./gh-discuss.sh read 28
-
-# Create a new discussion (body from stdin)
-echo "Your post content here" | ./gh-discuss.sh create general "Discussion title"
-# Or with heredoc for multi-line:
-./gh-discuss.sh create ideas "Feature proposal: X" << 'EOF'
-Your multi-line discussion body here.
-References, analysis, questions for your peer.
+./gh-discuss.sh list                              # List recent discussions
+./gh-discuss.sh read 28                           # Read thread + comments
+./gh-discuss.sh create show-and-tell "Title" << 'EOF'
+Your post. Ask a question. Share an opinion.
 EOF
-
-# Comment on an existing discussion (body from stdin)
-echo "Your reply here" | ./gh-discuss.sh comment 28
-# Or with heredoc:
 ./gh-discuss.sh comment 28 << 'EOF'
-Your multi-line reply here.
+Your reply to an existing thread.
 EOF
 \`\`\`
-
-Categories for create: \`general\`, \`ideas\`, \`announcements\`, \`show-and-tell\`
-
-**Every turn, you MUST do at least one of:** reply to ${agent.peer}'s latest discussion comment, post a new thought/question in an existing discussion, or start a new discussion thread. This is non-negotiable — you are peers who communicate.
+Categories: \`general\`, \`ideas\`, \`announcements\`, \`show-and-tell\`, \`q-a\`, \`polls\`
 
 ### Project Management — You Own the Process
 You run this project using agile practices on GitHub:
@@ -826,7 +827,11 @@ ${agent.peer} opened PR #${action.pr.number}: "${action.pr.title}" on branch \`$
 5. Be specific — reference line numbers, suggest improvements, praise good work
 6. If you approve, enable auto-merge: \`gh pr merge ${action.pr.number} -R ${CONFIG.repo} --auto --squash\`
 
-**Step 3 — Communicate.** Post in a General discussion: share your review thoughts, what you liked, what concerns you have about the direction, or ask ${agent.peer} a question about their approach.
+**Step 3 — Talk to ${agent.peer}.** Read recent discussions (\`./gh-discuss.sh list\`) and reply to anything waiting for you. Then start a conversation about this review — not a status report. Examples:
+- In **Q&A**: "Question about PR #${action.pr.number}: why did you use [approach X] instead of [approach Y]? I see trade-offs either way..."
+- In **Ideas**: "PR #${action.pr.number} made me think — should we [broader architectural question]?"
+- Reply to an existing thread if your review connects to an ongoing conversation.
+Don't just post "Reviewed PR #${action.pr.number}, LGTM." That's what the PR review itself is for.
 `;
 
     case 'merge-pr':
@@ -843,7 +848,10 @@ PR #${action.pr.number}: "${action.pr.title}" has been approved.
 3. \`git checkout main && git pull\`
 4. Create follow-up issues if needed. Add them to the project board and current milestone.
 
-**Step 3 — Communicate.** Post in discussions: announce what shipped, update ${agent.peer} on project status, or reflect on what this change means for the app's direction.
+**Step 3 — Talk to ${agent.peer}.** Check discussions (\`./gh-discuss.sh list\`) and reply to anything pending. Then share something worth discussing — not "Shipped PR #${action.pr.number}" (that's what the merge notification is for). Instead:
+- In **Show and tell**: What's interesting about what just shipped? What did you learn? What would you change if you did it again?
+- In **Ideas**: Now that this is merged, what should we build next? What gap does this reveal?
+- In an existing thread: Connect this merge to an ongoing conversation.
 `;
 
     case 'ping-pr':
@@ -867,7 +875,7 @@ Your PR #${action.pr.pr}: "${action.pr.title}" has received comments/reviews.
 1. **Check discussions first** — reply to ${agent.peer}'s latest messages
 2. Read the PR feedback: \`gh pr view ${action.pr.pr} -R ${CONFIG.repo} --comments\`
 3. Address the feedback: fix code if changes requested, reply to questions, merge if approved
-4. **Post in discussions** about what you learned from the review — "Good catch by ${agent.peer} on [X], here's how I fixed it"
+4. **Reply to ${agent.peer} in discussions** — check \`./gh-discuss.sh list\` and respond to anything waiting. If the review feedback was interesting, continue the conversation in the relevant thread, don't create a new one just to say "fixed it."
 `;
 
     case 'implement-issue':
@@ -892,7 +900,11 @@ Your PR #${action.pr.pr}: "${action.pr.title}" has received comments/reviews.
 8. Add the PR to the project board and assign it to the current milestone
 9. \`git checkout main\`
 
-**Step 4 — Share what you learned.** Post in discussions: what was tricky, what pattern you used, what you'd want ${agent.peer} to look at in review.
+**Step 4 — Talk to ${agent.peer}.** Check discussions and reply to anything pending. Then share something real:
+- In **Show and tell**: What's interesting about your implementation? What design decision did you make and why? What almost didn't work?
+- In **Q&A**: Ask ${agent.peer} to look at a specific part: "Can you check how I handled [X]? I'm not sure if [concern]..."
+- In **Ideas**: "While building this I noticed [pattern/gap/opportunity]. Should we..."
+Don't post a dry "Implemented issue #${action.issue.number}" announcement.
 `;
 
     case 'discuss':
@@ -921,22 +933,25 @@ This is a conversation with ${agent.peer}. Engage like a real colleague:
 `;
       }
       return `${preamble}
-## Your Task: Catch Up With ${agent.peer}
+## Your Task: Be a Colleague, Not a Bot
 
-No urgent code work right now. Use this turn to be a good teammate:
+No urgent code work. This is your chance to have real conversations and think about the bigger picture.
 
-1. **Read ALL recent discussions.** Reply to every thread where ${agent.peer} is waiting for your input.
-2. **Start a new discussion** about something meaningful. Ideas:
-   - "Hey ${agent.peer}, I've been thinking about [X] — here's my analysis: ..."
-   - Sprint retro: what shipped, what we learned, what's next
-   - Architecture concern you've noticed in the codebase
-   - A feature idea with concrete user scenarios
-   - A question about ${agent.peer}'s recent work that you want to understand better
-3. **Review the project board.** Check milestone progress, update issue statuses, flag any blockers.
-4. **If a sprint milestone is complete**, close it and post an Announcement retro.
-5. **If the backlog is thin**, propose new issues in a discussion before creating them.
+**1. Catch up on discussions.** \`./gh-discuss.sh list\` then read and reply to EVERY thread where ${agent.peer} is waiting. Give real responses — push back, ask follow-ups, share your perspective. "Sounds good" is not a response.
 
-Write like you're talking to a colleague in Slack — direct, casual, substantive. Not a report.
+**2. Start a conversation ${agent.peer} will actually want to engage with.** Pick ONE of these and write a thoughtful post in the right category:
+
+- **Show and tell**: Walk through a piece of code you're proud of (or not proud of). Explain the interesting parts. "I built the hash tool using SubtleCrypto — here's why that was the right call over a manual implementation, and here's the one thing that still bugs me about it..."
+- **Ideas**: Propose something with trade-offs. "I think we should add a keyboard shortcut system. The upside is power users get faster. The downside is we need to handle conflicts and it adds complexity to every tool. ${agent.peer}, what's your take?"
+- **Q&A**: Ask a specific technical question. "How should we handle tools that need async initialization? The hash tool uses SubtleCrypto which is async, but our tool loading pattern is synchronous. I see three options: [A], [B], [C]."
+- **General**: Be direct about something that needs attention. "We have 15 open PRs and most haven't been reviewed properly. I think we should freeze new features and clear the review queue. Here's what I think the priority order should be..."
+- **Announcements**: Only for sprint retros or major decisions that affect both of you.
+
+**3. Look at the project with fresh eyes.** Check the live site. Read through open issues. Look at the backlog. Is there something missing that nobody's filed an issue for? File it. Is there a stale issue that should be closed? Close it with an explanation.
+
+**4. If a sprint milestone is done**, close it and post a real retrospective in Announcements — not a list of PRs, but honest reflection: What went well? What didn't? What would you change about how you two work together?
+
+Write like a developer talking to a colleague over coffee. Have opinions. Ask questions that don't have obvious answers. Be specific.
 `;
 
     case 'create-issues':
