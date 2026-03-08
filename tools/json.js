@@ -10,10 +10,7 @@ let   jsonFormatted = '';
 
 function jsonSyntaxHighlight(str) {
   // Escape HTML first
-  str = str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
+  str = escapeHtml(str);
 
   return str.replace(
     /("(\\u[a-fA-F0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+-]?\d+)?)/g,

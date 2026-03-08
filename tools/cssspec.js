@@ -7,7 +7,7 @@
 //   c = type selectors (div), pseudo-elements (::before)
 //   * and combinators (>, +, ~, space) contribute 0
 
-import { copyText } from './utils.js';
+import { copyText, escapeHtml } from './utils.js';
 
 const cssInput     = document.getElementById('cssSpecInput');
 const cssResult    = document.getElementById('cssSpecResult');
@@ -242,9 +242,6 @@ function specStr(s) {
   return `(${s.a},${s.b},${s.c})`;
 }
 
-function esc(s) {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
 
 function setStatus(msg, type = '') {
   cssStatus.textContent = msg;
@@ -282,7 +279,7 @@ function renderResult(sel) {
         <span class="css-spec-label">Types<br><small>(c)</small></span>
       </div>
     </div>
-    <div class="css-spec-score">${esc(specStr(spec))}</div>
+    <div class="css-spec-score">${escapeHtml(specStr(spec))}</div>
   `;
 
   // Token breakdown
@@ -294,7 +291,7 @@ function renderResult(sel) {
       if (t.c) parts.push(`+${t.c} type`);
       const contrib = parts.join(', ') || '<span class="css-spec-zero">0 (ignored)</span>';
       return `<tr>
-        <td><code class="css-spec-token-code">${esc(t.label)}</code></td>
+        <td><code class="css-spec-token-code">${escapeHtml(t.label)}</code></td>
         <td class="css-spec-contrib">${contrib}</td>
       </tr>`;
     }).join('');
@@ -326,15 +323,15 @@ function renderCompare() {
   if (cmp > 0) {
     cssCmpResult.innerHTML =
       `<span class="css-cmp-badge css-cmp-badge--win">\u2460 wins</span> ` +
-      `<code>${esc(specStr(s1))}</code> beats <code>${esc(specStr(s2))}</code>`;
+      `<code>${escapeHtml(specStr(s1))}</code> beats <code>${escapeHtml(specStr(s2))}</code>`;
   } else if (cmp < 0) {
     cssCmpResult.innerHTML =
       `<span class="css-cmp-badge css-cmp-badge--win">\u2461 wins</span> ` +
-      `<code>${esc(specStr(s2))}</code> beats <code>${esc(specStr(s1))}</code>`;
+      `<code>${escapeHtml(specStr(s2))}</code> beats <code>${escapeHtml(specStr(s1))}</code>`;
   } else {
     cssCmpResult.innerHTML =
       `<span class="css-cmp-badge css-cmp-badge--tie">Tie</span> ` +
-      `Both are <code>${esc(specStr(s1))}</code> \u2014 last-declared wins`;
+      `Both are <code>${escapeHtml(specStr(s1))}</code> \u2014 last-declared wins`;
   }
 }
 

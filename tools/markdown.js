@@ -2,21 +2,13 @@
 // Renders a subset of CommonMark: headings, bold, italic, code, lists,
 // blockquotes, links, images, horizontal rules. Zero external dependencies.
 
+import { escapeHtml } from './utils.js';
+
 const mdInput   = document.getElementById('mdInput');
 const mdPreview = document.getElementById('mdPreview');
 const mdCopyBtn = document.getElementById('mdCopyHtml');
 const mdStatus  = document.getElementById('mdStatus');
 
-// ---------------------------------------------------------------------------
-// HTML escaper — applied to raw text before inline pattern matching
-// ---------------------------------------------------------------------------
-function esc(s) {
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
 
 // ---------------------------------------------------------------------------
 // URL sanitizer — blocks javascript:, data:, vbscript: and other dangerous
@@ -39,12 +31,12 @@ function inline(raw) {
   const spans = [];
   // Extract inline code spans before HTML escaping
   let s = raw.replace(/`([^`]+)`/g, (_, code) => {
-    spans.push(`<code>${esc(code)}</code>`);
+    spans.push(`<code>${escapeHtml(code)}</code>`);
     return `\x00${spans.length - 1}\x00`;
   });
 
   // HTML-escape remaining text
-  s = esc(s);
+  s = escapeHtml(s);
 
   // Images (must come before links — same syntax with leading !)
   s = s.replace(/!\[([^\]]*)\]\(([^)]*)\)/g, (_, alt, src) =>
@@ -88,7 +80,7 @@ function parse(md) {
 
     // Fenced code block
     if (/^```/.test(line)) {
-      const lang = esc(line.slice(3).trim());
+      const lang = escapeHtml(line.slice(3).trim());
       const code = [];
       i++;
       while (i < lines.length && !/^```/.test(lines[i])) {
@@ -97,7 +89,7 @@ function parse(md) {
       }
       i++; // consume closing ```
       const cls = lang ? ` class="language-${lang}"` : '';
-      html += `<pre><code${cls}>${esc(code.join('\n'))}</code></pre>\n`;
+      html += `<pre><code${cls}>${escapeHtml(code.join('\n'))}</code></pre>\n`;
       continue;
     }
 
