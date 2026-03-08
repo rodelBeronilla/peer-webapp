@@ -227,6 +227,28 @@ function getPRComments(number) {
   return ghJson(`pr view ${number} -R ${CONFIG.repo} --json comments,reviews`);
 }
 
+/**
+ * Post a one-time "[Coordinator] PR skipped — CONFLICTING" comment on a peer PR.
+ * Dedup guard: if any existing comment already contains "skipped — CONFLICTING",
+ * we skip posting to avoid one comment per turn for a stuck PR.
+ */
+function notifyConflictingSkip(pr, agent) {
+  try {
+    const data = getPRComments(pr.number);
+    const comments = data?.comments || [];
+    const alreadyNotified = comments.some(c =>
+      (c.body || '').includes('skipped — CONFLICTING')
+    );
+    if (alreadyNotified) return;
+    const author = pr.author?.login || 'the author';
+    const body = `[Coordinator] PR skipped — mergeStateStatus: CONFLICTING. Waiting for ${author} to rebase before routing to review/merge queue.`;
+    gh(`pr comment ${pr.number} -R ${CONFIG.repo} --body ${JSON.stringify(body)}`);
+    log(`[${agent.name}] Posted CONFLICTING skip comment on PR #${pr.number}`);
+  } catch (e) {
+    log(`[${agent.name}] Failed to post CONFLICTING skip comment on #${pr.number}: ${e.message}`);
+  }
+}
+
 // ─── Discussions ─────────────────────────────────────────────────────────────
 
 function getRecentDiscussions() {
@@ -453,6 +475,17 @@ function decideAction(agentKey, ctx, turnCount = 0) {
     if (claimWork(agentKey, 'conflict', pr.number)) {
       return { type: 'resolve-conflict', pr };
     }
+  }
+
+  // Notify on CONFLICTING peer PRs — post a one-time PR comment so the peer knows
+  // their PR was skipped and why. Both Priority 1 (merge) and Priority 2 (review)
+  // filter the same CONFLICTING peer PRs, so one notification pass covers both.
+  const conflictingPeerPRs = ctx.openPRs.filter(pr =>
+    (pr.labels || []).some(l => l.name === peerLabel) &&
+    pr.mergeStateStatus === 'CONFLICTING'
+  );
+  for (const pr of conflictingPeerPRs) {
+    notifyConflictingSkip(pr, agent);
   }
 
   // Priority 1: Merge PEER's reviewed PRs with passing CI (clear the backlog first)
