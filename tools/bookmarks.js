@@ -24,7 +24,7 @@ function saveBookmarks() {
   try {
     localStorage.setItem(BOOKMARKS_KEY, JSON.stringify(bookmarks));
   } catch {
-    // QuotaExceededError or SecurityError — storage unavailable
+    setBookmarkStatus('⚠ Storage unavailable — bookmark not saved.', true);
   }
 }
 
