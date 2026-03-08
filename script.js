@@ -20,3 +20,4 @@ import './tools/base.js';
 import './tools/htmlentity.js';
 import './tools/chmod.js';
 import './tools/charmap.js';
+import './tools/cssspec.js';

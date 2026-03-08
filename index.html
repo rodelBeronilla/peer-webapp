@@ -55,6 +55,7 @@
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="htmlentity">HTML Entity</a></li>
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="chmod">Chmod</a></li>
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="charmap">Char Map</a></li>
+        <li><a href="#tools" class="nav__link nav-tool-link" data-tab="cssspec">CSS Spec</a></li>
         <li><a href="#about" class="nav__link">About</a></li>
       </ul>
     </div>
@@ -114,6 +115,9 @@
         </button>
         <button class="tab" role="tab" aria-selected="false" aria-controls="panel-charmap" id="tab-charmap" data-panel="charmap" tabindex="-1">
           <span class="tab__icon" aria-hidden="true">U+</span> Char Map
+        </button>
+        <button class="tab" role="tab" aria-selected="false" aria-controls="panel-cssspec" id="tab-cssspec" data-panel="cssspec" tabindex="-1">
+          <span class="tab__icon" aria-hidden="true">{}</span> CSS Spec
         </button>
       </div>
     </div>
@@ -1171,6 +1175,93 @@
                 </thead>
                 <tbody id="cmTbody"></tbody>
               </table>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════════════════════════
+           CSS Specificity Calculator
+           ═══════════════════════════════ -->
+      <section
+        id="panel-cssspec"
+        class="panel"
+        role="tabpanel"
+        aria-labelledby="tab-cssspec"
+        hidden
+      >
+        <div class="tool">
+          <div class="tool__header">
+            <div>
+              <h2 class="tool__title">CSS Specificity Calculator</h2>
+              <p class="tool__desc">Type a CSS selector and instantly see its specificity as an (a,b,c) tuple — IDs, classes/attributes/pseudo-classes, and type selectors. Compare two selectors to find which one wins the cascade.</p>
+            </div>
+          </div>
+          <div class="tool__body">
+
+            <!-- Main selector input -->
+            <div class="tool__pane">
+              <div class="pane__header">
+                <span class="pane__label">Selector</span>
+                <div class="pane__actions">
+                  <button class="btn btn--sm btn--ghost" id="cssSpecClear">Clear</button>
+                  <button class="btn btn--sm btn--ghost" id="cssSpecCopy" disabled>Copy (a,b,c)</button>
+                </div>
+              </div>
+              <input
+                class="code-area css-spec-input"
+                type="text"
+                id="cssSpecInput"
+                placeholder="e.g. nav ul li.active > a:hover"
+                spellcheck="false"
+                autocomplete="off"
+                aria-label="CSS selector input"
+              />
+              <div class="status-bar" id="cssSpecStatus" aria-live="polite" role="status"></div>
+            </div>
+
+            <!-- Result: (a,b,c) display -->
+            <div class="tool__pane css-spec-result-pane" id="cssSpecResult">
+              <span class="css-spec-placeholder">Enter a CSS selector to see its specificity.</span>
+            </div>
+
+            <!-- Token breakdown -->
+            <div class="tool__pane" id="cssSpecBreakdown"></div>
+
+            <!-- Compare two selectors -->
+            <div class="tool__pane">
+              <div class="pane__header">
+                <span class="pane__label">Compare</span>
+              </div>
+              <div class="css-spec-compare">
+                <div class="css-spec-compare__input">
+                  <label class="css-spec-compare__label" for="cssSpecCmp1">&#9312; Selector A</label>
+                  <input
+                    class="code-area css-spec-input"
+                    type="text"
+                    id="cssSpecCmp1"
+                    placeholder="e.g. #header .nav a"
+                    spellcheck="false"
+                    autocomplete="off"
+                    aria-label="First selector for comparison"
+                  />
+                </div>
+                <div class="css-spec-compare__vs" aria-hidden="true">vs</div>
+                <div class="css-spec-compare__input">
+                  <label class="css-spec-compare__label" for="cssSpecCmp2">&#9313; Selector B</label>
+                  <input
+                    class="code-area css-spec-input"
+                    type="text"
+                    id="cssSpecCmp2"
+                    placeholder="e.g. nav ul li a:hover"
+                    spellcheck="false"
+                    autocomplete="off"
+                    aria-label="Second selector for comparison"
+                  />
+                </div>
+              </div>
+              <div class="status-bar css-spec-cmp-result" id="cssSpecCmpResult" aria-live="polite" role="status"></div>
             </div>
 
           </div>
