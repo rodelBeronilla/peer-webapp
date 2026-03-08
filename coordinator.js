@@ -437,20 +437,8 @@ function decideAction(agentKey, ctx, turnCount = 0) {
   const agent = AGENTS[agentKey];
   const peerLabel = AGENTS[agentKey === 'alpha' ? 'beta' : 'alpha'].label;
 
-  // Priority 1: Review peer's open PRs (sort oldest first to avoid staleness)
-  const peerPRs = ctx.openPRs
-    .filter(pr =>
-      (pr.labels || []).some(l => l.name === peerLabel) &&
-      pr.reviewDecision !== 'APPROVED'
-    )
-    .sort((a, b) => a.number - b.number);
-  for (const pr of peerPRs) {
-    if (claimWork(agentKey, 'pr', pr.number)) {
-      return { type: 'review-pr', pr };
-    }
-  }
-
-  // Priority 2: Merge PEER's reviewed PRs with passing CI (never merge your own)
+  // Priority 1: Merge PEER's reviewed PRs with passing CI (clear the backlog first)
+  // Merging is fast and high-value — unblock the pipeline before doing new reviews
   const mergeablePRs = ctx.openPRs.filter(pr => {
     // Only merge peer's PRs, not your own
     const isPeerPR = (pr.labels || []).some(l => l.name === peerLabel);
@@ -462,7 +450,7 @@ function decideAction(agentKey, ctx, turnCount = 0) {
       r.author?.login?.toLowerCase().includes(agent.name.toLowerCase())
     );
     return myReview && (myReview.state === 'APPROVED' || myReview.state === 'COMMENTED');
-  });
+  }).sort((a, b) => a.number - b.number); // oldest first
   for (const pr of mergeablePRs) {
     if (!claimWork(agentKey, 'merge', pr.number)) continue;
     const ci = getCIStatus(pr.number);
@@ -479,6 +467,19 @@ function decideAction(agentKey, ctx, turnCount = 0) {
     return { type: 'merge-pr', pr, ciStatus: ci };
   }
 
+  // Priority 2: Review peer's open PRs (oldest first — clear the stale backlog)
+  const peerPRs = ctx.openPRs
+    .filter(pr =>
+      (pr.labels || []).some(l => l.name === peerLabel) &&
+      pr.reviewDecision !== 'APPROVED'
+    )
+    .sort((a, b) => a.number - b.number);
+  for (const pr of peerPRs) {
+    if (claimWork(agentKey, 'pr', pr.number)) {
+      return { type: 'review-pr', pr };
+    }
+  }
+
   // Priority 3: Respond to comments on own PRs
   const ownPRsWithComments = ctx.prConversations.filter(pc => {
     const pr = ctx.openPRs.find(p => p.number === pc.pr);
@@ -488,10 +489,10 @@ function decideAction(agentKey, ctx, turnCount = 0) {
     return { type: 'respond-pr', pr: ownPRsWithComments[0] };
   }
 
-  // Priority 4: Flag stale PRs (>48h without activity)
+  // Priority 4: Flag stale PRs (>24h without activity — reduced from 48h)
   // Own stale PRs → ping peer to re-engage; peer stale PRs → review to re-engage
   for (const pc of ctx.prConversations) {
-    if (isPRStale(pc)) {
+    if (isPRStale(pc, 24 * 60 * 60 * 1000)) {
       const pr = ctx.openPRs.find(p => p.number === pc.pr);
       if (!pr) continue;
       const isOwnPR = (pr.labels || []).some(l => l.name === agent.label);
@@ -503,12 +504,32 @@ function decideAction(agentKey, ctx, turnCount = 0) {
     }
   }
 
-  // Priority 5: Pick up an unassigned issue
-  const unassigned = ctx.openIssues.filter(i =>
-    (i.assignees || []).length === 0 &&
-    !(i.labels || []).some(l => l.name === 'status:blocked')
-  );
+  // Priority 5: Pick up unassigned issues (oldest first to clear backlog)
+  const unassigned = ctx.openIssues
+    .filter(i =>
+      (i.assignees || []).length === 0 &&
+      !(i.labels || []).some(l => l.name === 'status:blocked')
+    )
+    .sort((a, b) => a.number - b.number);
   for (const issue of unassigned) {
+    if (claimWork(agentKey, 'issue', issue.number)) {
+      return { type: 'implement-issue', issue };
+    }
+  }
+
+  // Priority 5b: Stale assigned issues — assigned to this agent but no PR exists
+  const myStaleIssues = ctx.openIssues.filter(i => {
+    const assignedToMe = (i.assignees || []).some(a =>
+      a.login?.toLowerCase().includes(agent.name.toLowerCase())
+    );
+    if (!assignedToMe) return false;
+    // Check if there's already an open PR for this issue
+    const hasPR = ctx.openPRs.some(pr =>
+      pr.title?.includes(`#${i.number}`) || pr.body?.includes(`#${i.number}`)
+    );
+    return !hasPR;
+  }).sort((a, b) => a.number - b.number);
+  for (const issue of myStaleIssues) {
     if (claimWork(agentKey, 'issue', issue.number)) {
       return { type: 'implement-issue', issue };
     }
