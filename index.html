@@ -52,7 +52,6 @@
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="jwt">JWT</a></li>
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="timestamp">Timestamp</a></li>
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="base">Base</a></li>
-        <li><a href="#tools" class="nav__link nav-tool-link" data-tab="hash">Hash</a></li>
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="htmlentity">HTML Entity</a></li>
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="chmod">Chmod</a></li>
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="charmap">Char Map</a></li>
@@ -61,7 +60,7 @@
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="diff">Diff</a></li>
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="password">Password</a></li>
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="string">String</a></li>
-        <li><a href="#tools" class="nav__link nav-tool-link" data-tab="cidr">CIDR</a></li>
+        <li><a href="#tools" class="nav__link nav-tool-link" data-tab="uuid">UUID</a></li>
         <li><a href="#about" class="nav__link">About</a></li>
       </ul>
     </div>
@@ -113,9 +112,6 @@
         <button class="tab" role="tab" aria-selected="false" aria-controls="panel-base" id="tab-base" data-panel="base" tabindex="-1">
           <span class="tab__icon" aria-hidden="true">01</span> Base
         </button>
-        <button class="tab" role="tab" aria-selected="false" aria-controls="panel-hash" id="tab-hash" data-panel="hash" tabindex="-1">
-          <span class="tab__icon" aria-hidden="true">#</span> Hash
-        </button>
         <button class="tab" role="tab" aria-selected="false" aria-controls="panel-htmlentity" id="tab-htmlentity" data-panel="htmlentity" tabindex="-1">
           <span class="tab__icon" aria-hidden="true">&amp;</span> HTML Entity
         </button>
@@ -140,8 +136,8 @@
         <button class="tab" role="tab" aria-selected="false" aria-controls="panel-string" id="tab-string" data-panel="string" tabindex="-1">
           <span class="tab__icon" aria-hidden="true">Aa</span> String
         </button>
-        <button class="tab" role="tab" aria-selected="false" aria-controls="panel-cidr" id="tab-cidr" data-panel="cidr" tabindex="-1">
-          <span class="tab__icon" aria-hidden="true">/24</span> CIDR
+        <button class="tab" role="tab" aria-selected="false" aria-controls="panel-uuid" id="tab-uuid" data-panel="uuid" tabindex="-1">
+          <span class="tab__icon" aria-hidden="true">⟳</span> UUID
         </button>
       </div>
     </div>
@@ -303,19 +299,6 @@
                   <p class="match-empty">Enter a pattern and test string to see matches.</p>
                 </div>
               </div>
-            </div>
-
-            <!-- Inline highlight output -->
-            <div class="tool__pane tool__pane--full" id="regexHighlightPane" hidden>
-              <div class="pane__header">
-                <span class="pane__label">Highlighted</span>
-              </div>
-              <div
-                class="highlight-output"
-                id="regexHighlight"
-                aria-live="polite"
-                aria-label="Test string with matches highlighted"
-              ></div>
             </div>
           </div>
         </div>
@@ -1018,370 +1001,6 @@
 
             <div class="status-bar" id="baseStatus" aria-live="polite" role="status"></div>
             <p class="base-bits" id="baseBits" aria-live="polite"></p>
-          </div>
-        </div>
-      </section>
-
-      <!-- ═══════════════════════════════
-           SHA Hash Generator
-           ═══════════════════════════════ -->
-      <section
-        id="panel-hash"
-        class="panel"
-        role="tabpanel"
-        aria-labelledby="tab-hash"
-        hidden
-      >
-        <div class="tool">
-          <div class="tool__header">
-            <div>
-              <h2 class="tool__title">Hash &amp; HMAC</h2>
-              <p class="tool__desc">Compute SHA-256/384/512 hashes or HMAC digests for webhook signature debugging. Uses the browser's built-in Web Crypto API — nothing leaves your device.</p>
-            </div>
-          </div>
-          <div class="tool__body tool__body--split">
-
-            <div class="tool__pane">
-              <div class="pane__header">
-                <span class="pane__label">Input</span>
-                <div class="pane__actions">
-                  <button class="btn btn--sm btn--ghost" id="hashCasing" aria-pressed="false" title="Toggle output case">lower</button>
-                  <button class="btn btn--sm btn--ghost" id="hashClear">Clear</button>
-                </div>
-              </div>
-              <textarea
-                class="code-area"
-                id="hashInput"
-                placeholder="Type or paste text to hash…"
-                spellcheck="false"
-                autocomplete="off"
-                aria-label="Text to hash"
-              ></textarea>
-              <div class="status-bar" id="hashStatus" aria-live="polite" role="status"></div>
-            </div>
-
-            <div class="tool__pane">
-              <div class="pane__header">
-                <span class="pane__label">Hashes</span>
-              </div>
-              <div class="base-grid" role="group" aria-label="Hash outputs">
-
-                <div class="hash-group">
-                  <div class="base-row">
-                    <label class="base-label" for="hashOut256">SHA-256</label>
-                    <input
-                      type="text"
-                      id="hashOut256"
-                      class="base-input"
-                      readonly
-                      spellcheck="false"
-                      aria-label="SHA-256 hash output"
-                    >
-                    <div class="hash-row-btns">
-                      <button class="btn btn--sm btn--ghost" id="hashCopy256" disabled>Copy</button>
-                      <button class="btn btn--sm btn--ghost" id="hashCompareToggle256" aria-expanded="false" aria-controls="hashCompareRow256">Compare</button>
-                    </div>
-                  </div>
-                  <div class="hash-compare-row" id="hashCompareRow256" hidden>
-                    <span class="base-label" aria-hidden="true"></span>
-                    <input
-                      type="text"
-                      id="hashExpected256"
-                      class="base-input"
-                      placeholder="Paste expected SHA-256…"
-                      spellcheck="false"
-                      autocomplete="off"
-                      aria-label="Expected SHA-256 hash to compare"
-                    >
-                    <span class="hash-match" id="hashMatch256" aria-live="polite"></span>
-                  </div>
-                </div>
-
-                <div class="hash-group">
-                  <div class="base-row">
-                    <label class="base-label" for="hashOut384">SHA-384</label>
-                    <input
-                      type="text"
-                      id="hashOut384"
-                      class="base-input"
-                      readonly
-                      spellcheck="false"
-                      aria-label="SHA-384 hash output"
-                    >
-                    <div class="hash-row-btns">
-                      <button class="btn btn--sm btn--ghost" id="hashCopy384" disabled>Copy</button>
-                      <button class="btn btn--sm btn--ghost" id="hashCompareToggle384" aria-expanded="false" aria-controls="hashCompareRow384">Compare</button>
-                    </div>
-                  </div>
-                  <div class="hash-compare-row" id="hashCompareRow384" hidden>
-                    <span class="base-label" aria-hidden="true"></span>
-                    <input
-                      type="text"
-                      id="hashExpected384"
-                      class="base-input"
-                      placeholder="Paste expected SHA-384…"
-                      spellcheck="false"
-                      autocomplete="off"
-                      aria-label="Expected SHA-384 hash to compare"
-                    >
-                    <span class="hash-match" id="hashMatch384" aria-live="polite"></span>
-                  </div>
-                </div>
-
-                <div class="hash-group">
-                  <div class="base-row">
-                    <label class="base-label" for="hashOut512">SHA-512</label>
-                    <input
-                      type="text"
-                      id="hashOut512"
-                      class="base-input"
-                      readonly
-                      spellcheck="false"
-                      aria-label="SHA-512 hash output"
-                    >
-                    <div class="hash-row-btns">
-                      <button class="btn btn--sm btn--ghost" id="hashCopy512" disabled>Copy</button>
-                      <button class="btn btn--sm btn--ghost" id="hashCompareToggle512" aria-expanded="false" aria-controls="hashCompareRow512">Compare</button>
-                    </div>
-                  </div>
-                  <div class="hash-compare-row" id="hashCompareRow512" hidden>
-                    <span class="base-label" aria-hidden="true"></span>
-                    <input
-                      type="text"
-                      id="hashExpected512"
-                      class="base-input"
-                      placeholder="Paste expected SHA-512…"
-                      spellcheck="false"
-                      autocomplete="off"
-                      aria-label="Expected SHA-512 hash to compare"
-                    >
-                    <span class="hash-match" id="hashMatch512" aria-live="polite"></span>
-                  </div>
-                </div>
-
-              </div>
-            </div>
-
-          </div>
-
-          <!-- File Hash section -->
-          <div class="tool__divider"><span>File Hash</span></div>
-          <div class="tool__body tool__body--split">
-
-            <div class="tool__pane">
-              <div class="pane__header">
-                <span class="pane__label">File</span>
-                <div class="pane__actions">
-                  <button class="btn btn--sm btn--ghost" id="fileHashClear">Clear</button>
-                </div>
-              </div>
-              <div
-                class="file-drop-zone"
-                id="fileDropZone"
-                role="button"
-                tabindex="0"
-                aria-label="Drop a file here or click to browse"
-              >
-                <input
-                  type="file"
-                  id="fileHashInput"
-                  class="file-drop-zone__input"
-                  aria-hidden="true"
-                  tabindex="-1"
-                >
-                <span class="file-drop-zone__icon" aria-hidden="true">⬆</span>
-                <span class="file-drop-zone__label">Drop file here or <span class="file-drop-zone__browse">browse</span></span>
-                <span class="file-drop-zone__hint">SHA-256, SHA-384, SHA-512 — nothing leaves your device</span>
-              </div>
-              <div class="status-bar" id="fileHashStatus" aria-live="polite" role="status"></div>
-            </div>
-
-            <div class="tool__pane">
-              <div class="pane__header">
-                <span class="pane__label">File Hashes</span>
-              </div>
-              <div class="base-grid" role="group" aria-label="File hash outputs">
-
-                <div class="hash-group">
-                  <div class="base-row">
-                    <label class="base-label" for="fileHashOut256">SHA-256</label>
-                    <input
-                      type="text"
-                      id="fileHashOut256"
-                      class="base-input"
-                      readonly
-                      spellcheck="false"
-                      aria-label="File SHA-256 hash output"
-                    >
-                    <div class="hash-row-btns">
-                      <button class="btn btn--sm btn--ghost" id="fileHashCopy256" disabled>Copy</button>
-                      <button class="btn btn--sm btn--ghost" id="fileHashCompareToggle256" aria-expanded="false" aria-controls="fileHashCompareRow256">Compare</button>
-                    </div>
-                  </div>
-                  <div class="hash-compare-row" id="fileHashCompareRow256" hidden>
-                    <span class="base-label" aria-hidden="true"></span>
-                    <input
-                      type="text"
-                      id="fileHashExpected256"
-                      class="base-input"
-                      placeholder="Paste expected SHA-256…"
-                      spellcheck="false"
-                      autocomplete="off"
-                      aria-label="Expected file SHA-256 hash to compare"
-                    >
-                    <span class="hash-match" id="fileHashMatch256" aria-live="polite"></span>
-                  </div>
-                </div>
-
-                <div class="hash-group">
-                  <div class="base-row">
-                    <label class="base-label" for="fileHashOut384">SHA-384</label>
-                    <input
-                      type="text"
-                      id="fileHashOut384"
-                      class="base-input"
-                      readonly
-                      spellcheck="false"
-                      aria-label="File SHA-384 hash output"
-                    >
-                    <div class="hash-row-btns">
-                      <button class="btn btn--sm btn--ghost" id="fileHashCopy384" disabled>Copy</button>
-                      <button class="btn btn--sm btn--ghost" id="fileHashCompareToggle384" aria-expanded="false" aria-controls="fileHashCompareRow384">Compare</button>
-                    </div>
-                  </div>
-                  <div class="hash-compare-row" id="fileHashCompareRow384" hidden>
-                    <span class="base-label" aria-hidden="true"></span>
-                    <input
-                      type="text"
-                      id="fileHashExpected384"
-                      class="base-input"
-                      placeholder="Paste expected SHA-384…"
-                      spellcheck="false"
-                      autocomplete="off"
-                      aria-label="Expected file SHA-384 hash to compare"
-                    >
-                    <span class="hash-match" id="fileHashMatch384" aria-live="polite"></span>
-                  </div>
-                </div>
-
-                <div class="hash-group">
-                  <div class="base-row">
-                    <label class="base-label" for="fileHashOut512">SHA-512</label>
-                    <input
-                      type="text"
-                      id="fileHashOut512"
-                      class="base-input"
-                      readonly
-                      spellcheck="false"
-                      aria-label="File SHA-512 hash output"
-                    >
-                    <div class="hash-row-btns">
-                      <button class="btn btn--sm btn--ghost" id="fileHashCopy512" disabled>Copy</button>
-                      <button class="btn btn--sm btn--ghost" id="fileHashCompareToggle512" aria-expanded="false" aria-controls="fileHashCompareRow512">Compare</button>
-                    </div>
-                  </div>
-                  <div class="hash-compare-row" id="fileHashCompareRow512" hidden>
-                    <span class="base-label" aria-hidden="true"></span>
-                    <input
-                      type="text"
-                      id="fileHashExpected512"
-                      class="base-input"
-                      placeholder="Paste expected SHA-512…"
-                      spellcheck="false"
-                      autocomplete="off"
-                      aria-label="Expected file SHA-512 hash to compare"
-                    >
-                    <span class="hash-match" id="fileHashMatch512" aria-live="polite"></span>
-                  </div>
-                </div>
-
-              </div>
-            </div>
-
-          </div>
-
-          <!-- HMAC section -->
-          <div class="tool__divider"><span>HMAC</span></div>
-          <div class="tool__body tool__body--split">
-
-            <div class="tool__pane">
-              <div class="pane__header">
-                <span class="pane__label">Secret Key</span>
-                <div class="pane__actions">
-                  <button class="btn btn--sm btn--ghost" id="hmacClear">Clear</button>
-                </div>
-              </div>
-              <input
-                type="text"
-                class="base-input hmac-key-input"
-                id="hmacKey"
-                placeholder="Enter secret key…"
-                spellcheck="false"
-                autocomplete="off"
-                aria-label="HMAC secret key"
-              >
-              <div class="pane__header pane__header--mt">
-                <span class="pane__label">Message</span>
-              </div>
-              <textarea
-                class="code-area"
-                id="hmacMessage"
-                placeholder="Enter message to authenticate…"
-                spellcheck="false"
-                autocomplete="off"
-                aria-label="Message to authenticate"
-              ></textarea>
-              <div class="status-bar" id="hmacStatus" aria-live="polite" role="status"></div>
-            </div>
-
-            <div class="tool__pane">
-              <div class="pane__header">
-                <span class="pane__label">HMAC Digests</span>
-              </div>
-              <div class="base-grid" role="group" aria-label="HMAC digest outputs">
-
-                <div class="base-row">
-                  <label class="base-label" for="hmacOut256">SHA-256</label>
-                  <input
-                    type="text"
-                    id="hmacOut256"
-                    class="base-input"
-                    readonly
-                    spellcheck="false"
-                    aria-label="HMAC-SHA256 digest output"
-                  >
-                  <button class="btn btn--sm btn--ghost" id="hmacCopy256" disabled>Copy</button>
-                </div>
-
-                <div class="base-row">
-                  <label class="base-label" for="hmacOut384">SHA-384</label>
-                  <input
-                    type="text"
-                    id="hmacOut384"
-                    class="base-input"
-                    readonly
-                    spellcheck="false"
-                    aria-label="HMAC-SHA384 digest output"
-                  >
-                  <button class="btn btn--sm btn--ghost" id="hmacCopy384" disabled>Copy</button>
-                </div>
-
-                <div class="base-row">
-                  <label class="base-label" for="hmacOut512">SHA-512</label>
-                  <input
-                    type="text"
-                    id="hmacOut512"
-                    class="base-input"
-                    readonly
-                    spellcheck="false"
-                    aria-label="HMAC-SHA512 digest output"
-                  >
-                  <button class="btn btn--sm btn--ghost" id="hmacCopy512" disabled>Copy</button>
-                </div>
-
-              </div>
-            </div>
-
           </div>
         </div>
       </section>
@@ -2122,48 +1741,76 @@
         </div>
       </section>
 
-
-      <!-- ═══════════════════════════════════
-           CIDR / IP Subnet Calculator
-           ═══════════════════════════════════ -->
+      <!-- ═══════════════════════════════
+           UUID Generator
+           ═══════════════════════════════ -->
       <section
-        id="panel-cidr"
+        id="panel-uuid"
         class="panel"
         role="tabpanel"
-        aria-labelledby="tab-cidr"
+        aria-labelledby="tab-uuid"
         hidden
       >
         <div class="tool">
           <div class="tool__header">
             <div>
-              <h2 class="tool__title">CIDR / IP Subnet Calculator</h2>
-              <p class="tool__desc">Enter a CIDR block (e.g. <code>192.168.1.0/24</code>) to see network address, broadcast, subnet mask, host range, and host count. Supports /0–/32 including /31 point-to-point and /32 single-host routes.</p>
+              <h2 class="tool__title">UUID Generator</h2>
+              <p class="tool__desc">Generate RFC 4122 UUIDs in-browser using <code>crypto.getRandomValues</code>. No server, no tracking. Supports v4 (random) and v7 (time-ordered, sortable).</p>
             </div>
           </div>
           <div class="tool__body">
 
-            <div class="tool__pane">
-              <div class="pane__header">
-                <span class="pane__label">CIDR Block</span>
-                <div class="pane__actions">
-                  <button class="btn btn--sm btn--ghost" id="cidrClear">Clear</button>
+            <div class="uuid-controls" role="group" aria-label="UUID generation options">
+
+              <div class="uuid-control-row">
+                <label class="uuid-label" for="uuidVersion">Version</label>
+                <div class="uuid-select-wrap">
+                  <select id="uuidVersion" class="uuid-select" aria-label="UUID version">
+                    <option value="v4" selected>v4 — Random (RFC 4122)</option>
+                    <option value="v7">v7 — Time-ordered (sortable)</option>
+                  </select>
                 </div>
               </div>
-              <input
-                class="code-area code-area--single"
-                type="text"
-                id="cidrInput"
-                placeholder="e.g. 192.168.1.0/24"
-                spellcheck="false"
-                autocomplete="off"
-                inputmode="text"
-                aria-label="CIDR block input"
-              />
-              <button class="btn" id="cidrCalc" style="margin-top:0.75rem">Calculate</button>
-              <div class="status-bar" id="cidrStatus" aria-live="polite" role="status"></div>
+
+              <div class="uuid-control-row">
+                <label class="uuid-label" for="uuidCount">Count</label>
+                <div class="uuid-select-wrap">
+                  <select id="uuidCount" class="uuid-select" aria-label="Number of UUIDs to generate">
+                    <option value="1" selected>1</option>
+                    <option value="10">10</option>
+                    <option value="100">100</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="uuid-control-row">
+                <label class="uuid-label" for="uuidCase">Case</label>
+                <div class="uuid-select-wrap">
+                  <select id="uuidCase" class="uuid-select" aria-label="UUID letter case">
+                    <option value="lower" selected>lowercase</option>
+                    <option value="upper">UPPERCASE</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="uuid-actions">
+                <button class="btn btn--sm" id="uuidGenerate">Generate</button>
+                <button class="btn btn--sm btn--ghost" id="uuidCopyAll" disabled>Copy All</button>
+              </div>
+
             </div>
 
-            <div class="tool__pane" id="cidrResult" hidden></div>
+            <div class="status-bar" id="uuidStatus" aria-live="polite" role="status"></div>
+
+            <textarea
+              class="code-area uuid-output"
+              id="uuidOutput"
+              placeholder="UUIDs will appear here…"
+              readonly
+              spellcheck="false"
+              aria-label="Generated UUIDs"
+              aria-live="polite"
+            ></textarea>
 
           </div>
         </div>
