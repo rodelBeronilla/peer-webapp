@@ -26,6 +26,7 @@ const CONFIG = {
   claudeUiUrl: 'http://localhost:3000',
   projectDir: resolve(import.meta.dirname),
   repo: 'rodelBeronilla/peer-webapp',
+  owner: 'rodelBeronilla',
   cooldownMs: 30_000,
   workerTimeoutMs: 600_000,
   rlmTimeoutMs: 120_000,
@@ -42,6 +43,12 @@ const COOLDOWNS = {
   stale:            10_000,   // stale PR detected — clear it fast
   discuss:          30_000,   // discussion turn
   'resolve-conflict': 15_000, // conflict resolved — give CI time to register the push
+  'self-reflect':           20_000,
+  checkpoint:               30_000,
+  'critique-architecture':  30_000,
+  'critique-discussions':   20_000,
+  'critique-pipeline':      30_000,
+  'critique-sprint':        60_000,
 };
 
 const AGENTS = {
@@ -49,6 +56,8 @@ const AGENTS = {
     name: 'Alpha',
     peer: 'Beta',
     label: 'agent:alpha',
+    ghUser: 'alpha-peer-dev',
+    peerGhUser: 'beta-peer-dev',
     gitName: 'Alpha (peer-webapp)',
     gitEmail: 'alpha@peer-webapp.dev',
     // Set GH_TOKEN_ALPHA env var to use a separate GitHub account
@@ -58,10 +67,22 @@ const AGENTS = {
     name: 'Beta',
     peer: 'Alpha',
     label: 'agent:beta',
+    ghUser: 'beta-peer-dev',
+    peerGhUser: 'alpha-peer-dev',
     gitName: 'Beta (peer-webapp)',
     gitEmail: 'beta@peer-webapp.dev',
-    // Set GH_TOKEN_BETA env var to use a separate GitHub account
     token: process.env.GH_TOKEN_BETA || null,
+  },
+  gamma: {
+    name: 'Gamma',
+    peer: 'Alpha and Beta',
+    label: 'agent:gamma',
+    ghUser: 'gamma-peer-dev',
+    peerGhUser: null,
+    gitName: 'Gamma (peer-webapp)',
+    gitEmail: 'gamma@peer-webapp.dev',
+    token: process.env.GH_TOKEN_GAMMA || null,
+    isReviewOnly: true,
   },
 };
 
@@ -211,10 +232,10 @@ function getOpenPRs() {
   // Fields and their consumers — update this comment whenever fields change:
   //   number          — PR identity; used everywhere to reference a PR
   //   title           — PR identity; displayed in prompt sections and action descriptions
-  //   labels          — agent ownership (agent:alpha/beta) and status:blocked checks (Priority 0-4)
+  //   labels          — agent ownership (agent:alpha/beta) and status:blocked checks (Priority 0-9)
   //   headRefName     — branch name; used in prompt checkout/push commands and conflict resolution
   //   body            — PR-issue linkage detection (pr.body.includes(`#${issue.number}`))
-  //   reviewDecision  — Priority 1 merge gate (must be APPROVED) and Priority 2 review queue filter
+  //   reviewDecision  — Priority 1 merge gate (must be APPROVED) and Priority 2/3 review queue filter
   //   reviews         — isPRStale() activity timestamps; agent self-review detection; PR conversation display
   //   createdAt       — isPRStale() fallback when a PR has zero review/comment activity
   //   mergeStateStatus — Priority 0 CONFLICTING detection; filtered from merge and review queues
@@ -480,13 +501,26 @@ function formatGitHubContext(ctx) {
   return sections.join('\n');
 }
 
+// ─── Reflection thresholds ─────────────────────────────────────────────────
+const CHECKPOINT_WORK_THRESHOLD  = 12;
+const SELF_REFLECT_WORK_THRESHOLD = 5;
+let workSinceCheckpoint = 0;
+const workSinceReflect = { alpha: 0, beta: 0, gamma: 0 };
+const PRODUCTIVE_ACTIONS = new Set(['implement-issue', 'merge-pr', 'resolve-conflict']);
+const GAMMA_PRODUCTIVE_ACTIONS = new Set(['review-pr', 'critique-architecture', 'critique-discussions', 'critique-pipeline', 'critique-sprint']);
+
 // ─── Work-item lock (prevents both agents from picking the same item) ──────
 
 const activeWork = new Map();
 
 function claimWork(agentKey, type, id) {
+  const isReviewOnly = AGENTS[agentKey]?.isReviewOnly;
   for (const [key, work] of activeWork) {
-    if (key !== agentKey && work.type === type && work.id === id) return false;
+    if (key !== agentKey && work.type === type && work.id === id) {
+      if (isReviewOnly && type === 'pr') continue;
+      if (AGENTS[key]?.isReviewOnly && type === 'pr') continue;
+      return false;
+    }
   }
   activeWork.set(agentKey, { type, id });
   return true;
@@ -496,11 +530,116 @@ function releaseWork(agentKey) {
   activeWork.delete(agentKey);
 }
 
+// ─── Discussion priority helpers ─────────────────────────────────────────────
+
+function findOwnerUnansweredDiscussions(discussions, agentName) {
+  const results = [];
+  for (const d of discussions) {
+    const comments = d.comments?.nodes || [];
+    if (comments.length === 0) {
+      if (d.author?.login?.toLowerCase() === CONFIG.owner.toLowerCase()) results.push({ discussion: d, trigger: 'owner-started' });
+      continue;
+    }
+    let lastOwnerIdx = -1;
+    for (let i = comments.length - 1; i >= 0; i--) {
+      if ((comments[i].author?.login || '').toLowerCase() === CONFIG.owner.toLowerCase()) { lastOwnerIdx = i; break; }
+    }
+    if (lastOwnerIdx === -1) continue;
+    let responded = false;
+    for (let i = lastOwnerIdx + 1; i < comments.length; i++) {
+      if ((comments[i].author?.login || '').toLowerCase().includes(agentName.toLowerCase())) { responded = true; break; }
+    }
+    if (!responded) results.push({ discussion: d, trigger: 'owner-comment', ownerComment: comments[lastOwnerIdx] });
+  }
+  return results;
+}
+
+function findMentionedDiscussions(discussions, agentGhUser, agentName) {
+  const mention = `@${agentGhUser}`.toLowerCase();
+  const results = [];
+  for (const d of discussions) {
+    const comments = d.comments?.nodes || [];
+    let mentionedInBody = (d.body || '').toLowerCase().includes(mention);
+    let lastMentionIdx = mentionedInBody ? -1 : -2;
+    for (let i = comments.length - 1; i >= 0; i--) {
+      if ((comments[i].body || '').toLowerCase().includes(mention)) {
+        const login = comments[i].author?.login?.toLowerCase() || '';
+        if (!login.includes(agentName.toLowerCase())) { lastMentionIdx = i; break; }
+      }
+    }
+    if (lastMentionIdx === -2) continue;
+    const searchFrom = lastMentionIdx === -1 ? 0 : lastMentionIdx + 1;
+    let responded = false;
+    for (let i = searchFrom; i < comments.length; i++) {
+      if ((comments[i].author?.login || '').toLowerCase().includes(agentName.toLowerCase())) { responded = true; break; }
+    }
+    if (!responded) results.push({ discussion: d, trigger: 'mention' });
+  }
+  return results;
+}
+
+// ─── Gamma's action priorities (critique-only) ──────────────────────────────
+
+function decideGammaAction(agentKey, ctx, turnCount = 0) {
+  const agent = AGENTS[agentKey];
+  if (ctx.discussions && ctx.discussions.length > 0) {
+    const ownerDiscussions = findOwnerUnansweredDiscussions(ctx.discussions, agent.name);
+    if (ownerDiscussions.length > 0) {
+      log(`[${agent.name}] Owner comment needs response in discussion #${ownerDiscussions[0].discussion.number}`);
+      return { type: 'discuss', discussion: ownerDiscussions[0].discussion, respond: true, ownerTriggered: true };
+    }
+  }
+  if (ctx.discussions && ctx.discussions.length > 0) {
+    const mentioned = findMentionedDiscussions(ctx.discussions, agent.ghUser, agent.name);
+    if (mentioned.length > 0) {
+      log(`[${agent.name}] @mentioned in discussion #${mentioned[0].discussion.number}`);
+      return { type: 'discuss', discussion: mentioned[0].discussion, respond: true, mentionTriggered: true };
+    }
+  }
+  const unreviewedPRs = ctx.openPRs.filter(pr => {
+    const reviews = pr.reviews || [];
+    return !reviews.some(r => (r.author?.login || '').toLowerCase().includes('gamma'));
+  }).sort((a, b) => a.number - b.number);
+  for (const pr of unreviewedPRs) {
+    if (claimWork(agentKey, 'pr', pr.number)) return { type: 'review-pr', pr };
+  }
+  if (unreviewedPRs.length === 0) return { type: 'critique-architecture', turnCount };
+  if (ctx.discussions && ctx.discussions.length > 0) {
+    for (const d of ctx.discussions) {
+      const comments = d.comments?.nodes || [];
+      const last = comments.length > 0 ? comments[comments.length - 1] : null;
+      if (!last || !(last.author?.login || '').toLowerCase().includes('gamma'))
+        return { type: 'critique-discussions', discussion: d };
+    }
+  }
+  return { type: 'critique-pipeline', turnCount };
+}
+
 // ─── Determine what action the agent should take ────────────────────────────
 
 function decideAction(agentKey, ctx, turnCount = 0) {
+  if (AGENTS[agentKey].isReviewOnly) return decideGammaAction(agentKey, ctx, turnCount);
+
   const agent = AGENTS[agentKey];
   const peerLabel = AGENTS[agentKey === 'alpha' ? 'beta' : 'alpha'].label;
+
+  if (workSinceCheckpoint >= CHECKPOINT_WORK_THRESHOLD) return { type: 'checkpoint', turnCount, workDelivered: workSinceCheckpoint };
+
+  const ownerLogin = CONFIG.owner.toLowerCase();
+  if (ctx.discussions && ctx.discussions.length > 0) {
+    const ownerDiscussions = findOwnerUnansweredDiscussions(ctx.discussions, agent.name);
+    if (ownerDiscussions.length > 0) {
+      log(`[${agent.name}] Owner comment needs response in discussion #${ownerDiscussions[0].discussion.number}`);
+      return { type: 'discuss', discussion: ownerDiscussions[0].discussion, respond: true, ownerTriggered: true };
+    }
+  }
+  if (ctx.discussions && ctx.discussions.length > 0 && agent.ghUser) {
+    const mentioned = findMentionedDiscussions(ctx.discussions, agent.ghUser, agent.name);
+    if (mentioned.length > 0) {
+      log(`[${agent.name}] @mentioned in discussion #${mentioned[0].discussion.number}`);
+      return { type: 'discuss', discussion: mentioned[0].discussion, respond: true, mentionTriggered: true };
+    }
+  }
 
   // Priority 0: Own PR is CONFLICTING — must resolve before any other work.
   // A CONFLICTING PR will never merge; dispatching review/merge tasks against it wastes turns.
@@ -534,8 +673,8 @@ function decideAction(agentKey, ctx, turnCount = 0) {
   }
 
   // Notify on CONFLICTING peer PRs — post a one-time PR comment so the peer knows
-  // their PR was skipped and why. Both Priority 1 (merge) and Priority 2 (review)
-  // filter the same CONFLICTING peer PRs, so one notification pass covers both.
+  // their PR was skipped and why. Priority 1 (merge) and Priority 2/3 (review)
+  // all filter the same CONFLICTING peer PRs, so one notification pass covers all.
   const conflictingPeerPRs = ctx.openPRs.filter(pr =>
     (pr.labels || []).some(l => l.name === peerLabel) &&
     pr.mergeStateStatus === 'CONFLICTING'
@@ -576,7 +715,28 @@ function decideAction(agentKey, ctx, turnCount = 0) {
     return { type: 'merge-pr', pr, ciStatus: ci };
   }
 
-  // Priority 2: Review peer's open PRs (oldest first — clear the stale backlog)
+  // Priority 2: Peer PRs with explicit re-review requests (beat the normal oldest-first queue).
+  // When a peer force-pushes their branch and comments "please re-review" (or similar),
+  // route to review before picking up any other peer PR. This prevents the race where the
+  // reviewer's next turn falls through to a different older PR while the updated PR sits
+  // unreviewed. Uses prConversations (already fetched in buildGitHubContext) — no extra API calls.
+  const RE_REVIEW_PATTERN = /\bre-?review\b/i;
+  const peerPRsWithReReviewRequest = ctx.openPRs.filter(pr => {
+    const isPeerPR = (pr.labels || []).some(l => l.name === peerLabel);
+    if (!isPeerPR) return false;
+    if (pr.reviewDecision === 'APPROVED') return false;
+    if (pr.mergeStateStatus === 'CONFLICTING') return false;
+    const pc = ctx.prConversations.find(c => c.pr === pr.number);
+    if (!pc) return false;
+    return (pc.comments || []).some(c => RE_REVIEW_PATTERN.test(c.body || ''));
+  }).sort((a, b) => a.number - b.number);
+  for (const pr of peerPRsWithReReviewRequest) {
+    if (claimWork(agentKey, 'pr', pr.number)) {
+      return { type: 'review-pr', pr };
+    }
+  }
+
+  // Priority 3: Review peer's open PRs (oldest first — clear the stale backlog)
   // Skip CONFLICTING peer PRs — reviewing a PR that can never merge is wasted effort;
   // the peer needs to rebase before review is meaningful.
   const peerPRs = ctx.openPRs
@@ -592,7 +752,7 @@ function decideAction(agentKey, ctx, turnCount = 0) {
     }
   }
 
-  // Priority 3: Respond to comments on own PRs
+  // Priority 4: Respond to comments on own PRs
   const ownPRsWithComments = ctx.prConversations.filter(pc => {
     const pr = ctx.openPRs.find(p => p.number === pc.pr);
     return pr && (pr.labels || []).some(l => l.name === agent.label);
@@ -601,7 +761,7 @@ function decideAction(agentKey, ctx, turnCount = 0) {
     return { type: 'respond-pr', pr: ownPRsWithComments[0] };
   }
 
-  // Priority 4: Flag stale PRs (>24h without activity — reduced from 48h)
+  // Priority 5: Flag stale PRs (>24h without activity — reduced from 48h)
   // Own stale PRs → ping peer to re-engage; peer stale PRs → review to re-engage
   const staleThresholdMs = 24 * 60 * 60 * 1000;
   // Check PRs that have comment/review activity
@@ -634,7 +794,12 @@ function decideAction(agentKey, ctx, turnCount = 0) {
     }
   }
 
-  // Priority 5: Pick up unassigned issues (oldest first to clear backlog)
+  // Priority 5b: Individual self-reflection
+  if (workSinceReflect[agentKey] >= SELF_REFLECT_WORK_THRESHOLD && workSinceCheckpoint < CHECKPOINT_WORK_THRESHOLD) {
+    return { type: 'self-reflect', turnCount, workDelivered: workSinceReflect[agentKey] };
+  }
+
+  // Priority 6: Pick up unassigned issues (oldest first to clear backlog)
   const unassigned = ctx.openIssues
     .filter(i =>
       (i.assignees || []).length === 0 &&
@@ -647,7 +812,7 @@ function decideAction(agentKey, ctx, turnCount = 0) {
     }
   }
 
-  // Priority 5b: Stale assigned issues — assigned to this agent but no PR exists
+  // Priority 6b: Stale assigned issues — assigned to this agent but no PR exists
   const myStaleIssues = ctx.openIssues.filter(i => {
     const assignedToMe = (i.assignees || []).some(a =>
       a.login?.toLowerCase().includes(agent.name.toLowerCase())
@@ -665,7 +830,7 @@ function decideAction(agentKey, ctx, turnCount = 0) {
     }
   }
 
-  // Priority 6: Respond to peer's unanswered discussion (when nothing else to do)
+  // Priority 7: Respond to peer's unanswered discussion (when nothing else to do)
   if (ctx.discussions && ctx.discussions.length > 0) {
     for (const d of ctx.discussions) {
       const comments = d.comments?.nodes || [];
@@ -677,12 +842,12 @@ function decideAction(agentKey, ctx, turnCount = 0) {
     }
   }
 
-  // Priority 7: Catch up / start new discussion (idle turn)
+  // Priority 8: Catch up / start new discussion (idle turn)
   if (ctx.discussions !== undefined) {
     return { type: 'discuss', respond: false };
   }
 
-  // Priority 8: Create new issues (backlog empty)
+  // Priority 9: Create new issues (backlog empty)
   return { type: 'create-issues' };
 }
 
@@ -792,15 +957,19 @@ function buildRLMQuery(agentName, action) {
       ].join(' ');
 
     case 'create-issues':
-      return [
-        base,
-        `${agentName} needs to plan the next sprint — the backlog is empty.`,
-        'Focus your analysis on: (1) gaps in the current feature set,',
-        '(2) technical debt and code quality improvements needed,',
-        '(3) CI/CD improvements, (4) accessibility audits outstanding,',
-        '(5) 3-5 concrete, well-scoped issues to create.',
-      ].join(' ');
-
+      return [base, `${agentName} needs to plan the next sprint — the backlog is empty.`, 'Focus on: feature gaps, tech debt, CI/CD, accessibility, 3-5 concrete issues.'].join(' ');
+    case 'critique-architecture':
+      return [base, `${agentName} is performing an architectural critique.`, 'Focus on anti-patterns, code smells, structural issues, a11y gaps, security, performance.'].join(' ');
+    case 'critique-discussions':
+      return [base, `${agentName} is reviewing discussions.`, action.discussion ? `Discussion #${action.discussion.number}` : '', 'Focus on decision quality, stale threads, unresolved questions.'].filter(Boolean).join(' ');
+    case 'critique-pipeline':
+      return [base, `${agentName} is auditing the pipeline.`, 'Focus on coordinator priorities, CI gaps, prompt quality, CLAUDE.md accuracy.'].join(' ');
+    case 'critique-sprint':
+      return [base, `${agentName} is auditing sprint progress.`, 'Focus on milestone progress, work-type balance, velocity, stale items.'].join(' ');
+    case 'checkpoint':
+      return [base, `${agentName} is doing a strategic checkpoint.`, 'Focus on what shipped, quality, whether to continue/pivot.'].join(' ');
+    case 'self-reflect':
+      return [base, `${agentName} is self-reflecting.`, 'Focus on personal patterns, quality trends, commitments.'].join(' ');
     default:
       return `${base} Summarize codebase state, what needs improvement, and recommended next action.`;
   }
@@ -811,7 +980,8 @@ async function invokeRLM(agentName, action, ctx) {
 
   // Use 'session' mode for discussion and planning actions (deeper context analysis)
   // Use 'analyst' mode for implementation and review (focused code analysis)
-  const mode = (action.type === 'discuss' || action.type === 'create-issues') ? 'session' : 'analyst';
+  const sessionActions = new Set(['discuss', 'create-issues', 'critique-discussions', 'critique-pipeline', 'critique-sprint', 'checkpoint', 'self-reflect']);
+  const mode = sessionActions.has(action.type) ? 'session' : 'analyst';
 
   // Append discussion summaries to RLM query for richer context
   let enrichedQuery = query;
@@ -884,8 +1054,9 @@ async function pollWorker(id, timeoutMs = CONFIG.workerTimeoutMs) {
 
 function buildPrompt(agentKey, action, ghContext, rlmContext) {
   const agent = AGENTS[agentKey];
-  const peerLabel = AGENTS[agentKey === 'alpha' ? 'beta' : 'alpha'].label;
+  const peerLabel = agent.isReviewOnly ? null : AGENTS[agentKey === 'alpha' ? 'beta' : 'alpha'].label;
   const files = listSourceFiles().map(f => `  ${f.path} (${f.size}b)`).join('\n');
+  if (agent.isReviewOnly) return buildGammaPrompt(agentKey, action, ghContext, rlmContext, files);
 
   const preamble = `You are ${agent.name}, a senior developer who takes genuine pride in their craft. Your peer is ${agent.peer}. You are equals — co-owners of this project, this process, and your own growth.
 
@@ -1474,6 +1645,56 @@ The backlog needs work. Run a proper sprint planning session:
   }
 }
 
+// ─── Gamma prompt builder ────────────────────────────────────────────────────
+
+function buildGammaPrompt(agentKey, action, ghContext, rlmContext, files) {
+  const agent = AGENTS[agentKey];
+  const gp = `You are ${agent.name}, the project's dedicated **critic and quality advocate**. Alpha and Beta build — you critique.
+
+**Repo:** ${CONFIG.repo} | **Live:** https://rodelberonilla.github.io/peer-webapp/ | **Label:** ${agent.label} | **Stack:** vanilla HTML/CSS/JS, GitHub Pages
+
+## Role — Critique Only
+**You NEVER write code, create branches, or open PRs.** Your output is:
+1. **PR reviews** — thorough critical reviews of Alpha's and Beta's work
+2. **GitHub Issues** — file issues labeled \`${agent.label}\` with clear descriptions
+3. **Discussion comments** — challenge assumptions, demand evidence
+
+## Identity
+- Git config: \`git config user.name "${agent.gitName}" && git config user.email "${agent.gitEmail}"\`
+- Comments: start with **[${agent.name}]**
+- Discussions: use \`./gh-discuss.sh\`
+
+## RLM Analysis
+${rlmContext || '(unavailable)'}
+
+## GitHub State
+${ghContext}
+
+## Codebase
+${files}
+`;
+  switch (action.type) {
+    case 'review-pr':
+      return `${gp}\n## Task: Critique PR #${action.pr.number}\n\nPR: "${action.pr.title}" on \`${action.pr.headRefName}\`\n\n1. \`gh pr diff ${action.pr.number} -R ${CONFIG.repo}\`\n2. \`git fetch origin && git checkout ${action.pr.headRefName}\`\n3. Review: code quality, architecture, a11y, security, what's missing\n4. Submit: \`gh pr review ${action.pr.number} -R ${CONFIG.repo} --request-changes\` or \`--comment\`. **NEVER --approve.**\n5. **Do NOT merge.** File issues for systemic problems.`;
+    case 'critique-architecture':
+      return `${gp}\n## Task: Architectural Critique\n\nAudit the codebase. Read index.html, tools/*.js, styles.css, script.js.\nIdentify anti-patterns, duplicated logic, a11y gaps, security issues.\nFile issues: \`gh issue create -R ${CONFIG.repo} --label "${agent.label}" --label "type:improvement"\`\nPost summary in discussions.`;
+    case 'critique-discussions':
+      return `${gp}\n## Task: Discussion Critique\n\n${action.discussion ? `Review #${action.discussion.number}: "${action.discussion.title}"` : 'Review all open discussions.'}\nChallenge weak reasoning. Ask for evidence. Close stale threads.`;
+    case 'critique-pipeline':
+      return `${gp}\n## Task: Pipeline Critique\n\nAudit coordinator.js, .github/workflows/, CLAUDE.md.\nCheck health: \`curl http://localhost:3000/api/health\`\nFile issues labeled \`${agent.label}\` + \`type:meta\`.`;
+    case 'critique-sprint':
+      return `${gp}\n## Task: Sprint Audit\n\nGather data on milestones, merged PRs, issues. Analyze progress, velocity, work-type balance.\nPost data-driven audit in discussions. File issues for process problems.`;
+    case 'discuss': {
+      const note = action.ownerTriggered ? `\n**PRIORITY: Owner (@${CONFIG.owner}) commented. Respond first.**\n` : action.mentionTriggered ? `\n**You were @mentioned.**\n` : '';
+      if (action.respond && action.discussion)
+        return `${gp}\n## Task: Respond to Discussion #${action.discussion.number}${note}\n\n**[${action.discussion.category?.name}] ${action.discussion.title}**\n\n${action.discussion.body || '(empty)'}\n\nRead: \`./gh-discuss.sh read ${action.discussion.number}\`\nRespond as a critic.`;
+      return `${gp}\n## Task: Review Discussions\n\n\`./gh-discuss.sh list\` — read, evaluate, comment, close stale threads.`;
+    }
+    default:
+      return `${gp}\n## Task: Critique\n\nFind the most impactful thing to critique. File issues. Be specific.`;
+  }
+}
+
 // ─── Health check ───────────────────────────────────────────────────────────
 
 async function checkHealth() {
@@ -1490,6 +1711,7 @@ function bootstrapGitHub() {
   const labels = [
     { name: 'agent:alpha', color: '0075ca', desc: 'Work by Alpha' },
     { name: 'agent:beta', color: 'e4e669', desc: 'Work by Beta' },
+    { name: 'agent:gamma', color: 'cc317c', desc: 'Work by Gamma (critique)' },
     { name: 'P1-high', color: 'b60205', desc: 'High priority' },
     { name: 'P2-medium', color: 'fbca04', desc: 'Medium priority' },
     { name: 'P3-low', color: '0e8a16', desc: 'Low priority' },
@@ -1584,9 +1806,18 @@ async function agentLoop(agentKey) {
       } else {
         log(`[${agent.name}] Turn completed successfully`);
         consecutiveFailures = 0;
+        const productiveSet = agent.isReviewOnly ? GAMMA_PRODUCTIVE_ACTIONS : PRODUCTIVE_ACTIONS;
+        if (productiveSet.has(action.type)) {
+          workSinceCheckpoint++;
+          workSinceReflect[agentKey]++;
+          log(`[${agent.name}] Work delivered: ${workSinceReflect[agentKey]} personal, ${workSinceCheckpoint} aggregate`);
+        }
+        if (action.type === 'checkpoint') { workSinceCheckpoint = 0; workSinceReflect.alpha = 0; workSinceReflect.beta = 0; workSinceReflect.gamma = 0; }
+        if (action.type === 'self-reflect') { workSinceReflect[agentKey] = 0; }
         if (action.type === 'create-issues') cooldown = COOLDOWNS.idle;
         if (action.type === 'discuss') cooldown = COOLDOWNS.discuss;
         if (action.type === 'resolve-conflict') cooldown = COOLDOWNS['resolve-conflict'];
+        if (COOLDOWNS[action.type]) cooldown = COOLDOWNS[action.type];
         if (action.stale) cooldown = COOLDOWNS.stale;
       }
 
@@ -1634,11 +1865,13 @@ async function main() {
 
   try { git('checkout main'); git('pull origin main'); } catch {}
 
-  log('Launching Alpha and Beta concurrently...');
+  log('Launching Alpha, Beta, and Gamma concurrently...');
   const alphaLoop = agentLoop('alpha');
   await sleep(5_000);
   const betaLoop = agentLoop('beta');
-  await Promise.all([alphaLoop, betaLoop]);
+  await sleep(5_000);
+  const gammaLoop = agentLoop('gamma');
+  await Promise.all([alphaLoop, betaLoop, gammaLoop]);
 }
 
 main().catch(err => { log(`Fatal: ${err.message}`, 'error'); process.exit(1); });
