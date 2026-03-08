@@ -733,8 +733,9 @@ function decideAction(agentKey, ctx, turnCount = 0) {
   const peerLabel = AGENTS[agentKey === 'alpha' ? 'beta' : 'alpha'].label;
 
   // ── Phase 1: Unconditional gates ──────────────────────────────────────────
-
-  if (workSinceCheckpoint >= CHECKPOINT_WORK_THRESHOLD) return { type: 'checkpoint', turnCount, workDelivered: workSinceCheckpoint };
+  // Order matters — first match wins. Human interactions (owner/mention) come first,
+  // then CONFLICTING resolution (pipeline blocker that must preempt checkpoint),
+  // then checkpoint (scheduled maintenance), then self-reflect.
 
   if (ctx.discussions && ctx.discussions.length > 0) {
     const ownerDiscussions = findOwnerUnansweredDiscussions(ctx.discussions, agent.name);
@@ -751,7 +752,9 @@ function decideAction(agentKey, ctx, turnCount = 0) {
     }
   }
 
-  // Own CONFLICTING PRs — must resolve before pipeline can flow
+  // Own CONFLICTING PRs — must resolve before pipeline can flow.
+  // Placed before checkpoint: a CONFLICTING PR blocks all merging and is an emergency
+  // that should preempt scheduled maintenance (fixes #272, #273).
   const conflictingOwnPRs = ctx.openPRs.filter(pr =>
     (pr.labels || []).some(l => l.name === agent.label) &&
     pr.mergeStateStatus === 'CONFLICTING'
@@ -779,7 +782,7 @@ function decideAction(agentKey, ctx, turnCount = 0) {
     }
   }
 
-  // Side-effect: notify peer about their CONFLICTING PRs
+  // Side-effect: notify peer about their CONFLICTING PRs (runs every turn, including checkpoint turns)
   const conflictingPeerPRs = ctx.openPRs.filter(pr =>
     (pr.labels || []).some(l => l.name === peerLabel) &&
     pr.mergeStateStatus === 'CONFLICTING'
@@ -787,6 +790,10 @@ function decideAction(agentKey, ctx, turnCount = 0) {
   for (const pr of conflictingPeerPRs) {
     notifyConflictingSkip(pr, agent);
   }
+
+  // Checkpoint — scheduled maintenance. Comes after CONFLICTING so a pipeline blocker
+  // is never deferred for a checkpoint turn.
+  if (workSinceCheckpoint >= CHECKPOINT_WORK_THRESHOLD) return { type: 'checkpoint', turnCount, workDelivered: workSinceCheckpoint };
 
   // Self-reflection gate (before scoring — it's a system obligation like checkpoint)
   if (workSinceReflect[agentKey] >= SELF_REFLECT_WORK_THRESHOLD && workSinceCheckpoint < CHECKPOINT_WORK_THRESHOLD) {
