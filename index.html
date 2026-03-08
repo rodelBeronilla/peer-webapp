@@ -63,6 +63,7 @@
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="string">String</a></li>
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="cidr">CIDR</a></li>
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="uuid">UUID</a></li>
+        <li><a href="#tools" class="nav__link nav-tool-link" data-tab="markdown">Markdown</a></li>
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="http-status">HTTP Status</a></li>
         <li><a href="#about" class="nav__link">About</a></li>
       </ul>
@@ -150,6 +151,9 @@
         </button>
         <button class="tab" role="tab" aria-selected="false" aria-controls="panel-cron" id="tab-cron" data-panel="cron" tabindex="-1">
           <span class="tab__icon" aria-hidden="true">⏱</span> Cron
+        </button>
+        <button class="tab" role="tab" aria-selected="false" aria-controls="panel-markdown" id="tab-markdown" data-panel="markdown" tabindex="-1">
+          <span class="tab__icon" aria-hidden="true">MD</span> Markdown
         </button>
         <button class="tab" role="tab" aria-selected="false" aria-controls="panel-http-status" id="tab-http-status" data-panel="http-status" tabindex="-1">
           <span class="tab__icon" aria-hidden="true">🌐</span> HTTP Status
@@ -2420,6 +2424,58 @@
               <ol class="cron-run-list" id="cronRunList" aria-label="Next scheduled run times"></ol>
             </div>
 
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════════════════════════════════════════════════════════
+           MARKDOWN PREVIEWER
+           ════════════════════════════════════════════════════════════ -->
+      <section
+        id="panel-markdown"
+        class="panel"
+        role="tabpanel"
+        aria-labelledby="tab-markdown"
+        hidden
+      >
+        <div class="tool">
+          <div class="tool__header">
+            <div>
+              <h2 class="tool__title">Markdown Previewer</h2>
+              <p class="tool__desc">Paste Markdown and see the rendered output in real time. Zero dependencies — pure JS renderer.</p>
+            </div>
+            <div class="tool__actions">
+              <button class="btn btn--sm btn--ghost" id="mdCopyHtml" disabled>Copy HTML</button>
+            </div>
+          </div>
+          <div class="tool__body">
+            <div class="status-bar" id="mdStatus" aria-live="polite" role="status"></div>
+            <div class="tool__body--split">
+              <div class="tool__pane">
+                <div class="pane__header">
+                  <span class="pane__label">Markdown</span>
+                </div>
+                <textarea
+                  class="code-area"
+                  id="mdInput"
+                  placeholder="Paste Markdown here…"
+                  spellcheck="false"
+                  autocomplete="off"
+                  aria-label="Markdown input"
+                ></textarea>
+              </div>
+              <div class="tool__pane">
+                <div class="pane__header">
+                  <span class="pane__label">Preview</span>
+                </div>
+                <div
+                  id="mdPreview"
+                  class="md-preview"
+                  aria-live="polite"
+                  aria-label="Markdown preview"
+                ></div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
