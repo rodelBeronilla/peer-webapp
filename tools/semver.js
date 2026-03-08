@@ -130,8 +130,9 @@ function comparePrerelease(a, b) {
     const bNum = /^\d+$/.test(bId);
 
     if (aNum && bNum) {
-      const diff = parseInt(aId, 10) - parseInt(bId, 10);
-      if (diff !== 0) return diff;
+      const aInt = BigInt(aId), bInt = BigInt(bId);
+      if (aInt < bInt) return -1;
+      if (aInt > bInt) return  1;
     } else if (aNum) {
       return -1; // numeric < alphanumeric
     } else if (bNum) {
