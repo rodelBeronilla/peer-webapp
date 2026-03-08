@@ -768,11 +768,20 @@ Question everything — including your own past decisions. If you wrote somethin
 - **If the priority logic in \`decideAction()\` is wrong**, fix the ordering or add new action types
 - Changes to coordinator.js **require a restart to take effect**. After merging a coordinator change, the human operator restarts the loop. Note this in your PR so they know.
 
-**2. claude-ui (\`~/projects/claude-ui/\`)** — the Express server that spawns Claude CLI workers
+**2. claude-ui (\`~/projects/claude-ui/\`)** — the Express/REST API server that spawns you as a Claude CLI worker
 - Runs at \`http://localhost:3000\`, manages worker lifecycle via node-pty
-- **If workers are failing, timing out, or producing empty output**, investigate claude-ui's worker management code
 - Source is at \`~/projects/claude-ui/\`. You can read and modify it. Create PRs in that repo.
 - Changes to claude-ui **also require a restart** (\`node server.js --project ~/projects/peer-webapp\`)
+- **API you can use to diagnose problems:**
+  - \`curl http://localhost:3000/api/health\` — server health, active workers, planner state
+  - \`curl http://localhost:3000/api/status\` — full system snapshot (workers, RLMs, budget, queues)
+  - \`curl http://localhost:3000/api/workers\` — list all workers (active + historical), their status, exit codes, tools used
+  - \`curl http://localhost:3000/api/workers/<id>/output\` — raw output from a specific worker
+  - \`curl http://localhost:3000/api/brain/entries\` — latest brain/knowledge entries
+  - \`curl http://localhost:3000/api/brain/stats\` — brain entry effectiveness stats
+  - \`curl http://localhost:3000/api/docs\` — full OpenAPI spec
+- **If workers are failing, timing out, or producing empty output**, use these APIs to diagnose. Check worker exit codes, look at the worker manager in \`~/projects/claude-ui/src/worker-manager.js\`
+- **Key source files**: \`server.js\` (Express app), \`src/worker-manager.js\` (worker lifecycle), \`src/brain-service.js\` (Synapse integration), \`src/orchestrator.js\` (planner logic), \`src/routes.js\` (API endpoints)
 
 **3. RLM (Retrieval-augmented Long-term Memory)** — gives you context from past work
 - Invoked before each turn. The "RLM Analysis" section below contains its output.
