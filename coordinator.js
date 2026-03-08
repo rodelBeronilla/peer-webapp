@@ -207,7 +207,7 @@ function getOpenIssues() {
 }
 
 function getOpenPRs() {
-  return ghJson(`pr list -R ${CONFIG.repo} --state open --json number,title,labels,author,headRefName,body,reviewDecision,reviews,createdAt --limit 20`);
+  return ghJson(`pr list -R ${CONFIG.repo} --state open --json number,title,labels,author,headRefName,body,reviewDecision,reviews,createdAt,mergeStateStatus --limit 20`);
 }
 
 function getRecentClosedIssues(limit = 10) {
@@ -442,12 +442,26 @@ function decideAction(agentKey, ctx, turnCount = 0) {
   const agent = AGENTS[agentKey];
   const peerLabel = AGENTS[agentKey === 'alpha' ? 'beta' : 'alpha'].label;
 
+  // Priority 0: Resolve own CONFLICTING PRs immediately
+  // A CONFLICTING PR can never merge — it must be rebased before anything else matters.
+  const conflictingOwnPRs = ctx.openPRs.filter(pr =>
+    (pr.labels || []).some(l => l.name === agent.label) &&
+    pr.mergeStateStatus === 'CONFLICTING'
+  ).sort((a, b) => a.number - b.number);
+  for (const pr of conflictingOwnPRs) {
+    if (claimWork(agentKey, 'conflict', pr.number)) {
+      return { type: 'resolve-conflict', pr };
+    }
+  }
+
   // Priority 1: Merge PEER's reviewed PRs with passing CI (clear the backlog first)
   // Merging is fast and high-value — unblock the pipeline before doing new reviews
   const mergeablePRs = ctx.openPRs.filter(pr => {
     // Only merge peer's PRs, not your own
     const isPeerPR = (pr.labels || []).some(l => l.name === peerLabel);
     if (!isPeerPR) return false;
+    // Skip CONFLICTING PRs — peer must rebase before this PR can merge
+    if (pr.mergeStateStatus === 'CONFLICTING') return false;
     if (pr.reviewDecision === 'APPROVED') return true;
     // Check if THIS agent has already reviewed it (bot approvals don't show in reviewDecision)
     const reviews = pr.reviews || [];
@@ -476,7 +490,9 @@ function decideAction(agentKey, ctx, turnCount = 0) {
   const peerPRs = ctx.openPRs
     .filter(pr =>
       (pr.labels || []).some(l => l.name === peerLabel) &&
-      pr.reviewDecision !== 'APPROVED'
+      pr.reviewDecision !== 'APPROVED' &&
+      // Skip CONFLICTING PRs — peer must rebase first; reviewing is wasted effort
+      pr.mergeStateStatus !== 'CONFLICTING'
     )
     .sort((a, b) => a.number - b.number);
   for (const pr of peerPRs) {
@@ -608,6 +624,16 @@ function buildRLMQuery(agentName, action) {
   const base = `You are analyzing the peer-webapp codebase for ${agentName}.`;
 
   switch (action.type) {
+    case 'resolve-conflict':
+      return [
+        base,
+        `${agentName}'s own PR #${action.pr.number}: "${action.pr.title}" (branch ${action.pr.headRefName}) has merge conflicts.`,
+        'Focus your analysis on: (1) what files are most likely conflicting based on the branch name and recent main-branch merges,',
+        '(2) the standard rebase-from-main resolution pattern for this repo (checkout new branch from main, apply changes clean),',
+        '(3) whether CLAUDE.md Conflict Resolution section applies,',
+        '(4) what has landed on main since this branch was cut that would cause the conflict.',
+      ].join(' ');
+
     case 'review-pr':
       return [
         base,
@@ -1041,6 +1067,39 @@ You run this project using agile practices on GitHub:
 
 
   switch (action.type) {
+    case 'resolve-conflict':
+      return `${preamble}
+## Your Task: Resolve Merge Conflict on PR #${action.pr.number}
+
+Your PR #${action.pr.number}: "${action.pr.title}" on branch \`${action.pr.headRefName}\` has **merge conflicts** — \`mergeStateStatus: CONFLICTING\`.
+
+**CRITICAL: Resolving a conflict ≠ shipping the feature. Do NOT close the linked issue.** The issue tracks the feature. Closing the PR is fine. Only close the issue after the replacement PR merges into main.
+
+**Step 1 — Diagnose:**
+1. Check what's conflicting: \`gh pr diff ${action.pr.number} -R ${CONFIG.repo}\`
+2. Identify what landed on main since your branch was cut: \`git log origin/main..${action.pr.headRefName} --oneline\` and \`git log ${action.pr.headRefName}..origin/main --oneline\`
+
+**Step 2 — Resolve using the rebase-from-main pattern (from CLAUDE.md):**
+\`\`\`bash
+git config user.name "${agent.name} (peer-webapp)"
+git config user.email "${agent.name.toLowerCase()}@peer-webapp.dev"
+git fetch origin
+git checkout -B ${action.pr.headRefName}-clean origin/main
+# For new tool files: copy from the conflicting branch — they almost never conflict
+# For index.html, script.js, styles.css: read current main content, apply your diff cleanly
+git add <files>
+git commit -m "type(scope): description"
+git push origin ${action.pr.headRefName}-clean
+\`\`\`
+
+**Step 3 — Replace the PR:**
+1. Create a new PR from the clean branch: \`gh pr create -R ${CONFIG.repo} --title "..." --head ${action.pr.headRefName}-clean --body "Closes #N\\n\\nAuthor: ${agent.name}\\n\\nReplaces #${action.pr.number} (merge conflict resolved via rebase-from-main)"\`
+2. Close the old PR: \`gh pr close ${action.pr.number} -R ${CONFIG.repo} --comment "[${agent.name}] Closing — replaced by PR #NEW (rebase-from-main to resolve conflict)"\`
+3. **Do NOT close the linked issue.** \`gh pr close\` closes only the PR. The issue stays open until the replacement PR merges.
+
+**Step 4 — Talk to ${agent.peer}.** Comment on the new PR linking to the old one. Check \`./gh-discuss.sh list\` and reply to anything pending.
+`;
+
     case 'review-pr':
       return `${preamble}
 ## Your Task: Review PR #${action.pr.number}
@@ -1392,6 +1451,7 @@ async function agentLoop(agentKey) {
         consecutiveFailures = 0;
         if (action.type === 'create-issues') cooldown = COOLDOWNS.idle;
         if (action.type === 'discuss') cooldown = COOLDOWNS.discuss;
+        if (action.type === 'resolve-conflict') cooldown = COOLDOWNS.productive;
         if (action.stale) cooldown = COOLDOWNS.stale;
       }
 
