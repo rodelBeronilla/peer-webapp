@@ -772,9 +772,10 @@ Question everything — including your own past decisions. If you wrote somethin
 Before doing your assigned task, spend 60 seconds scanning the GitHub state above. Look for problems nobody asked you to fix:
 
 - **Stale PRs** — PRs with no review or activity. Why are they stuck? Review them, comment, or close if obsolete.
+- **Zombie issues** — Issues whose PRs have already been merged but the issue is still open. GitHub's auto-close doesn't always work with squash merges. Check: \`gh issue list -R ${CONFIG.repo} --state open\` and cross-reference with \`gh pr list -R ${CONFIG.repo} --state merged\`. Close any issue that's been resolved: \`gh issue close N -R ${CONFIG.repo} -c "Resolved by PR #X"\`
 - **Stale issues** — Assigned issues with no corresponding PR or branch. Are they blocked? Abandoned? Reassign or close.
-- **Label hygiene** — Labels that don't reflect reality (e.g., \`status:human-blocked\` when no human review is required). Fix them.
-- **Branch cruft** — Merged branches that weren't deleted. Old feature branches with no open PR. Clean up.
+- **Label hygiene** — Labels that don't reflect reality. Fix them.
+- **Branch cruft** — Merged branches that weren't deleted. \`git branch -r --merged main\` — delete stale remote branches.
 - **Discussion debt** — Unanswered questions, discussions that should be closed (resolved/outdated/duplicate). Close them with a summary.
 - **CI/CD health** — Failing checks that everyone's ignoring. Investigate.
 - **Project board drift** — Items in wrong columns, missing from the board entirely.
@@ -900,7 +901,9 @@ ${agent.peer} opened PR #${action.pr.number}: "${action.pr.title}" on branch \`$
    - If needs work: \`--request-changes --body "..."\`
 5. Be specific — reference line numbers, suggest improvements, praise good work
 6. If you approve and CI passes, merge it: \`gh pr merge ${action.pr.number} -R ${CONFIG.repo} --squash\` — you're the reviewer, it's your responsibility to merge ${agent.peer}'s approved work
-7. **Never merge your own PRs.** Only merge ${agent.peer}'s after you've reviewed and approved.
+7. **After merging, close the linked issue.** Squash merges don't always auto-close issues. Check the PR body for "Closes #N", then: \`gh issue close N -R ${CONFIG.repo} -c "Resolved by PR #${action.pr.number}"\`
+8. **Delete the branch** after merge: \`gh pr view ${action.pr.number} -R ${CONFIG.repo} --json headRefName -q .headRefName\` then \`git push origin --delete <branch>\`
+9. **Never merge your own PRs.** Only merge ${agent.peer}'s after you've reviewed and approved.
 
 **Step 3 — Talk to ${agent.peer}.** Read recent discussions (\`./gh-discuss.sh list\`) and reply to anything waiting for you. Then start a conversation about this review — not a status report. Examples:
 - In **Q&A**: "Question about PR #${action.pr.number}: why did you use [approach X] instead of [approach Y]? I see trade-offs either way..."
@@ -921,8 +924,11 @@ PR #${action.pr.number}: "${action.pr.title}" has been approved.
 1. Verify this is ${agent.peer}'s PR (has \`${peerLabel}\` label). **If it's YOUR PR, skip — ${agent.peer} merges it after reviewing.**
 2. Verify CI: \`gh pr checks ${action.pr.number} -R ${CONFIG.repo}\`
 3. Merge: \`gh pr merge ${action.pr.number} -R ${CONFIG.repo} --squash\`
-4. \`git checkout main && git pull\`
-5. Create follow-up issues if needed. Assign them: \`--assignee @me\` if you'll do it, or leave unassigned for ${agent.peer} to pick up. Add to project board and current milestone.
+4. **Close the linked issue.** Read the PR body for "Closes #N". Squash merges don't auto-close issues. Run: \`gh issue close N -R ${CONFIG.repo} -c "Resolved by PR #${action.pr.number}"\`
+5. **Delete the branch**: \`git push origin --delete <branch>\`
+6. \`git checkout main && git pull\`
+7. **Scan for other zombie issues** — any open issue whose PR was already merged? Close them too.
+8. Create follow-up issues if needed. Assign them: \`--assignee @me\` if you'll do it, or leave unassigned for ${agent.peer} to pick up. Add to project board and current milestone.
 
 **Step 3 — Talk to ${agent.peer}.** Check discussions (\`./gh-discuss.sh list\`) and reply to anything pending. Then share something worth discussing — not "Shipped PR #${action.pr.number}" (that's what the merge notification is for). Instead:
 - In **Show and tell**: What's interesting about what just shipped? What did you learn? What would you change if you did it again?
