@@ -267,6 +267,27 @@ function getPRComments(number) {
  * Dedup guard: if any existing comment already contains "skipped — CONFLICTING",
  * we skip posting to avoid one comment per turn for a stuck PR.
  */
+// ─── Priority scoring ────────────────────────────────────────────────────────
+
+const PRIORITY_RANK = { 'P0-critical': 0, 'P1-high': 1, 'P2-medium': 2, 'P3-low': 3 };
+
+/** Extract numeric priority rank from an item's labels (0=P0, 3=P3, 4=unlabeled). */
+function priorityRank(item) {
+  for (const l of (item.labels || [])) {
+    if (PRIORITY_RANK[l.name] !== undefined) return PRIORITY_RANK[l.name];
+  }
+  return 4; // unlabeled = lowest
+}
+
+/** Sort items by priority (P0 first), then by issue number (oldest first within same priority). */
+function sortByPriority(items) {
+  return [...items].sort((a, b) => {
+    const pa = priorityRank(a), pb = priorityRank(b);
+    if (pa !== pb) return pa - pb;
+    return a.number - b.number;
+  });
+}
+
 function notifyConflictingSkip(pr, agent) {
   try {
     const data = getPRComments(pr.number);
@@ -631,13 +652,15 @@ function decideAction(agentKey, ctx, turnCount = 0) {
   //  0: Own PR is CONFLICTING — resolve before all else
   //  (implicit) Notify peer of their CONFLICTING PRs (side-effect, no return)
   //  1: Merge peer's reviewed + passing-CI PRs (unblock the pipeline)
-  //  2: Review peer PRs with explicit re-review requests (beat oldest-first queue)
+  //  2: Review peer PRs with explicit re-review requests
+  //  2b: P0-critical issues — jump queue ahead of routine PR reviews
   //  3: Review peer's open PRs (oldest first)
   //  4: Respond to comments on own open PRs
+  //  4b: P1-high issues — more impactful than chasing stale PRs
   //  5: Flag stale PRs (>24h) — ping own or review peer's
   //  5b: Self-reflection (workSinceReflect threshold)
-  //  6: Pick up unassigned issues (oldest first)
-  //  6b: Resume stale assigned issues that have no open PR
+  //  6: Pick up unassigned issues (by priority: P0 > P1 > P2 > P3, then oldest)
+  //  6b: Resume stale assigned issues (by priority, then oldest)
   //  7: Respond to peer's unanswered discussion
   //  8: Start new discussion / idle turn
   //  9: Create new issues (backlog empty)
@@ -758,6 +781,19 @@ function decideAction(agentKey, ctx, turnCount = 0) {
     }
   }
 
+  // Priority 2b: P0-critical issues jump the queue — more impactful than routine PR reviews
+  const criticalIssues = ctx.openIssues.filter(i =>
+    (i.labels || []).some(l => l.name === 'P0-critical') &&
+    (i.assignees || []).length === 0 &&
+    !(i.labels || []).some(l => l.name === 'status:blocked')
+  );
+  for (const issue of criticalIssues) {
+    if (claimWork(agentKey, 'issue', issue.number)) {
+      log(`[${agent.name}] P0-critical issue #${issue.number} jumping queue`);
+      return { type: 'implement-issue', issue };
+    }
+  }
+
   // Priority 3: Review peer's open PRs (oldest first — clear the stale backlog)
   // Skip CONFLICTING peer PRs — reviewing a PR that can never merge is wasted effort;
   // the peer needs to rebase before review is meaningful.
@@ -781,6 +817,19 @@ function decideAction(agentKey, ctx, turnCount = 0) {
   });
   if (ownPRsWithComments.length > 0) {
     return { type: 'respond-pr', pr: ownPRsWithComments[0] };
+  }
+
+  // Priority 4b: P1-high issues — more impactful than chasing stale PRs
+  const highIssues = ctx.openIssues.filter(i =>
+    (i.labels || []).some(l => l.name === 'P1-high') &&
+    (i.assignees || []).length === 0 &&
+    !(i.labels || []).some(l => l.name === 'status:blocked')
+  );
+  for (const issue of highIssues) {
+    if (claimWork(agentKey, 'issue', issue.number)) {
+      log(`[${agent.name}] P1-high issue #${issue.number} — prioritizing over stale PRs`);
+      return { type: 'implement-issue', issue };
+    }
   }
 
   // Priority 5: Flag stale PRs (>24h without activity — reduced from 48h)
@@ -821,13 +870,12 @@ function decideAction(agentKey, ctx, turnCount = 0) {
     return { type: 'self-reflect', turnCount, workDelivered: workSinceReflect[agentKey] };
   }
 
-  // Priority 6: Pick up unassigned issues (oldest first to clear backlog)
-  const unassigned = ctx.openIssues
+  // Priority 6: Pick up unassigned issues (highest priority first, then oldest)
+  const unassigned = sortByPriority(ctx.openIssues
     .filter(i =>
       (i.assignees || []).length === 0 &&
       !(i.labels || []).some(l => l.name === 'status:blocked')
-    )
-    .sort((a, b) => a.number - b.number);
+    ));
   for (const issue of unassigned) {
     if (claimWork(agentKey, 'issue', issue.number)) {
       return { type: 'implement-issue', issue };
@@ -845,8 +893,9 @@ function decideAction(agentKey, ctx, turnCount = 0) {
       pr.title?.includes(`#${i.number}`) || pr.body?.includes(`#${i.number}`)
     );
     return !hasPR;
-  }).sort((a, b) => a.number - b.number);
-  for (const issue of myStaleIssues) {
+  });
+  const myStaleIssuesSorted = sortByPriority(myStaleIssues);
+  for (const issue of myStaleIssuesSorted) {
     if (claimWork(agentKey, 'issue', issue.number)) {
       return { type: 'implement-issue', issue };
     }
