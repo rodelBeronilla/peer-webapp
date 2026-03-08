@@ -19,6 +19,19 @@ function esc(s) {
 }
 
 // ---------------------------------------------------------------------------
+// URL sanitizer — blocks javascript:, data:, vbscript: and other dangerous
+// schemes. Allows http://, https://, mailto:, and relative URLs.
+// ---------------------------------------------------------------------------
+function safeUrl(url) {
+  // Strip leading whitespace (browsers do this before interpreting the scheme)
+  const trimmed = url.trimStart();
+  if (/^[a-z][a-z0-9+\-.]*:/i.test(trimmed) && !/^https?:/i.test(trimmed) && !/^mailto:/i.test(trimmed)) {
+    return '#';
+  }
+  return url;
+}
+
+// ---------------------------------------------------------------------------
 // Inline parser — bold, italic, code spans, links, images
 // Processes code spans first (with placeholders) to protect their content.
 // ---------------------------------------------------------------------------
@@ -35,12 +48,13 @@ function inline(raw) {
 
   // Images (must come before links — same syntax with leading !)
   s = s.replace(/!\[([^\]]*)\]\(([^)]*)\)/g, (_, alt, src) =>
-    `<img src="${src}" alt="${alt}" loading="lazy">`);
+    `<img src="${safeUrl(src)}" alt="${alt}" loading="lazy">`);
 
   // Links — open in same tab for relative, new tab for absolute
   s = s.replace(/\[([^\]]+)\]\(([^)]*)\)/g, (_, text, href) => {
-    const rel = /^https?:\/\//i.test(href) ? ' target="_blank" rel="noopener noreferrer"' : '';
-    return `<a href="${href}"${rel}>${text}</a>`;
+    const safe = safeUrl(href);
+    const rel = /^https?:\/\//i.test(safe) ? ' target="_blank" rel="noopener noreferrer"' : '';
+    return `<a href="${safe}"${rel}>${text}</a>`;
   });
 
   // Bold (**text** or __text__)
