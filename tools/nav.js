@@ -3,9 +3,32 @@
 const hamburger = document.getElementById('hamburger');
 const navMenu = document.getElementById('navMenu');
 
+// aria-hidden on the menu only applies in mobile (hamburger visible).
+// On desktop the menu is always in the accessibility tree.
+const mobileNav = window.matchMedia('(max-width: 640px)');
+
 function setNavOpen(open) {
   hamburger.setAttribute('aria-expanded', String(open));
+  if (mobileNav.matches) {
+    navMenu.setAttribute('aria-hidden', String(!open));
+  } else {
+    navMenu.removeAttribute('aria-hidden');
+  }
   navMenu.classList.toggle('is-open', open);
+}
+
+// Sync aria-hidden when viewport crosses the mobile breakpoint
+mobileNav.addEventListener('change', () => {
+  if (!mobileNav.matches) {
+    navMenu.removeAttribute('aria-hidden');
+  } else if (hamburger.getAttribute('aria-expanded') !== 'true') {
+    navMenu.setAttribute('aria-hidden', 'true');
+  }
+});
+
+// Initialize: on mobile, menu starts closed
+if (mobileNav.matches) {
+  navMenu.setAttribute('aria-hidden', 'true');
 }
 
 hamburger.addEventListener('click', () => {
