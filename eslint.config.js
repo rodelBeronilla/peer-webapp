@@ -22,8 +22,8 @@ export default [
       'no-undef': 'error',
       'eqeqeq': ['error', 'always', { null: 'ignore' }],
       'no-implicit-globals': 'error',
-      // Warn on accidental console.log left in production code
-      'no-console': 'warn',
+      // Error on console.log — use setStatus() for user-visible output; add eslint-disable with rationale for any legitimate diagnostic calls
+      'no-console': 'error',
     },
   },
 ];
