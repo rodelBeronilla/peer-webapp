@@ -330,6 +330,18 @@ function isPRStale(prData, thresholdMs = 48 * 60 * 60 * 1000) {
   return now - latest > thresholdMs;
 }
 
+// Returns the next branch name for a coordinator-generated conflict resolution branch.
+// Convention (agreed in discussion #196): coordinator-generated names use -vN suffix.
+//   alpha/issue-190       → alpha/issue-190-v2
+//   alpha/issue-190-v2    → alpha/issue-190-v3
+//   alpha/issue-190-v2-v3 → (pathological, still works) alpha/issue-190-v2-v4
+// Manual branches chosen by the agent outside this helper can use any descriptive suffix.
+function nextBranchName(branchName) {
+  const m = branchName.match(/^(.+)-v(\d+)$/);
+  if (m) return `${m[1]}-v${parseInt(m[2], 10) + 1}`;
+  return `${branchName}-v2`;
+}
+
 // ─── GitHub state summary ───────────────────────────────────────────────────
 
 function buildGitHubContext(agentName = '') {
@@ -1229,8 +1241,13 @@ git push origin ${action.pr.headRefName} --force
 
 **Step 4 — If force-push is insufficient, close this PR and open a fresh one:**
 \`\`\`bash
+# Coordinator-generated branch name follows the -vN convention (see CLAUDE.md)
+git checkout -b ${nextBranchName(action.pr.headRefName)} origin/main
+# Re-apply your changes on the new branch, then:
+git push origin ${nextBranchName(action.pr.headRefName)}
+gh pr create -R ${CONFIG.repo} --title "${action.pr.title}" --head ${nextBranchName(action.pr.headRefName)}
 gh pr close ${action.pr.number} -R ${CONFIG.repo} --comment "[${agent.name}] Closing — replaced by PR #NEW (conflict resolution)"
-# Then create a new PR — do NOT close the linked issue; it stays open until the new PR merges
+# Do NOT close the linked issue; it stays open until the new PR merges
 \`\`\`
 
 **Step 5 — Verify CI passes** on the updated branch before considering this done.
