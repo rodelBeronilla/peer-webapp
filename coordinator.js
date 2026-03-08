@@ -230,7 +230,7 @@ function getPRComments(number) {
 
 function getRecentDiscussions() {
   try {
-    const result = run(`gh api graphql -f query="{ repository(owner:\\"rodelBeronilla\\", name:\\"peer-webapp\\") { discussions(first:10, orderBy:{field:UPDATED_AT, direction:DESC}) { nodes { number title category { name } author { login } body createdAt updatedAt comments(last:5) { nodes { author { login } body createdAt } } } } } }"`, { timeout: 15_000 });
+    const result = run(`gh api graphql -f query="{ repository(owner:\\"rodelBeronilla\\", name:\\"peer-webapp\\") { discussions(first:10, states:OPEN, orderBy:{field:UPDATED_AT, direction:DESC}) { nodes { number title category { name slug } author { login } body createdAt updatedAt comments(last:5) { nodes { author { login } body createdAt } } } } } }"`, { timeout: 15_000 });
     const parsed = JSON.parse(result);
     return parsed?.data?.repository?.discussions?.nodes || [];
   } catch { return []; }
@@ -805,42 +805,48 @@ ${files}
 
 ## How You Work
 
-### Communication — Discussions Are for Decisions, Not Status Updates
+### Communication — Two Types of Discussions
 
-**The #1 rule: Do NOT create a discussion unless you need ${agent.peer}'s input on a DECISION.**
+**NEVER post status updates as discussions.** No "Shipped:", "Reviewed:", "Merged:", "Implemented:". PRs and issues already communicate that. Discussions are for conversations that need back-and-forth.
 
-PRs, issues, commits, and merges already generate GitHub notifications. ${agent.peer} can see what you shipped, reviewed, and merged. Discussions exist ONLY for things that need a back-and-forth conversation — design decisions, trade-offs, architectural questions, process improvements, sprint planning.
+**Open-loop discussions (long-lived, stay open intentionally):**
+These are living documents you and ${agent.peer} return to over time. They don't get "resolved" — they evolve.
+- **Strategy** — product direction, what the app should become, target users
+- **Architecture** — technical decisions that affect the whole codebase (state management, theming system, tool loading patterns)
+- **Product roadmap** — what to build next quarter, feature prioritization
+- **Research / deep dives** — investigating a technology, exploring an approach, sharing findings
+- **Sprint retros** — ongoing reflection on how you work together
+- **Process improvement** — how to improve your workflow, conventions, CI/CD
+Use categories: \`ideas\`, \`show-and-tell\`, \`announcements\`
 
-**NEVER create a discussion that starts with "Shipped:", "Reviewed:", "Merged:", or "Implemented:".** These are status updates. GitHub already communicates those. Creating a discussion for them is noise that clutters the repo.
+**Closed-loop discussions (short-lived, close when resolved):**
+These have a specific question or decision. Once answered, close them.
+- **Quick questions** — "Should we use X or Y for this?" → decision made → close
+- **Bug triage** — "This is broken, here's what I think is wrong" → fixed → close
+- **PR-specific design questions** — "I'm unsure about this approach" → resolved → close
+- **Polls** — "Which option do you prefer?" → voted → close
+Use categories: \`q-a\`, \`general\`, \`polls\`
 
-**When to create a discussion:**
-- You need ${agent.peer}'s opinion before making a decision
-- You want to propose a change that affects both of you (architecture, process, conventions)
-- You hit a problem or blocker worth discussing collaboratively
-- Sprint retro or planning (once per sprint, not per PR)
-- You disagree with something and want to hash it out
-- You found a systemic issue in the codebase worth discussing
+**Rules:**
+1. Before creating a discussion, check if an open-loop thread already covers this topic. Comment there instead of creating a new one.
+2. **Never comment on closed discussions.** If a discussion is closed, it's done. If the topic resurfaces, create a new one referencing the old one.
+3. Only create a discussion when you need ${agent.peer}'s input. If you don't have a question or proposal, don't post.
+4. Reply substantively — push back, add nuance, bring data. "Sounds good" is not a response.
 
-**When NOT to create a discussion:**
-- You just shipped, reviewed, or merged something — that's what PRs are for
-- You want to announce what you're working on — comment on the issue instead
-- You have nothing to ask — if there's no question or proposal, don't post
-
-**If you reply, be substantive.** Don't say "sounds good." Push back, add nuance, bring data.
-
-**Close discussions when resolved:**
+**Closing discussions:**
 \`\`\`bash
 ./gh-discuss.sh read <number>  # get node ID
-# RESOLVED (decision made), OUTDATED (no longer relevant), DUPLICATE
+# RESOLVED (question answered, decision made), OUTDATED (no longer relevant), DUPLICATE
 gh api graphql -f query='mutation { closeDiscussion(input: {discussionId: "<NODE_ID>", reason: RESOLVED}) { discussion { number } } }'
 \`\`\`
+Only close **closed-loop** discussions. Leave open-loop discussions open — they're meant to be long-lived.
 
-**Discussion commands:**
+**Commands:**
 \`\`\`bash
-./gh-discuss.sh list                              # List open discussions
+./gh-discuss.sh list                              # List OPEN discussions only
 ./gh-discuss.sh read 28                           # Read thread
-./gh-discuss.sh create ideas "Title" << 'EOF'     # Create (ONLY when needed!)
-Your question or proposal. Must require ${agent.peer}'s input.
+./gh-discuss.sh create ideas "Title" << 'EOF'     # Create (ONLY when needed)
+Your question or proposal.
 EOF
 ./gh-discuss.sh comment 28 << 'EOF'               # Reply to existing thread
 Your substantive response.
