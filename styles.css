@@ -998,6 +998,7 @@ main {
   letter-spacing: 0.04em;
 }
 
+/* stylelint-disable-next-line no-descending-specificity -- different component (.contrast-picker-wrap vs .color-picker-wrap); shares .color-swatch child but no cascade competition */
 .contrast-picker-wrap .color-swatch {
   width: 64px;
   height: 64px;
@@ -1221,10 +1222,12 @@ main {
 }
 .note-item:hover .note-item__delete,
 .note-item:focus-within .note-item__delete { opacity: 1; }
+/* stylelint-disable-next-line no-descending-specificity -- intentional: parent hover reveals the button; this adds element-level hover styling on top */
 .note-item__delete:hover {
   background: rgba(220, 38, 38, 0.1);
   color: var(--color-danger);
 }
+/* stylelint-disable-next-line no-descending-specificity -- intentional: focus-visible state on the element itself, needed regardless of parent hover context */
 .note-item__delete:focus-visible {
   opacity: 1;
   outline: 2px solid var(--color-danger);
@@ -1357,10 +1360,12 @@ main {
 }
 .bookmark-item:hover .bookmark-item__delete,
 .bookmark-item:focus-within .bookmark-item__delete { opacity: 1; }
+/* stylelint-disable-next-line no-descending-specificity -- intentional: parent hover reveals the button; this adds element-level hover styling on top */
 .bookmark-item__delete:hover {
   background: rgba(220, 38, 38, 0.1);
   color: var(--color-danger);
 }
+/* stylelint-disable-next-line no-descending-specificity -- intentional: focus-visible state on the element itself, needed regardless of parent hover context */
 .bookmark-item__delete:focus-visible {
   opacity: 1;
   outline: 2px solid var(--color-danger);
@@ -2600,6 +2605,7 @@ main {
   background: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
 }
+/* stylelint-disable-next-line no-descending-specificity -- different component (.cidr-table vs .css-spec-table); both style td but don't cascade-compete */
 .cidr-table td {
   padding: 0.4rem 0.75rem;
   border-bottom: 1px solid var(--color-border);
@@ -3103,6 +3109,7 @@ main {
   margin: 1rem 0;
 }
 
+/* stylelint-disable-next-line no-descending-specificity -- different component (.md-preview vs .about); both style a but don't cascade-compete */
 .md-preview a {
   color: var(--color-primary);
   text-decoration: underline;
@@ -3228,6 +3235,7 @@ main {
 }
 
 .semver-table th,
+/* stylelint-disable-next-line no-descending-specificity -- different component (.semver-table vs .css-spec-table); both style td but don't cascade-compete */
 .semver-table td {
   padding: 0.5rem 0.75rem;
   text-align: left;
