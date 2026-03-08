@@ -25,6 +25,9 @@ function esc(s) {
 function safeUrl(url) {
   // Strip leading whitespace (browsers do this before interpreting the scheme)
   const trimmed = url.trimStart();
+  // Block protocol-relative URLs (//evil.com) — browsers resolve them to
+  // the page's own scheme, which can be used for open redirect attacks.
+  if (trimmed.startsWith('//')) return '#';
   if (/^[a-z][a-z0-9+\-.]*:/i.test(trimmed) && !/^https?:/i.test(trimmed) && !/^mailto:/i.test(trimmed)) {
     return '#';
   }
