@@ -719,7 +719,7 @@ function decideAction(agentKey, ctx, turnCount = 0) {
   //   - Checkpoint / self-reflect thresholds
   //   - Owner discussion responses
   //   - @mention responses
-  //   - Own CONFLICTING PRs (must fix to unblock pipeline)
+  //   - Own CONFLICTING PRs (see inline comment for depth cap and ordering rationale)
   //
   // Phase 2: Scored candidates (highest score wins)
   //   Every candidate gets: BASE_SCORE[type] + PRIORITY_BONUS[label] + age_bonus + situational
@@ -751,7 +751,17 @@ function decideAction(agentKey, ctx, turnCount = 0) {
     }
   }
 
-  // Own CONFLICTING PRs — must resolve before pipeline can flow
+  // Own CONFLICTING PRs — must resolve before pipeline can flow.
+  //
+  // Ordering note (see PR #301 / issue #273): CONFLICTING should fire before checkpoint.
+  // If checkpoint fires first it emits a state summary for a state that is about to change
+  // on the next turn — the summary is immediately stale. The reorder lands in a separate PR
+  // to keep diffs reviewable; this comment documents the intent.
+  //
+  // Depth cap: at depth >= 5 the automated loop is not converging. Stop dispatching
+  // resolve-conflict, auto-file a human-visible escalation issue, and skip the PR.
+  const ESCALATION_DEPTH_CAP = 5;
+  const ESCALATION_SENTINEL = '[Coordinator] escalation-depth:';
   const conflictingOwnPRs = ctx.openPRs.filter(pr =>
     (pr.labels || []).some(l => l.name === agent.label) &&
     pr.mergeStateStatus === 'CONFLICTING'
@@ -759,16 +769,43 @@ function decideAction(agentKey, ctx, turnCount = 0) {
   for (const pr of conflictingOwnPRs) {
     if (claimWork(agentKey, 'conflict', pr.number)) {
       const depth = currentVersionDepth(pr.headRefName);
+      if (depth >= ESCALATION_DEPTH_CAP) {
+        // Depth cap reached — automated resolution is not converging.
+        // Post a structured escalation comment (deduped by sentinel), file a human-visible
+        // issue tagged type:escalation (skipped by P6 filter), and skip this PR.
+        try {
+          const data = getPRComments(pr.number);
+          const comments = data?.comments || [];
+          const alreadyEscalated = comments.some(c =>
+            (c.body || '').includes(ESCALATION_SENTINEL)
+          );
+          if (!alreadyEscalated) {
+            const commentBody = `${ESCALATION_SENTINEL}${depth}\n\nThis conflict has recurred ${depth} times (currently on branch \`${pr.headRefName}\`). Automated conflict resolution has reached the depth cap and will no longer retry. Manual intervention required.`;
+            gh(`pr comment ${pr.number} -R ${CONFIG.repo} --body ${JSON.stringify(commentBody)}`);
+            log(`[${agent.name}] Posted escalation comment on PR #${pr.number} (depth=${depth})`);
+            // Auto-file escalation issue tagged type:escalation so it is visible to humans
+            // but skipped by the P6 unassigned-issue candidate pool.
+            const issueTitle = `fix: CONFLICTING PR #${pr.number} stuck at depth ${depth} — manual resolution needed`;
+            const issueBody = `PR #${pr.number} (branch \`${pr.headRefName}\`) has been CONFLICTING for ${depth} automated attempts. The coordinator has reached the escalation depth cap and stopped dispatching resolve-conflict for this PR.\n\nManual steps:\n1. Rebase \`${pr.headRefName}\` on current \`main\`\n2. Push and re-open if closed\n3. Close this issue once merged`;
+            run(`gh issue create -R ${CONFIG.repo} --title ${JSON.stringify(issueTitle)} --body ${JSON.stringify(issueBody)} --label "type:escalation" --label "${agent.label}"`, { timeout: 15_000 });
+            log(`[${agent.name}] Filed escalation issue for PR #${pr.number}`);
+          }
+        } catch (e) {
+          log(`[${agent.name}] Failed to escalate PR #${pr.number}: ${e.message}`);
+        }
+        // Skip — do not dispatch resolve-conflict for this PR
+        continue;
+      }
       if (depth >= 3) {
         try {
           const data = getPRComments(pr.number);
           const comments = data?.comments || [];
           const alreadyEscalated = comments.some(c =>
-            (c.body || '').includes('manual intervention')
+            (c.body || '').includes(ESCALATION_SENTINEL)
           );
           if (!alreadyEscalated) {
-            const body = `[Coordinator] This conflict has recurred ${depth} times (currently on branch \`${pr.headRefName}\`). Automated conflict resolution is not converging — manual intervention may be needed.`;
-            gh(`pr comment ${pr.number} -R ${CONFIG.repo} --body ${JSON.stringify(body)}`);
+            const commentBody = `${ESCALATION_SENTINEL}${depth}\n\nThis conflict has recurred ${depth} times (currently on branch \`${pr.headRefName}\`). Automated conflict resolution is not converging — escalation comment posted. Will cap at depth ${ESCALATION_DEPTH_CAP}.`;
+            gh(`pr comment ${pr.number} -R ${CONFIG.repo} --body ${JSON.stringify(commentBody)}`);
             log(`[${agent.name}] Posted escalation comment on PR #${pr.number} (depth=${depth})`);
           }
         } catch (e) {
@@ -875,9 +912,12 @@ function decideAction(agentKey, ctx, turnCount = 0) {
   }
 
   // ── Implement unassigned issues
+  // Exclude type:escalation issues — these are auto-filed by the coordinator's depth cap
+  // and are signals for human intervention, not candidates for automated resolution.
   const unassigned = ctx.openIssues.filter(i =>
     (i.assignees || []).length === 0 &&
-    !(i.labels || []).some(l => l.name === 'status:blocked')
+    !(i.labels || []).some(l => l.name === 'status:blocked') &&
+    !(i.labels || []).some(l => l.name === 'type:escalation')
   );
   for (const issue of unassigned) {
     candidates.push({
