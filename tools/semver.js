@@ -48,19 +48,27 @@ function renderParseResult(parsed) {
   }
 
   const rows = [
-    ['Major',          parsed.major,      'The major version — incremented on breaking changes'],
-    ['Minor',          parsed.minor,      'The minor version — incremented on backwards-compatible additions'],
-    ['Patch',          parsed.patch,      'The patch version — incremented on backwards-compatible bug fixes'],
-    ['Pre-release',    parsed.prerelease || '(none)', 'Optional pre-release label, lower precedence than the release'],
-    ['Build metadata', parsed.build       || '(none)', 'Optional build metadata, ignored in version precedence comparisons'],
+    ['Major',          parsed.major,      'The major version — incremented on breaking changes',      false],
+    ['Minor',          parsed.minor,      'The minor version — incremented on backwards-compatible additions', false],
+    ['Patch',          parsed.patch,      'The patch version — incremented on backwards-compatible bug fixes',  false],
+    ['Pre-release',    parsed.prerelease || '(none)', 'Optional pre-release label, lower precedence than the release', false],
+    ['Build metadata', parsed.build       || '(none)', 'Optional build metadata, ignored in version precedence comparisons', true],
   ];
 
-  const tbody = rows.map(([label, value, title]) =>
-    `<tr>
+  const tbody = rows.map(([label, value, title, isBuild]) => {
+    const valStr = String(value);
+    const isEmpty = valStr === '(none)';
+    const cls = isBuild
+      ? 'semver-field-value semver-field-value--muted'
+      : `semver-field-value${isEmpty ? ' semver-field-value--empty' : ''}`;
+    const display = isBuild && !isEmpty
+      ? `${escHtml(valStr)} <span class="semver-field-note">(ignored in comparisons)</span>`
+      : escHtml(valStr);
+    return `<tr>
       <td class="semver-field-label" title="${escHtml(title)}">${escHtml(label)}</td>
-      <td class="semver-field-value ${value === '(none)' ? 'semver-field-value--empty' : ''}">${escHtml(String(value))}</td>
-    </tr>`
-  ).join('');
+      <td class="${cls}">${display}</td>
+    </tr>`;
+  }).join('');
 
   parseResult.innerHTML = `
     <table class="semver-table" aria-label="Parsed semver components">
@@ -156,12 +164,12 @@ function onCompare() {
   const parsedB = parseSemver(rawB);
 
   if (!parsedA) {
-    setStatus(compareStatus, `Version A is not valid semver: "${escHtml(rawA)}"`, 'error');
+    setStatus(compareStatus, `Version A is not valid semver: "${rawA}"`, 'error');
     compareResult.hidden = true;
     return;
   }
   if (!parsedB) {
-    setStatus(compareStatus, `Version B is not valid semver: "${escHtml(rawB)}"`, 'error');
+    setStatus(compareStatus, `Version B is not valid semver: "${rawB}"`, 'error');
     compareResult.hidden = true;
     return;
   }
@@ -190,7 +198,7 @@ function onCompare() {
     ${notesBuild}
   `;
   compareResult.hidden = false;
-  setStatus(compareStatus, label, cmp === 0 ? 'ok' : 'ok');
+  setStatus(compareStatus, label, cmp === 0 ? 'ok' : '');
 }
 
 // ── Utils ──────────────────────────────────────────────────────────────────
