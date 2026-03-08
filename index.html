@@ -57,6 +57,7 @@
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="charmap">Char Map</a></li>
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="cssspec">CSS Spec</a></li>
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="tz">Time Zone</a></li>
+        <li><a href="#tools" class="nav__link nav-tool-link" data-tab="diff">Diff</a></li>
         <li><a href="#about" class="nav__link">About</a></li>
       </ul>
     </div>
@@ -122,6 +123,9 @@
         </button>
         <button class="tab" role="tab" aria-selected="false" aria-controls="panel-tz" id="tab-tz" data-panel="tz" tabindex="-1">
           <span class="tab__icon" aria-hidden="true">🌐</span> Time Zone
+        </button>
+        <button class="tab" role="tab" aria-selected="false" aria-controls="panel-diff" id="tab-diff" data-panel="diff" tabindex="-1">
+          <span class="tab__icon" aria-hidden="true">±</span> Diff
         </button>
       </div>
     </div>
@@ -1396,6 +1400,83 @@
             </div>
 
             <div class="status-bar" id="tzStatus" aria-live="polite" role="status"></div>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════════════════════════
+           Text Diff
+           ═══════════════════════════════ -->
+      <section
+        id="panel-diff"
+        class="panel"
+        role="tabpanel"
+        aria-labelledby="tab-diff"
+        hidden
+      >
+        <div class="tool">
+          <div class="tool__header">
+            <div>
+              <h2 class="tool__title">Text Diff</h2>
+              <p class="tool__desc">Compare two text blocks line-by-line. Paste Before and After to see additions, deletions, and unchanged lines highlighted instantly.</p>
+            </div>
+          </div>
+          <div class="tool__body">
+
+            <div class="tool__body--split">
+              <div class="tool__pane">
+                <div class="pane__header">
+                  <span class="pane__label">Before</span>
+                  <div class="pane__actions">
+                    <button class="btn btn--sm btn--ghost" id="diffSwap" title="Swap Before and After">⇅ Swap</button>
+                    <button class="btn btn--sm btn--ghost" id="diffClear">Clear</button>
+                  </div>
+                </div>
+                <textarea
+                  class="code-area"
+                  id="diffBefore"
+                  placeholder="Paste the original text here…"
+                  spellcheck="false"
+                  autocomplete="off"
+                  aria-label="Before text"
+                ></textarea>
+              </div>
+
+              <div class="tool__pane">
+                <div class="pane__header">
+                  <span class="pane__label">After</span>
+                </div>
+                <textarea
+                  class="code-area"
+                  id="diffAfter"
+                  placeholder="Paste the modified text here…"
+                  spellcheck="false"
+                  autocomplete="off"
+                  aria-label="After text"
+                ></textarea>
+              </div>
+            </div>
+
+            <div class="tool__pane tool__pane--top">
+              <div class="pane__header">
+                <span class="pane__label">Diff</span>
+                <div class="pane__actions">
+                  <button class="btn btn--sm btn--ghost" id="diffCopy" disabled>Copy unified diff</button>
+                </div>
+              </div>
+              <div
+                class="diff-output"
+                id="diffOutput"
+                role="region"
+                aria-label="Diff output"
+                aria-live="polite"
+                tabindex="0"
+              >
+                <span class="diff-empty">Paste text in Before and After to see the diff.</span>
+              </div>
+              <div class="status-bar" id="diffStats" role="status" aria-live="polite"></div>
+            </div>
 
           </div>
         </div>

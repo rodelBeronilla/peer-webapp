@@ -22,3 +22,4 @@ import './tools/chmod.js';
 import './tools/charmap.js';
 import './tools/cssspec.js';
 import './tools/tz.js';
+import './tools/diff.js';
