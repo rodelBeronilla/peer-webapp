@@ -348,25 +348,6 @@ function getRecentDiscussions() {
   } catch { return []; }
 }
 
-function getDiscussionsByCategory(categorySlug) {
-  try {
-    const result = run(`gh api graphql -f query="{ repository(owner:\\"rodelBeronilla\\", name:\\"peer-webapp\\") { discussions(first:5, categoryId:null, orderBy:{field:UPDATED_AT, direction:DESC}) { nodes { number title category { name slug } author { login } body updatedAt comments(last:3) { nodes { author { login } body createdAt } } } } } }"`, { timeout: 15_000 });
-    const parsed = JSON.parse(result);
-    return (parsed?.data?.repository?.discussions?.nodes || []).filter(d => d.category?.slug === categorySlug);
-  } catch { return []; }
-}
-
-function getMilestones() {
-  const data = ghJson(`api repos/${CONFIG.repo}/milestones`);
-  return Array.isArray(data) ? data.map(m => m.title) : [];
-}
-
-function getLabels() {
-  try {
-    const data = ghJson(`label list -R ${CONFIG.repo} --json name`);
-    return Array.isArray(data) ? data.map(l => l.name) : [];
-  } catch { return []; }
-}
 
 /**
  * Returns 'success' | 'failure' | 'pending' | 'unknown' for a PR's CI checks.

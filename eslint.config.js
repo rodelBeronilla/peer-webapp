@@ -1,7 +1,4 @@
 // ESLint flat config for peer-webapp
-// Targets browser ES6+ modules (tools/*.js, script.js).
-// coordinator.js is intentionally excluded — it is a Node.js script with its own
-// runtime context (process, console are legitimate), not a browser module.
 // Rule set is intentionally minimal — catching real bugs, not style.
 
 import js from '@eslint/js';
@@ -9,6 +6,7 @@ import globals from 'globals';
 
 export default [
   js.configs.recommended,
+  // Browser ES6+ modules: tools and the script entrypoint
   {
     files: ['tools/*.js', 'script.js'],
     languageOptions: {
@@ -26,6 +24,26 @@ export default [
       'no-implicit-globals': 'error',
       // Error on console.log — use setStatus() for user-visible output; add eslint-disable with rationale for any legitimate diagnostic calls
       'no-console': 'error',
+    },
+  },
+  // Node.js coordinator script — separate config to allow process/console/Buffer globals
+  // while retaining the dead-code rules (no-unused-vars, no-undef) that catch real bugs.
+  {
+    files: ['coordinator.js'],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'module',
+      globals: {
+        ...globals.node,
+      },
+    },
+    rules: {
+      'no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+      'no-undef': 'error',
+      'eqeqeq': ['error', 'always', { null: 'ignore' }],
+      'no-console': 'off',        // console.log/warn/error are the coordinator's logging mechanism
+      'no-empty': ['error', { allowEmptyCatch: true }], // bare catch {} is intentional for non-fatal failures
+      // no-implicit-globals omitted — no-op in ESM module scope (sourceType: 'module' makes top-level declarations module-scoped, not global)
     },
   },
 ];
