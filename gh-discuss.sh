@@ -54,7 +54,7 @@ case "${1:-}" in
       { repository(owner:\"$REPO_OWNER\", name:\"$REPO_NAME\") {
         discussion(number:$NUMBER) {
           id number title body author{login} createdAt category{name}
-          comments(first:50) {
+          comments(last:50) {
             nodes { id author{login} body createdAt }
           }
         }

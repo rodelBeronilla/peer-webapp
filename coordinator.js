@@ -243,7 +243,7 @@ function getOpenPRs() {
   // Candidate for removal: none currently — all fields are actively used.
   // Note: `author` was removed in #200 — it was fetched but never referenced in coordinator logic.
   // Convention: when adding a field, document it in this comment before opening the PR.
-  return ghJson(`pr list -R ${CONFIG.repo} --state open --json number,title,labels,headRefName,body,reviewDecision,reviews,createdAt,mergeStateStatus --limit 20`);
+  return ghJson(`pr list -R ${CONFIG.repo} --state open --json number,title,labels,headRefName,body,reviewDecision,reviews,createdAt,mergeStateStatus --limit 50`);
 }
 
 function getRecentClosedIssues(limit = 10) {
@@ -490,10 +490,17 @@ function formatGitHubContext(ctx) {
     sections.push('### Open Issues: NONE — you should create new issues for upcoming work');
   }
 
-  // Open PRs
+  // Open PRs — sorted by priority descending, then by age ascending (oldest first within tier).
+  // This guarantees a high-priority PR filed early in the sprint stays visible at the top
+  // regardless of how many lower-priority PRs accumulated after it.
   if (ctx.openPRs.length > 0) {
     sections.push('\n### Open Pull Requests');
-    for (const pr of ctx.openPRs) {
+    const sortedPRs = [...ctx.openPRs].sort((a, b) => {
+      const priorityDiff = getPriorityBonus(b) - getPriorityBonus(a); // descending
+      if (priorityDiff !== 0) return priorityDiff;
+      return new Date(a.createdAt || 0) - new Date(b.createdAt || 0); // ascending (oldest first)
+    });
+    for (const pr of sortedPRs) {
       const labels = (pr.labels || []).map(l => l.name).join(', ');
       const review = pr.reviewDecision || 'no reviews';
       sections.push(`- PR #${pr.number}: ${pr.title} (${pr.headRefName}) [${labels}] — ${review}`);
