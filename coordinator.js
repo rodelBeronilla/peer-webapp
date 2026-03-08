@@ -915,6 +915,12 @@ function decideAction(agentKey, ctx, turnCount = 0) {
     const labels = (i.labels || []).map(l => l.name);
     if (!labels.includes('P0-critical') && !labels.includes('P1-high')) return false;
     if (labels.includes('status:blocked')) return false;
+    // Exclude self-assigned issues — those are already handled by myStaleIssues.
+    // This filter targets the case where the issue is assigned to the *peer* and their PR was closed.
+    const assignedToMe = (i.assignees || []).some(a =>
+      a.login?.toLowerCase().includes(agent.name.toLowerCase())
+    );
+    if (assignedToMe) return false;
     const issueRef = new RegExp(`(?<![0-9])#${i.number}(?![0-9])`);
     const hasOpenPR = ctx.openPRs.some(pr =>
       issueRef.test(pr.title || '') || issueRef.test(pr.body || '')
