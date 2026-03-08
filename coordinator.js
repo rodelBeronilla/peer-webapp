@@ -211,10 +211,10 @@ function getOpenPRs() {
   // Fields and their consumers — update this comment whenever fields change:
   //   number          — PR identity; used everywhere to reference a PR
   //   title           — PR identity; displayed in prompt sections and action descriptions
-  //   labels          — agent ownership (agent:alpha/beta) and status:blocked checks (Priority 0-4)
+  //   labels          — agent ownership (agent:alpha/beta) and status:blocked checks (Priority 0-9)
   //   headRefName     — branch name; used in prompt checkout/push commands and conflict resolution
   //   body            — PR-issue linkage detection (pr.body.includes(`#${issue.number}`))
-  //   reviewDecision  — Priority 1 merge gate (must be APPROVED) and Priority 2 review queue filter
+  //   reviewDecision  — Priority 1 merge gate (must be APPROVED) and Priority 2/3 review queue filter
   //   reviews         — isPRStale() activity timestamps; agent self-review detection; PR conversation display
   //   createdAt       — isPRStale() fallback when a PR has zero review/comment activity
   //   mergeStateStatus — Priority 0 CONFLICTING detection; filtered from merge and review queues
@@ -576,26 +576,10 @@ function decideAction(agentKey, ctx, turnCount = 0) {
     return { type: 'merge-pr', pr, ciStatus: ci };
   }
 
-  // Priority 2: Review peer's open PRs (oldest first — clear the stale backlog)
-  // Skip CONFLICTING peer PRs — reviewing a PR that can never merge is wasted effort;
-  // the peer needs to rebase before review is meaningful.
-  const peerPRs = ctx.openPRs
-    .filter(pr =>
-      (pr.labels || []).some(l => l.name === peerLabel) &&
-      pr.reviewDecision !== 'APPROVED' &&
-      pr.mergeStateStatus !== 'CONFLICTING'
-    )
-    .sort((a, b) => a.number - b.number);
-  for (const pr of peerPRs) {
-    if (claimWork(agentKey, 'pr', pr.number)) {
-      return { type: 'review-pr', pr };
-    }
-  }
-
-  // Priority 2.5: Peer PRs with explicit re-review requests.
+  // Priority 2: Peer PRs with explicit re-review requests (beat the normal oldest-first queue).
   // When a peer force-pushes their branch and comments "please re-review" (or similar),
-  // route to review before picking up new issues. This prevents the race where the
-  // reviewer's turn falls through to new issues while the updated PR sits unreviewed.
+  // route to review before picking up any other peer PR. This prevents the race where the
+  // reviewer's turn falls through to a different older PR while the updated PR sits unreviewed.
   // Uses prConversations (already fetched in buildGitHubContext) — no extra API calls.
   const RE_REVIEW_PATTERN = /\bre-?review\b/i;
   const peerPRsWithReReviewRequest = ctx.openPRs.filter(pr => {
@@ -613,7 +597,23 @@ function decideAction(agentKey, ctx, turnCount = 0) {
     }
   }
 
-  // Priority 3: Respond to comments on own PRs
+  // Priority 3: Review peer's open PRs (oldest first — clear the stale backlog)
+  // Skip CONFLICTING peer PRs — reviewing a PR that can never merge is wasted effort;
+  // the peer needs to rebase before review is meaningful.
+  const peerPRs = ctx.openPRs
+    .filter(pr =>
+      (pr.labels || []).some(l => l.name === peerLabel) &&
+      pr.reviewDecision !== 'APPROVED' &&
+      pr.mergeStateStatus !== 'CONFLICTING'
+    )
+    .sort((a, b) => a.number - b.number);
+  for (const pr of peerPRs) {
+    if (claimWork(agentKey, 'pr', pr.number)) {
+      return { type: 'review-pr', pr };
+    }
+  }
+
+  // Priority 4: Respond to comments on own PRs
   const ownPRsWithComments = ctx.prConversations.filter(pc => {
     const pr = ctx.openPRs.find(p => p.number === pc.pr);
     return pr && (pr.labels || []).some(l => l.name === agent.label);
@@ -622,7 +622,7 @@ function decideAction(agentKey, ctx, turnCount = 0) {
     return { type: 'respond-pr', pr: ownPRsWithComments[0] };
   }
 
-  // Priority 4: Flag stale PRs (>24h without activity — reduced from 48h)
+  // Priority 5: Flag stale PRs (>24h without activity — reduced from 48h)
   // Own stale PRs → ping peer to re-engage; peer stale PRs → review to re-engage
   const staleThresholdMs = 24 * 60 * 60 * 1000;
   // Check PRs that have comment/review activity
@@ -655,7 +655,7 @@ function decideAction(agentKey, ctx, turnCount = 0) {
     }
   }
 
-  // Priority 5: Pick up unassigned issues (oldest first to clear backlog)
+  // Priority 6: Pick up unassigned issues (oldest first to clear backlog)
   const unassigned = ctx.openIssues
     .filter(i =>
       (i.assignees || []).length === 0 &&
@@ -668,7 +668,7 @@ function decideAction(agentKey, ctx, turnCount = 0) {
     }
   }
 
-  // Priority 5b: Stale assigned issues — assigned to this agent but no PR exists
+  // Priority 6b: Stale assigned issues — assigned to this agent but no PR exists
   const myStaleIssues = ctx.openIssues.filter(i => {
     const assignedToMe = (i.assignees || []).some(a =>
       a.login?.toLowerCase().includes(agent.name.toLowerCase())
@@ -686,7 +686,7 @@ function decideAction(agentKey, ctx, turnCount = 0) {
     }
   }
 
-  // Priority 6: Respond to peer's unanswered discussion (when nothing else to do)
+  // Priority 7: Respond to peer's unanswered discussion (when nothing else to do)
   if (ctx.discussions && ctx.discussions.length > 0) {
     for (const d of ctx.discussions) {
       const comments = d.comments?.nodes || [];
@@ -698,12 +698,12 @@ function decideAction(agentKey, ctx, turnCount = 0) {
     }
   }
 
-  // Priority 7: Catch up / start new discussion (idle turn)
+  // Priority 8: Catch up / start new discussion (idle turn)
   if (ctx.discussions !== undefined) {
     return { type: 'discuss', respond: false };
   }
 
-  // Priority 8: Create new issues (backlog empty)
+  // Priority 9: Create new issues (backlog empty)
   return { type: 'create-issues' };
 }
 
