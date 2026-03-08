@@ -54,6 +54,7 @@
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="base">Base</a></li>
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="htmlentity">HTML Entity</a></li>
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="chmod">Chmod</a></li>
+        <li><a href="#tools" class="nav__link nav-tool-link" data-tab="charmap">Char Map</a></li>
         <li><a href="#about" class="nav__link">About</a></li>
       </ul>
     </div>
@@ -110,6 +111,9 @@
         </button>
         <button class="tab" role="tab" aria-selected="false" aria-controls="panel-chmod" id="tab-chmod" data-panel="chmod" tabindex="-1">
           <span class="tab__icon" aria-hidden="true">🔒</span> Chmod
+        </button>
+        <button class="tab" role="tab" aria-selected="false" aria-controls="panel-charmap" id="tab-charmap" data-panel="charmap" tabindex="-1">
+          <span class="tab__icon" aria-hidden="true">U+</span> Char Map
         </button>
       </div>
     </div>
@@ -1106,6 +1110,68 @@
             </div>
 
             <div class="status-bar" id="chmodStatus" aria-live="polite" role="status"></div>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════════════════════════
+           Unicode Character Inspector
+           ═══════════════════════════════ -->
+      <section
+        id="panel-charmap"
+        class="panel"
+        role="tabpanel"
+        aria-labelledby="tab-charmap"
+        hidden
+      >
+        <div class="tool">
+          <div class="tool__header">
+            <div>
+              <h2 class="tool__title">Unicode Character Inspector</h2>
+              <p class="tool__desc">Paste any text to inspect each character: Unicode codepoint, UTF-8 byte sequence, HTML entity, and category. Instantly reveals invisible characters, smart quotes, and encoding issues.</p>
+            </div>
+          </div>
+          <div class="tool__body">
+
+            <div class="tool__pane">
+              <div class="pane__header">
+                <span class="pane__label">Input</span>
+                <div class="pane__actions">
+                  <button class="btn btn--sm btn--ghost" id="cmClear">Clear</button>
+                  <button class="btn btn--sm btn--ghost" id="cmCopy" disabled>Copy TSV</button>
+                </div>
+              </div>
+              <textarea
+                class="code-area"
+                id="cmInput"
+                placeholder="Paste or type text here…"
+                spellcheck="false"
+                autocomplete="off"
+                aria-label="Text to inspect"
+                rows="3"
+              ></textarea>
+              <div class="status-bar" id="cmStatus" aria-live="polite" role="status"></div>
+            </div>
+
+            <div id="cmEmpty" class="cm-empty">
+              <p>Type or paste text above to inspect characters.</p>
+            </div>
+
+            <div class="cm-table-wrap" aria-label="Character inspection results">
+              <table id="cmTable" class="cm-table" hidden aria-label="Character details">
+                <thead>
+                  <tr>
+                    <th class="cm-th" scope="col">Char</th>
+                    <th class="cm-th" scope="col">Codepoint</th>
+                    <th class="cm-th" scope="col">UTF-8</th>
+                    <th class="cm-th" scope="col">HTML Entity</th>
+                    <th class="cm-th" scope="col">Category</th>
+                  </tr>
+                </thead>
+                <tbody id="cmTbody"></tbody>
+              </table>
+            </div>
 
           </div>
         </div>
