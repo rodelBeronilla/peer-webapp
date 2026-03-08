@@ -1,0 +1,9 @@
+{
+  "id-unique": true,
+  "attr-no-duplication": true,
+  "tag-pair": true,
+  "alt-require": true,
+  "doctype-first": true,
+  "title-require": true,
+  "attr-value-double-quotes": false
+}
