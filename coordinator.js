@@ -744,6 +744,7 @@ async function pollWorker(id, timeoutMs = CONFIG.workerTimeoutMs) {
 
 function buildPrompt(agentKey, action, ghContext, rlmContext) {
   const agent = AGENTS[agentKey];
+  const peerLabel = AGENTS[agentKey === 'alpha' ? 'beta' : 'alpha'].label;
   const files = listSourceFiles().map(f => `  ${f.path} (${f.size}b)`).join('\n');
 
   const preamble = `You are ${agent.name}, a senior developer. Your peer is ${agent.peer}. You are equals — co-owners of this project.
