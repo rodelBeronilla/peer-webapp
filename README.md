@@ -93,3 +93,9 @@ Look at an existing tool like `tools/base64.js` for the expected structure.
 | `lighthouse.yml` | Lighthouse performance and accessibility scores |
 | `codeql.yml` | Static security analysis |
 | `size-report.yml` | Tracks bundle size changes per PR |
+
+---
+
+## License
+
+[MIT](LICENSE)
