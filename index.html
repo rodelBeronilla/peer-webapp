@@ -59,6 +59,7 @@
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="tz">Time Zone</a></li>
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="diff">Diff</a></li>
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="password">Password</a></li>
+        <li><a href="#tools" class="nav__link nav-tool-link" data-tab="string">String</a></li>
         <li><a href="#about" class="nav__link">About</a></li>
       </ul>
     </div>
@@ -130,6 +131,9 @@
         </button>
         <button class="tab" role="tab" aria-selected="false" aria-controls="panel-password" id="tab-password" data-panel="password" tabindex="-1">
           <span class="tab__icon" aria-hidden="true">🔑</span> Password
+        </button>
+        <button class="tab" role="tab" aria-selected="false" aria-controls="panel-string" id="tab-string" data-panel="string" tabindex="-1">
+          <span class="tab__icon" aria-hidden="true">Aa</span> String
         </button>
       </div>
     </div>
@@ -1642,6 +1646,93 @@
 
             <p class="pw-entropy" id="pwEntropy" aria-live="polite"></p>
 
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════════════════════════
+           String Utilities
+           ═══════════════════════════════ -->
+      <section
+        id="panel-string"
+        class="panel"
+        role="tabpanel"
+        aria-labelledby="tab-string"
+        hidden
+      >
+        <div class="tool">
+          <div class="tool__header">
+            <div>
+              <h2 class="tool__title">String Utilities</h2>
+              <p class="tool__desc">Sort lines, deduplicate, convert case, and trim whitespace. Paste text, pick an operation, get the result instantly.</p>
+            </div>
+          </div>
+          <div class="tool__body tool__body--split">
+            <div class="tool__pane">
+              <div class="pane__header">
+                <span class="pane__label">Input</span>
+                <div class="pane__actions">
+                  <button class="btn btn--sm btn--ghost" id="strClear">Clear</button>
+                </div>
+              </div>
+              <textarea
+                class="code-area"
+                id="strInput"
+                placeholder="Paste or type text here…"
+                spellcheck="false"
+                autocomplete="off"
+                aria-label="String input"
+              ></textarea>
+              <p class="str-live-stats" id="strInputStats" aria-live="polite"></p>
+              <div class="status-bar" id="strStatus" aria-live="polite" role="status"></div>
+              <div class="str-ops" role="group" aria-label="String operations">
+                <div class="str-ops__group">
+                  <span class="str-ops__label">Sort</span>
+                  <div class="pane__actions">
+                    <button class="btn btn--sm" id="strSortAZ">A→Z</button>
+                    <button class="btn btn--sm btn--secondary" id="strSortZA">Z→A</button>
+                    <button class="btn btn--sm btn--ghost" id="strSortLen">Length</button>
+                  </div>
+                </div>
+                <div class="str-ops__group">
+                  <span class="str-ops__label">Case</span>
+                  <div class="pane__actions">
+                    <button class="btn btn--sm" id="strUpper">UPPER</button>
+                    <button class="btn btn--sm btn--secondary" id="strLower">lower</button>
+                    <button class="btn btn--sm btn--ghost" id="strTitle">Title</button>
+                    <button class="btn btn--sm btn--ghost" id="strCamel">camel</button>
+                    <button class="btn btn--sm btn--ghost" id="strSnake">snake</button>
+                    <button class="btn btn--sm btn--ghost" id="strKebab">kebab</button>
+                  </div>
+                </div>
+                <div class="str-ops__group">
+                  <span class="str-ops__label">Lines</span>
+                  <div class="pane__actions">
+                    <button class="btn btn--sm" id="strDedup">Deduplicate</button>
+                    <button class="btn btn--sm btn--secondary" id="strTrim">Trim</button>
+                    <button class="btn btn--sm btn--ghost" id="strRemoveBlanks">Remove Blanks</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="tool__pane">
+              <div class="pane__header">
+                <span class="pane__label">Output</span>
+                <div class="pane__actions">
+                  <button class="btn btn--sm btn--ghost" id="strCopy" disabled>Copy</button>
+                  <button class="btn btn--sm btn--ghost" id="strUseOutput" title="Load output back into input">↑ Use as Input</button>
+                </div>
+              </div>
+              <textarea
+                class="code-area"
+                id="strOutput"
+                placeholder="Result will appear here…"
+                readonly
+                spellcheck="false"
+                aria-label="String output"
+              ></textarea>
+              <p class="str-live-stats" id="strStats" aria-live="polite"></p>
+            </div>
           </div>
         </div>
       </section>
