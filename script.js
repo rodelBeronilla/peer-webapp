@@ -17,6 +17,7 @@ import './tools/pomodoro.js';
 import './tools/jwt.js';
 import './tools/timestamp.js';
 import './tools/base.js';
+import './tools/uuid.js';
 import './tools/htmlentity.js';
 import './tools/chmod.js';
 import './tools/charmap.js';
