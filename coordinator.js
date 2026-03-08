@@ -641,6 +641,26 @@ function decideAction(agentKey, ctx, turnCount = 0) {
     }
   }
 
+  // PRIORITY INDEX — every block in this function, in execution order.
+  // To add a new priority: insert it HERE first, then add the code block ABOVE
+  // the block it should beat. Numbering labels don't control order — position does.
+  //
+  //   pre-0a : Owner unanswered discussion (above)
+  //   pre-0b : @mention in discussion (above)
+  //   0      : Own CONFLICTING PR — resolve before all other work
+  //   0b     : Notify peer that their CONFLICTING PR was skipped (comment once)
+  //   1      : Merge peer's APPROVED PR with passing CI
+  //   2      : Re-review request on peer's PR (explicit re-review signal in conversation)
+  //   3      : Review peer's oldest open PR
+  //   4      : Respond to comment on own PR
+  //   5      : Flag stale PRs (>24h without activity)
+  //   5b     : Individual self-reflection
+  //   6      : Pick up unassigned issue (oldest first)
+  //   6b     : Stale assigned issue — assigned but no PR exists
+  //   7      : Respond to peer's unanswered discussion
+  //   8      : Catch up / start new discussion (idle)
+  //   9      : Create new issue (backlog empty)
+
   // Priority 0: Own PR is CONFLICTING — must resolve before any other work.
   // A CONFLICTING PR will never merge; dispatching review/merge tasks against it wastes turns.
   const conflictingOwnPRs = ctx.openPRs.filter(pr =>
