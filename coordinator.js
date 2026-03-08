@@ -267,25 +267,58 @@ function getPRComments(number) {
  * Dedup guard: if any existing comment already contains "skipped — CONFLICTING",
  * we skip posting to avoid one comment per turn for a stuck PR.
  */
-// ─── Priority scoring ────────────────────────────────────────────────────────
+// ─── Impact scoring ──────────────────────────────────────────────────────────
+//
+// Every scorable action gets: BASE + PRIORITY_BONUS + age_bonus + situational_bonus.
+// The highest-scoring candidate wins. This replaces the old rigid waterfall where
+// action TYPE determined priority regardless of the item's actual importance.
+//
+// Design principles:
+//   - A P0 bug fix should beat merging a P3 PR
+//   - A P1 issue should beat reviewing a P3 PR
+//   - Merging a reviewed+passing P0 PR should beat implementing a P2 issue
+//   - Age gives a small boost so items don't rot, but can't override priority
+//   - Re-review requests and stale items get situational bonuses
 
-const PRIORITY_RANK = { 'P0-critical': 0, 'P1-high': 1, 'P2-medium': 2, 'P3-low': 3 };
+// Base scores by action type — reflect the inherent value of the action
+const ACTION_BASE_SCORE = {
+  'resolve-conflict':  200, // must-do: unblocks own pipeline
+  'merge-pr':           70, // fast, high-leverage: unblocks merged work
+  'review-pr':          50, // necessary for pipeline flow
+  'implement-issue':    60, // core value delivery
+  'respond-pr':         45, // unblocks own PR progress
+  'ping-pr':            20, // housekeeping
+  'discuss':            15, // collaboration but lower urgency
+  'create-issues':       5, // only when nothing else to do
+};
 
-/** Extract numeric priority rank from an item's labels (0=P0, 3=P3, 4=unlabeled). */
-function priorityRank(item) {
+// Priority label bonus — the item's stated criticality
+const PRIORITY_BONUS = {
+  'P0-critical': 100,
+  'P1-high':      60,
+  'P2-medium':    25,
+  'P3-low':       10,
+};
+
+/** Get priority bonus from an item's labels. */
+function getPriorityBonus(item) {
   for (const l of (item.labels || [])) {
-    if (PRIORITY_RANK[l.name] !== undefined) return PRIORITY_RANK[l.name];
+    if (PRIORITY_BONUS[l.name] !== undefined) return PRIORITY_BONUS[l.name];
   }
-  return 4; // unlabeled = lowest
+  return 0;
 }
 
-/** Sort items by priority (P0 first), then by issue number (oldest first within same priority). */
-function sortByPriority(items) {
-  return [...items].sort((a, b) => {
-    const pa = priorityRank(a), pb = priorityRank(b);
-    if (pa !== pb) return pa - pb;
-    return a.number - b.number;
-  });
+/** Age bonus: older items get a small boost (max 20) so they don't rot forever. */
+function getAgeBonus(item) {
+  const created = item.createdAt ? new Date(item.createdAt) : null;
+  if (!created) return 0;
+  const daysOld = (Date.now() - created.getTime()) / (1000 * 60 * 60 * 24);
+  return Math.min(Math.floor(daysOld * 2), 20);
+}
+
+/** Score a candidate action. */
+function scoreAction(type, item) {
+  return (ACTION_BASE_SCORE[type] || 0) + getPriorityBonus(item || {}) + getAgeBonus(item || {});
 }
 
 function notifyConflictingSkip(pr, agent) {
@@ -603,6 +636,8 @@ function findMentionedDiscussions(discussions, agentGhUser, agentName) {
 
 function decideGammaAction(agentKey, ctx, turnCount = 0) {
   const agent = AGENTS[agentKey];
+
+  // Unconditional gates (same as Alpha/Beta)
   if (ctx.discussions && ctx.discussions.length > 0) {
     const ownerDiscussions = findOwnerUnansweredDiscussions(ctx.discussions, agent.name);
     if (ownerDiscussions.length > 0) {
@@ -617,23 +652,60 @@ function decideGammaAction(agentKey, ctx, turnCount = 0) {
       return { type: 'discuss', discussion: mentioned[0].discussion, respond: true, mentionTriggered: true };
     }
   }
+
+  // Scored candidates for Gamma (critique-only)
+  const candidates = [];
+
+  // Review all open PRs (Gamma reviews both Alpha's and Beta's)
   const unreviewedPRs = ctx.openPRs.filter(pr => {
     const reviews = pr.reviews || [];
     return !reviews.some(r => (r.author?.login || '').toLowerCase().includes('gamma'));
-  }).sort((a, b) => a.number - b.number);
+  });
   for (const pr of unreviewedPRs) {
-    if (claimWork(agentKey, 'pr', pr.number)) return { type: 'review-pr', pr };
+    candidates.push({
+      score: scoreAction('review-pr', pr),
+      action: { type: 'review-pr', pr },
+      claimType: 'pr', claimNumber: pr.number,
+    });
   }
-  if (unreviewedPRs.length === 0) return { type: 'critique-architecture', turnCount };
+
+  // Critique discussions
   if (ctx.discussions && ctx.discussions.length > 0) {
     for (const d of ctx.discussions) {
       const comments = d.comments?.nodes || [];
       const last = comments.length > 0 ? comments[comments.length - 1] : null;
-      if (!last || !(last.author?.login || '').toLowerCase().includes('gamma'))
-        return { type: 'critique-discussions', discussion: d };
+      if (!last || !(last.author?.login || '').toLowerCase().includes('gamma')) {
+        candidates.push({
+          score: scoreAction('discuss', d) + 5, // slight boost for critique discussions
+          action: { type: 'critique-discussions', discussion: d },
+          claimType: null, claimNumber: null,
+        });
+      }
     }
   }
-  return { type: 'critique-pipeline', turnCount };
+
+  // Architecture critique (base score, no item)
+  candidates.push({ score: 30, action: { type: 'critique-architecture', turnCount }, claimType: null, claimNumber: null });
+  // Pipeline critique (lower base)
+  candidates.push({ score: 20, action: { type: 'critique-pipeline', turnCount }, claimType: null, claimNumber: null });
+  // Sprint audit (lowest)
+  candidates.push({ score: 10, action: { type: 'critique-sprint', turnCount }, claimType: null, claimNumber: null });
+
+  candidates.sort((a, b) => b.score - a.score);
+
+  if (candidates.length > 0) {
+    const top = candidates.slice(0, 5).map(c =>
+      `${c.action.type}${c.claimNumber ? '#' + c.claimNumber : ''} (${c.score})`
+    ).join(', ');
+    log(`[${agent.name}] Candidates: ${top}${candidates.length > 5 ? ` +${candidates.length - 5} more` : ''}`);
+  }
+
+  for (const c of candidates) {
+    if (c.claimType && !claimWork(agentKey, c.claimType, c.claimNumber)) continue;
+    return c.action;
+  }
+
+  return { type: 'critique-architecture', turnCount };
 }
 
 // ─── Determine what action the agent should take ────────────────────────────
@@ -641,36 +713,29 @@ function decideGammaAction(agentKey, ctx, turnCount = 0) {
 function decideAction(agentKey, ctx, turnCount = 0) {
   if (AGENTS[agentKey].isReviewOnly) return decideGammaAction(agentKey, ctx, turnCount);
 
-  // Priority index — physical order IS execution order. A block listed at position N
-  // will always preempt anything listed after it. To insert a new priority between
-  // existing blocks, place the CODE before the block it should beat AND update this list.
-  // Mismatches between this list and the code below are a bug.
+  // ── Impact-scored action selection ──────────────────────────────────────────
   //
-  //  (implicit) Owner-triggered discussion response
-  //  (implicit) @mention discussion response
-  //  (implicit) Checkpoint (workSinceCheckpoint threshold)
-  //  0: Own PR is CONFLICTING — resolve before all else
-  //  (implicit) Notify peer of their CONFLICTING PRs (side-effect, no return)
-  //  1: Merge peer's reviewed + passing-CI PRs (unblock the pipeline)
-  //  2: Review peer PRs with explicit re-review requests
-  //  2b: P0-critical issues — jump queue ahead of routine PR reviews
-  //  3: Review peer's open PRs (oldest first)
-  //  4: Respond to comments on own open PRs
-  //  4b: P1-high issues — more impactful than chasing stale PRs
-  //  5: Flag stale PRs (>24h) — ping own or review peer's
-  //  5b: Self-reflection (workSinceReflect threshold)
-  //  6: Pick up unassigned issues (by priority: P0 > P1 > P2 > P3, then oldest)
-  //  6b: Resume stale assigned issues (by priority, then oldest)
-  //  7: Respond to peer's unanswered discussion
-  //  8: Start new discussion / idle turn
-  //  9: Create new issues (backlog empty)
+  // Phase 1: Unconditional gates (system obligations that always win)
+  //   - Checkpoint / self-reflect thresholds
+  //   - Owner discussion responses
+  //   - @mention responses
+  //   - Own CONFLICTING PRs (must fix to unblock pipeline)
+  //
+  // Phase 2: Scored candidates (highest score wins)
+  //   Every candidate gets: BASE_SCORE[type] + PRIORITY_BONUS[label] + age_bonus + situational
+  //   This means a P0-critical issue (160+) beats merging a P3-low PR (80),
+  //   but merging a P0-critical PR (170) beats implementing a P2-medium issue (85).
+  //
+  // Phase 3: Fallbacks (when no scored candidates exist)
+  //   - Discussions, create-issues
 
   const agent = AGENTS[agentKey];
   const peerLabel = AGENTS[agentKey === 'alpha' ? 'beta' : 'alpha'].label;
 
+  // ── Phase 1: Unconditional gates ──────────────────────────────────────────
+
   if (workSinceCheckpoint >= CHECKPOINT_WORK_THRESHOLD) return { type: 'checkpoint', turnCount, workDelivered: workSinceCheckpoint };
 
-  const ownerLogin = CONFIG.owner.toLowerCase();
   if (ctx.discussions && ctx.discussions.length > 0) {
     const ownerDiscussions = findOwnerUnansweredDiscussions(ctx.discussions, agent.name);
     if (ownerDiscussions.length > 0) {
@@ -686,16 +751,13 @@ function decideAction(agentKey, ctx, turnCount = 0) {
     }
   }
 
-  // Priority 0: Own PR is CONFLICTING — must resolve before any other work.
-  // A CONFLICTING PR will never merge; dispatching review/merge tasks against it wastes turns.
+  // Own CONFLICTING PRs — must resolve before pipeline can flow
   const conflictingOwnPRs = ctx.openPRs.filter(pr =>
     (pr.labels || []).some(l => l.name === agent.label) &&
     pr.mergeStateStatus === 'CONFLICTING'
   ).sort((a, b) => a.number - b.number);
   for (const pr of conflictingOwnPRs) {
     if (claimWork(agentKey, 'conflict', pr.number)) {
-      // Escalate when the conflict has recurred enough times that automated cycling isn't working.
-      // Depth ≥ 3 means we're on branch -v3 or beyond — time to flag for human intervention.
       const depth = currentVersionDepth(pr.headRefName);
       if (depth >= 3) {
         try {
@@ -717,9 +779,7 @@ function decideAction(agentKey, ctx, turnCount = 0) {
     }
   }
 
-  // Notify on CONFLICTING peer PRs — post a one-time PR comment so the peer knows
-  // their PR was skipped and why. Priority 1 (merge) and Priority 2/3 (review)
-  // all filter the same CONFLICTING peer PRs, so one notification pass covers all.
+  // Side-effect: notify peer about their CONFLICTING PRs
   const conflictingPeerPRs = ctx.openPRs.filter(pr =>
     (pr.labels || []).some(l => l.name === peerLabel) &&
     pr.mergeStateStatus === 'CONFLICTING'
@@ -728,197 +788,164 @@ function decideAction(agentKey, ctx, turnCount = 0) {
     notifyConflictingSkip(pr, agent);
   }
 
-  // Priority 1: Merge PEER's reviewed PRs with passing CI (clear the backlog first)
-  // Merging is fast and high-value — unblock the pipeline before doing new reviews
+  // Self-reflection gate (before scoring — it's a system obligation like checkpoint)
+  if (workSinceReflect[agentKey] >= SELF_REFLECT_WORK_THRESHOLD && workSinceCheckpoint < CHECKPOINT_WORK_THRESHOLD) {
+    return { type: 'self-reflect', turnCount, workDelivered: workSinceReflect[agentKey] };
+  }
+
+  // ── Phase 2: Build scored candidates ──────────────────────────────────────
+
+  const candidates = []; // { score, action, claimType, claimNumber }
+  const RE_REVIEW_PATTERN = /\bre-?review\b/i;
+  const staleThresholdMs = 24 * 60 * 60 * 1000;
+
+  // ── Merge candidates: peer PRs that are reviewed + CI passing
   const mergeablePRs = ctx.openPRs.filter(pr => {
-    // Only merge peer's PRs, not your own
     const isPeerPR = (pr.labels || []).some(l => l.name === peerLabel);
     if (!isPeerPR) return false;
-    // Skip CONFLICTING peer PRs — they must rebase before merge is meaningful
     if (pr.mergeStateStatus === 'CONFLICTING') return false;
     if (pr.reviewDecision === 'APPROVED') return true;
-    // Check if THIS agent has already reviewed it (bot approvals don't show in reviewDecision)
     const reviews = pr.reviews || [];
     const myReview = reviews.find(r =>
       r.author?.login?.toLowerCase().includes(agent.name.toLowerCase())
     );
     return myReview && (myReview.state === 'APPROVED' || myReview.state === 'COMMENTED');
-  }).sort((a, b) => a.number - b.number); // oldest first
+  });
   for (const pr of mergeablePRs) {
-    if (!claimWork(agentKey, 'merge', pr.number)) continue;
     const ci = getCIStatus(pr.number);
-    if (ci === 'failure') {
-      log(`[${agent.name}] PR #${pr.number} reviewed but CI failing — skipping merge`);
-      releaseWork(agentKey);
-      continue;
-    }
-    if (ci === 'pending') {
-      log(`[${agent.name}] PR #${pr.number} reviewed but CI pending — skipping`);
-      releaseWork(agentKey);
-      continue;
-    }
-    return { type: 'merge-pr', pr, ciStatus: ci };
+    if (ci === 'failure' || ci === 'pending') continue;
+    candidates.push({
+      score: scoreAction('merge-pr', pr),
+      action: { type: 'merge-pr', pr, ciStatus: ci },
+      claimType: 'merge', claimNumber: pr.number,
+    });
   }
 
-  // Priority 2: Peer PRs with explicit re-review requests (beat the normal oldest-first queue).
-  // When a peer force-pushes their branch and comments "please re-review" (or similar),
-  // route to review before picking up any other peer PR. This prevents the race where the
-  // reviewer's next turn falls through to a different older PR while the updated PR sits
-  // unreviewed. Uses prConversations (already fetched in buildGitHubContext) — no extra API calls.
-  const RE_REVIEW_PATTERN = /\bre-?review\b/i;
-  const peerPRsWithReReviewRequest = ctx.openPRs.filter(pr => {
-    const isPeerPR = (pr.labels || []).some(l => l.name === peerLabel);
-    if (!isPeerPR) return false;
-    if (pr.reviewDecision === 'APPROVED') return false;
-    if (pr.mergeStateStatus === 'CONFLICTING') return false;
-    const pc = ctx.prConversations.find(c => c.pr === pr.number);
-    if (!pc) return false;
-    return (pc.comments || []).some(c => RE_REVIEW_PATTERN.test(c.body || ''));
-  }).sort((a, b) => a.number - b.number);
-  for (const pr of peerPRsWithReReviewRequest) {
-    if (claimWork(agentKey, 'pr', pr.number)) {
-      return { type: 'review-pr', pr };
-    }
-  }
-
-  // Priority 2b: P0-critical issues jump the queue — more impactful than routine PR reviews
-  const criticalIssues = ctx.openIssues.filter(i =>
-    (i.labels || []).some(l => l.name === 'P0-critical') &&
-    (i.assignees || []).length === 0 &&
-    !(i.labels || []).some(l => l.name === 'status:blocked')
+  // ── Review candidates: peer PRs needing review
+  const reviewablePRs = ctx.openPRs.filter(pr =>
+    (pr.labels || []).some(l => l.name === peerLabel) &&
+    pr.reviewDecision !== 'APPROVED' &&
+    pr.mergeStateStatus !== 'CONFLICTING'
   );
-  for (const issue of criticalIssues) {
-    if (claimWork(agentKey, 'issue', issue.number)) {
-      log(`[${agent.name}] P0-critical issue #${issue.number} jumping queue`);
-      return { type: 'implement-issue', issue };
-    }
+  for (const pr of reviewablePRs) {
+    let bonus = 0;
+    // Re-review request bonus (+15)
+    const pc = ctx.prConversations.find(c => c.pr === pr.number);
+    if (pc && (pc.comments || []).some(c => RE_REVIEW_PATTERN.test(c.body || ''))) bonus += 15;
+    // Stale PR bonus (+10)
+    if (isPRStale(pc || pr, staleThresholdMs)) bonus += 10;
+    candidates.push({
+      score: scoreAction('review-pr', pr) + bonus,
+      action: { type: 'review-pr', pr, stale: bonus >= 10 },
+      claimType: 'pr', claimNumber: pr.number,
+    });
   }
 
-  // Priority 3: Review peer's open PRs (oldest first — clear the stale backlog)
-  // Skip CONFLICTING peer PRs — reviewing a PR that can never merge is wasted effort;
-  // the peer needs to rebase before review is meaningful.
-  const peerPRs = ctx.openPRs
-    .filter(pr =>
-      (pr.labels || []).some(l => l.name === peerLabel) &&
-      pr.reviewDecision !== 'APPROVED' &&
-      pr.mergeStateStatus !== 'CONFLICTING'
-    )
-    .sort((a, b) => a.number - b.number);
-  for (const pr of peerPRs) {
-    if (claimWork(agentKey, 'pr', pr.number)) {
-      return { type: 'review-pr', pr };
-    }
-  }
-
-  // Priority 4: Respond to comments on own PRs
+  // ── Respond to comments on own PRs
   const ownPRsWithComments = ctx.prConversations.filter(pc => {
     const pr = ctx.openPRs.find(p => p.number === pc.pr);
     return pr && (pr.labels || []).some(l => l.name === agent.label);
   });
-  if (ownPRsWithComments.length > 0) {
-    return { type: 'respond-pr', pr: ownPRsWithComments[0] };
+  for (const pc of ownPRsWithComments) {
+    const pr = ctx.openPRs.find(p => p.number === pc.pr);
+    candidates.push({
+      score: scoreAction('respond-pr', pr),
+      action: { type: 'respond-pr', pr: pc },
+      claimType: null, claimNumber: null, // no claim needed for own PRs
+    });
   }
 
-  // Priority 4b: P1-high issues — more impactful than chasing stale PRs
-  const highIssues = ctx.openIssues.filter(i =>
-    (i.labels || []).some(l => l.name === 'P1-high') &&
+  // ── Ping own stale PRs
+  const prConversationNumbers = new Set(ctx.prConversations.map(pc => pc.pr));
+  const allPRsForStaleness = [
+    ...ctx.prConversations.map(pc => ({ pr: ctx.openPRs.find(p => p.number === pc.pr), pc })).filter(x => x.pr),
+    ...ctx.openPRs.filter(pr => !prConversationNumbers.has(pr.number)).map(pr => ({ pr, pc: pr })),
+  ];
+  for (const { pr, pc } of allPRsForStaleness) {
+    if (!isPRStale(pc, staleThresholdMs)) continue;
+    const isOwnPR = (pr.labels || []).some(l => l.name === agent.label);
+    if (isOwnPR) {
+      candidates.push({
+        score: scoreAction('ping-pr', pr),
+        action: { type: 'ping-pr', pr },
+        claimType: null, claimNumber: null,
+      });
+    }
+    // Stale peer PRs are already captured as review candidates with stale bonus above
+  }
+
+  // ── Implement unassigned issues
+  const unassigned = ctx.openIssues.filter(i =>
     (i.assignees || []).length === 0 &&
     !(i.labels || []).some(l => l.name === 'status:blocked')
   );
-  for (const issue of highIssues) {
-    if (claimWork(agentKey, 'issue', issue.number)) {
-      log(`[${agent.name}] P1-high issue #${issue.number} — prioritizing over stale PRs`);
-      return { type: 'implement-issue', issue };
-    }
-  }
-
-  // Priority 5: Flag stale PRs (>24h without activity — reduced from 48h)
-  // Own stale PRs → ping peer to re-engage; peer stale PRs → review to re-engage
-  const staleThresholdMs = 24 * 60 * 60 * 1000;
-  // Check PRs that have comment/review activity
-  for (const pc of ctx.prConversations) {
-    if (isPRStale(pc, staleThresholdMs)) {
-      const pr = ctx.openPRs.find(p => p.number === pc.pr);
-      if (!pr) continue;
-      const isOwnPR = (pr.labels || []).some(l => l.name === agent.label);
-      if (isOwnPR) {
-        return { type: 'ping-pr', pr };
-      } else {
-        return { type: 'review-pr', pr, stale: true };
-      }
-    }
-  }
-  // Also check PRs with zero activity (not in prConversations) — these are never
-  // reached by the loop above because buildGitHubContext only adds PRs that have
-  // at least one comment or review. A brand-new PR with no engagement is the
-  // clearest case of staleness and must be caught here.
-  const prConversationNumbers = new Set(ctx.prConversations.map(pc => pc.pr));
-  for (const pr of ctx.openPRs) {
-    if (prConversationNumbers.has(pr.number)) continue;
-    if (isPRStale(pr, staleThresholdMs)) {
-      const isOwnPR = (pr.labels || []).some(l => l.name === agent.label);
-      if (isOwnPR) {
-        return { type: 'ping-pr', pr };
-      } else {
-        return { type: 'review-pr', pr, stale: true };
-      }
-    }
-  }
-
-  // Priority 5b: Individual self-reflection
-  if (workSinceReflect[agentKey] >= SELF_REFLECT_WORK_THRESHOLD && workSinceCheckpoint < CHECKPOINT_WORK_THRESHOLD) {
-    return { type: 'self-reflect', turnCount, workDelivered: workSinceReflect[agentKey] };
-  }
-
-  // Priority 6: Pick up unassigned issues (highest priority first, then oldest)
-  const unassigned = sortByPriority(ctx.openIssues
-    .filter(i =>
-      (i.assignees || []).length === 0 &&
-      !(i.labels || []).some(l => l.name === 'status:blocked')
-    ));
   for (const issue of unassigned) {
-    if (claimWork(agentKey, 'issue', issue.number)) {
-      return { type: 'implement-issue', issue };
-    }
+    candidates.push({
+      score: scoreAction('implement-issue', issue),
+      action: { type: 'implement-issue', issue },
+      claimType: 'issue', claimNumber: issue.number,
+    });
   }
 
-  // Priority 6b: Stale assigned issues — assigned to this agent but no PR exists
+  // ── Resume stale assigned issues (assigned to me, no open PR)
   const myStaleIssues = ctx.openIssues.filter(i => {
     const assignedToMe = (i.assignees || []).some(a =>
       a.login?.toLowerCase().includes(agent.name.toLowerCase())
     );
     if (!assignedToMe) return false;
-    // Check if there's already an open PR for this issue
     const hasPR = ctx.openPRs.some(pr =>
       pr.title?.includes(`#${i.number}`) || pr.body?.includes(`#${i.number}`)
     );
     return !hasPR;
   });
-  const myStaleIssuesSorted = sortByPriority(myStaleIssues);
-  for (const issue of myStaleIssuesSorted) {
-    if (claimWork(agentKey, 'issue', issue.number)) {
-      return { type: 'implement-issue', issue };
-    }
+  for (const issue of myStaleIssues) {
+    candidates.push({
+      score: scoreAction('implement-issue', issue) + 5, // small bonus for already-assigned
+      action: { type: 'implement-issue', issue },
+      claimType: 'issue', claimNumber: issue.number,
+    });
   }
 
-  // Priority 7: Respond to peer's unanswered discussion (when nothing else to do)
+  // ── Respond to unanswered discussions
   if (ctx.discussions && ctx.discussions.length > 0) {
     for (const d of ctx.discussions) {
       const comments = d.comments?.nodes || [];
       const lastComment = comments.length > 0 ? comments[comments.length - 1] : null;
-      // Discussion with no comments from us, or peer spoke last
       if (!lastComment || lastComment.author?.login !== agent.name.toLowerCase()) {
-        return { type: 'discuss', discussion: d, respond: true };
+        candidates.push({
+          score: scoreAction('discuss', d),
+          action: { type: 'discuss', discussion: d, respond: true },
+          claimType: null, claimNumber: null,
+        });
       }
     }
   }
 
-  // Priority 8: Catch up / start new discussion (idle turn)
+  // ── Phase 3: Pick highest-scoring candidate ───────────────────────────────
+
+  // Sort by score descending
+  candidates.sort((a, b) => b.score - a.score);
+
+  // Log top candidates for observability
+  if (candidates.length > 0) {
+    const top = candidates.slice(0, 5).map(c =>
+      `${c.action.type}${c.claimNumber ? '#' + c.claimNumber : ''} (${c.score})`
+    ).join(', ');
+    log(`[${agent.name}] Candidates: ${top}${candidates.length > 5 ? ` +${candidates.length - 5} more` : ''}`);
+  }
+
+  // Try candidates in score order, respecting work claims
+  for (const c of candidates) {
+    if (c.claimType && !claimWork(agentKey, c.claimType, c.claimNumber)) continue;
+    return c.action;
+  }
+
+  // ── Phase 4: Fallbacks ────────────────────────────────────────────────────
+
   if (ctx.discussions !== undefined) {
     return { type: 'discuss', respond: false };
   }
 
-  // Priority 9: Create new issues (backlog empty)
   return { type: 'create-issues' };
 }
 
