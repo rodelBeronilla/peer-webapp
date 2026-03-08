@@ -558,6 +558,9 @@ function formatGitHubContext(ctx) {
 // ─── Reflection thresholds ─────────────────────────────────────────────────
 const CHECKPOINT_WORK_THRESHOLD  = 12;
 const SELF_REFLECT_WORK_THRESHOLD = 5;
+// When this many approved-but-unmerged PRs sit in the queue, pause new implement-issue
+// actions (except P0/P1) to avoid growing the backlog faster than it can drain.
+const APPROVED_UNMERGED_THRESHOLD = 15;
 let workSinceCheckpoint = 0;
 const workSinceReflect = { alpha: 0, beta: 0, gamma: 0 };
 const PRODUCTIVE_ACTIONS = new Set(['implement-issue', 'merge-pr', 'resolve-conflict']);
@@ -874,12 +877,30 @@ function decideAction(agentKey, ctx, turnCount = 0) {
     // Stale peer PRs are already captured as review candidates with stale bonus above
   }
 
+  // ── Throttle check: count approved-but-unmerged PRs
+  // When the backlog is large, pause new implement-issue actions (except P0/P1) so the
+  // queue drains faster than it grows. P0/P1 fixes bypass the gate — security and
+  // critical bugs shouldn't wait for the operator's merge session.
+  const approvedUnmergedCount = ctx.openPRs.filter(pr =>
+    pr.reviewDecision === 'APPROVED' && pr.mergeStateStatus !== 'CONFLICTING'
+  ).length;
+  if (approvedUnmergedCount >= APPROVED_UNMERGED_THRESHOLD) {
+    log(`[${agent.name}] ⚠ Throttle: ${approvedUnmergedCount} approved-unmerged PRs (threshold: ${APPROVED_UNMERGED_THRESHOLD}) — skipping new implement-issue actions for P2+`);
+  }
+
   // ── Implement unassigned issues
   const unassigned = ctx.openIssues.filter(i =>
     (i.assignees || []).length === 0 &&
     !(i.labels || []).some(l => l.name === 'status:blocked')
   );
   for (const issue of unassigned) {
+    // Throttle: skip P2+ issues when approved-unmerged backlog is too large
+    if (approvedUnmergedCount >= APPROVED_UNMERGED_THRESHOLD) {
+      const isHighPriority = (issue.labels || []).some(l =>
+        l.name === 'P0-critical' || l.name === 'P1-high'
+      );
+      if (!isHighPriority) continue;
+    }
     candidates.push({
       score: scoreAction('implement-issue', issue),
       action: { type: 'implement-issue', issue },
@@ -899,6 +920,13 @@ function decideAction(agentKey, ctx, turnCount = 0) {
     return !hasPR;
   });
   for (const issue of myStaleIssues) {
+    // Throttle: skip P2+ issues when approved-unmerged backlog is too large
+    if (approvedUnmergedCount >= APPROVED_UNMERGED_THRESHOLD) {
+      const isHighPriority = (issue.labels || []).some(l =>
+        l.name === 'P0-critical' || l.name === 'P1-high'
+      );
+      if (!isHighPriority) continue;
+    }
     candidates.push({
       score: scoreAction('implement-issue', issue) + 5, // small bonus for already-assigned
       action: { type: 'implement-issue', issue },
