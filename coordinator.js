@@ -884,8 +884,12 @@ function decideAction(agentKey, ctx, turnCount = 0) {
   //
   // NOTE: pr.reviewDecision is only populated when branch protection enforces a minimum
   // review count — this repo has no such rule, so reviewDecision is always "". Use
-  // pr.reviews directly to detect any APPROVED formal review instead.
-  const hasFormalApproval = pr => (pr.reviews || []).some(r => r.state === 'APPROVED');
+  // pr.reviews directly, filtered to Gamma's quality-gate approval. Any-reviewer approval
+  // would count peer reviews that haven't cleared Gamma's gate — not truly merge-ready.
+  const gammaGhUser = AGENTS.gamma.ghUser.toLowerCase();
+  const hasFormalApproval = pr => (pr.reviews || []).some(
+    r => r.state === 'APPROVED' && (r.author?.login || '').toLowerCase() === gammaGhUser
+  );
   const approvedUnmergedCount = ctx.openPRs.filter(pr =>
     hasFormalApproval(pr) && pr.mergeStateStatus !== 'CONFLICTING'
   ).length;
