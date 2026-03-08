@@ -84,7 +84,12 @@ case "${1:-}" in
 
   comment)
     NUMBER="${2:?Usage: gh-discuss.sh comment <number>}"
-    BODY="$(prefix_body "$(cat)")"
+    RAW_BODY="$(cat)"
+    if [ -z "$(echo "$RAW_BODY" | tr -d '[:space:]')" ]; then
+      echo "ERROR: Refusing to post empty discussion comment to #$NUMBER" >&2
+      exit 1
+    fi
+    BODY="$(prefix_body "$RAW_BODY")"
     # First verify this discussion belongs to our repo and get its node ID
     DISC_ID="$(gh api graphql -f query="
       { repository(owner:\"$REPO_OWNER\", name:\"$REPO_NAME\") {
