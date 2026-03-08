@@ -3,9 +3,33 @@
 const hamburger = document.getElementById('hamburger');
 const navMenu = document.getElementById('navMenu');
 
+// inert on the menu only applies in mobile (hamburger visible).
+// On desktop the menu is always visible and must remain interactive.
+// inert removes the element from both the AT tree and tab order in one attribute.
+const mobileNav = window.matchMedia('(max-width: 640px)');
+
 function setNavOpen(open) {
   hamburger.setAttribute('aria-expanded', String(open));
+  if (mobileNav.matches) {
+    navMenu.toggleAttribute('inert', !open);
+  } else {
+    navMenu.removeAttribute('inert');
+  }
   navMenu.classList.toggle('is-open', open);
+}
+
+// Sync inert when viewport crosses the mobile breakpoint
+mobileNav.addEventListener('change', () => {
+  if (!mobileNav.matches) {
+    navMenu.removeAttribute('inert');
+  } else if (hamburger.getAttribute('aria-expanded') !== 'true') {
+    navMenu.setAttribute('inert', '');
+  }
+});
+
+// Initialize: on mobile, menu starts closed
+if (mobileNav.matches) {
+  navMenu.setAttribute('inert', '');
 }
 
 hamburger.addEventListener('click', () => {
