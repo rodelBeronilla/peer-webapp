@@ -69,7 +69,12 @@ case "${1:-}" in
       echo "ERROR: Unknown category '$CATEGORY'. Use: general, ideas, announcements, show-and-tell" >&2
       exit 1
     fi
-    BODY="$(prefix_body "$(cat)")"
+    RAW_BODY="$(cat)"
+    if [ -z "$(echo "$RAW_BODY" | tr -d '[:space:]')" ]; then
+      echo "ERROR: Refusing to create discussion with empty body" >&2
+      exit 1
+    fi
+    BODY="$(prefix_body "$RAW_BODY")"
     # Escape for JSON
     BODY_ESCAPED="$(echo "$BODY" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read())[1:-1])' 2>/dev/null || echo "$BODY" | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>process.stdout.write(JSON.stringify(d).slice(1,-1)))" 2>/dev/null || echo "$BODY" | sed 's/\\/\\\\/g; s/"/\\"/g')"
     TITLE_ESCAPED="$(echo "$TITLE" | sed 's/"/\\"/g')"
@@ -84,7 +89,12 @@ case "${1:-}" in
 
   comment)
     NUMBER="${2:?Usage: gh-discuss.sh comment <number>}"
-    BODY="$(prefix_body "$(cat)")"
+    RAW_BODY="$(cat)"
+    if [ -z "$(echo "$RAW_BODY" | tr -d '[:space:]')" ]; then
+      echo "ERROR: Refusing to post empty discussion comment to #$NUMBER" >&2
+      exit 1
+    fi
+    BODY="$(prefix_body "$RAW_BODY")"
     # First verify this discussion belongs to our repo and get its node ID
     DISC_ID="$(gh api graphql -f query="
       { repository(owner:\"$REPO_OWNER\", name:\"$REPO_NAME\") {
