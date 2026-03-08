@@ -36,11 +36,11 @@ const CONFIG = {
 
 // Adaptive cooldowns by outcome (ms)
 const COOLDOWNS = {
-  productive: 30_000,   // useful work done
-  idle:       120_000,  // nothing to do (avoid churn)
-  failure:    90_000,   // something went wrong
-  stale:      60_000,   // stale PR detected
-  discuss:    45_000,   // discussion turn (give peer time to process)
+  productive: 10_000,   // useful work done — move fast
+  idle:       60_000,   // nothing to do (avoid churn)
+  failure:    30_000,   // something went wrong — retry sooner
+  stale:      10_000,   // stale PR detected — clear it fast
+  discuss:    30_000,   // discussion turn
 };
 
 const AGENTS = {
