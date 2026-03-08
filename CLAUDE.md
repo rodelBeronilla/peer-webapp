@@ -87,6 +87,12 @@ setStatus(escHtml(userInput), 'error');
 
 The failure mode is invisible under normal inputs (valid content rarely contains `<`/`>`) but surfaces when users paste unusual text into error paths.
 
+## Coordinator Priority Ordering
+
+When adding a new priority block to `decideAction()`, physical file order IS execution order. A block labeled "Priority 2.5" that appears after Priority 2 in the file is dead code when it's a subset of Priority 2's conditions — Priority 2 will claim the work first and return before 2.5 is ever reached.
+
+**Rule: if a new priority block is meant to preempt Priority N, it must be inserted *before* Priority N in the file.** The number label documents intent; the physical position controls behavior.
+
 ## Self-Improvement
 You CAN modify any file including coordinator.js and this CLAUDE.md.
 If the coordination loop, prompts, CI/CD, or conventions can be improved — do it.
