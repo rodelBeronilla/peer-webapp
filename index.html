@@ -56,6 +56,7 @@
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="chmod">Chmod</a></li>
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="charmap">Char Map</a></li>
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="cssspec">CSS Spec</a></li>
+        <li><a href="#tools" class="nav__link nav-tool-link" data-tab="tz">Time Zone</a></li>
         <li><a href="#about" class="nav__link">About</a></li>
       </ul>
     </div>
@@ -118,6 +119,9 @@
         </button>
         <button class="tab" role="tab" aria-selected="false" aria-controls="panel-cssspec" id="tab-cssspec" data-panel="cssspec" tabindex="-1">
           <span class="tab__icon" aria-hidden="true">{}</span> CSS Spec
+        </button>
+        <button class="tab" role="tab" aria-selected="false" aria-controls="panel-tz" id="tab-tz" data-panel="tz" tabindex="-1">
+          <span class="tab__icon" aria-hidden="true">🌐</span> Time Zone
         </button>
       </div>
     </div>
@@ -1263,6 +1267,135 @@
               </div>
               <div class="status-bar css-spec-cmp-result" id="cssSpecCmpResult" aria-live="polite" role="status"></div>
             </div>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════════════════════════
+           Time Zone Converter
+           ═══════════════════════════════ -->
+      <section
+        id="panel-tz"
+        class="panel"
+        role="tabpanel"
+        aria-labelledby="tab-tz"
+        hidden
+      >
+        <div class="tool">
+          <div class="tool__header">
+            <div>
+              <h2 class="tool__title">Time Zone Converter</h2>
+              <p class="tool__desc">Convert a date and time between any two IANA time zones. Handles daylight saving transitions automatically. Search from 600+ zones.</p>
+            </div>
+          </div>
+          <div class="tool__body">
+
+            <!-- Date + time inputs -->
+            <div class="tool__pane">
+              <div class="pane__header">
+                <span class="pane__label">Date &amp; Time</span>
+                <div class="pane__actions">
+                  <button class="btn btn--sm btn--ghost" id="tzNow">Now</button>
+                  <button class="btn btn--sm btn--ghost" id="tzClear">Clear</button>
+                </div>
+              </div>
+              <div class="tz-inputs">
+                <div class="tz-field">
+                  <label class="tz-label" for="tzDate">Date</label>
+                  <input
+                    class="code-area code-area--single"
+                    type="date"
+                    id="tzDate"
+                    aria-label="Date to convert"
+                  />
+                </div>
+                <div class="tz-field">
+                  <label class="tz-label" for="tzTime">Time</label>
+                  <input
+                    class="code-area code-area--single"
+                    type="time"
+                    id="tzTime"
+                    value="12:00"
+                    aria-label="Time to convert"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <!-- Zone pickers -->
+            <div class="tz-zones">
+              <div class="tool__pane tz-zone-pane">
+                <div class="pane__header">
+                  <span class="pane__label">From</span>
+                </div>
+                <input
+                  class="code-area code-area--single tz-search"
+                  type="search"
+                  id="tzFromSearch"
+                  placeholder="Filter zones…"
+                  aria-label="Filter source time zones"
+                  autocomplete="off"
+                />
+                <select
+                  class="tz-select"
+                  id="tzFrom"
+                  size="6"
+                  aria-label="Source time zone"
+                ></select>
+              </div>
+              <div class="tz-zone-arrow" aria-hidden="true">→</div>
+              <div class="tool__pane tz-zone-pane">
+                <div class="pane__header">
+                  <span class="pane__label">To</span>
+                </div>
+                <input
+                  class="code-area code-area--single tz-search"
+                  type="search"
+                  id="tzToSearch"
+                  placeholder="Filter zones…"
+                  aria-label="Filter target time zones"
+                  autocomplete="off"
+                />
+                <select
+                  class="tz-select"
+                  id="tzTo"
+                  size="6"
+                  aria-label="Target time zone"
+                ></select>
+              </div>
+            </div>
+
+            <!-- Convert button -->
+            <div class="tz-actions">
+              <button class="btn" id="tzConvert">Convert</button>
+              <button class="btn btn--ghost" id="tzCopy" disabled>Copy Result</button>
+            </div>
+
+            <!-- Result -->
+            <div class="tool__pane tz-result" id="tzResult" hidden>
+              <div class="tz-result__row">
+                <span class="tz-result__big" aria-live="polite">
+                  <span class="tz-result__value"></span>
+                </span>
+              </div>
+              <dl class="tz-result__meta">
+                <div class="tz-result__meta-row">
+                  <dt>From</dt>
+                  <dd class="tz-result__from"></dd>
+                </div>
+                <div class="tz-result__meta-row">
+                  <dt>To</dt>
+                  <dd class="tz-result__to"></dd>
+                </div>
+                <div class="tz-result__meta-row">
+                  <dt>UTC</dt>
+                  <dd class="tz-result__utc"></dd>
+                </div>
+              </dl>
+            </div>
+
+            <div class="status-bar" id="tzStatus" aria-live="polite" role="status"></div>
 
           </div>
         </div>

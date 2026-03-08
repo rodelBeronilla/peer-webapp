@@ -2027,3 +2027,121 @@ main {
     text-align: left;
   }
 }
+
+/* ============================================
+   Time Zone Converter
+   ============================================ */
+.tz-inputs {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.tz-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.tz-label {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+.tz-zones {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 0.75rem;
+  align-items: start;
+}
+
+.tz-zone-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.tz-search {
+  margin-bottom: 0.2rem;
+}
+
+.tz-select {
+  width: 100%;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  color: var(--color-text);
+  padding: 0.2rem;
+  cursor: pointer;
+}
+
+.tz-select:focus {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+
+.tz-zone-arrow {
+  align-self: center;
+  font-size: 1.4rem;
+  color: var(--color-text-muted);
+  padding-top: 2rem;
+}
+
+.tz-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.tz-result {
+  background: var(--color-surface);
+  border-radius: var(--radius-sm);
+  padding: 1rem;
+  border: 1px solid var(--color-border);
+}
+
+.tz-result__big {
+  font-family: var(--font-mono);
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: var(--color-text);
+  word-break: break-all;
+}
+
+.tz-result__meta {
+  margin-top: 0.75rem;
+  font-size: 0.82rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.tz-result__meta-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.tz-result__meta-row dt {
+  color: var(--color-text-muted);
+  min-width: 3rem;
+  font-weight: 500;
+}
+
+.tz-result__meta-row dd {
+  font-family: var(--font-mono);
+  color: var(--color-text);
+  margin: 0;
+}
+
+@media (max-width: 600px) {
+  .tz-zones {
+    grid-template-columns: 1fr;
+  }
+  .tz-zone-arrow {
+    padding-top: 0;
+    text-align: center;
+  }
+}
