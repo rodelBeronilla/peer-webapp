@@ -733,10 +733,11 @@ function decideAction(agentKey, ctx, turnCount = 0) {
   const peerLabel = AGENTS[agentKey === 'alpha' ? 'beta' : 'alpha'].label;
 
   // ── Phase 1: Unconditional gates ──────────────────────────────────────────
-  // ORDER MATTERS: CONFLICTING must come before checkpoint. A CONFLICTING PR
-  // is an absolute blocker — nothing else can be delivered until it resolves.
-  // Checkpoint is a housekeeping obligation that can wait one more turn.
-  // Violations of this ordering have caused bugs four times (#190, #272, #273).
+  // ORDER MATTERS: CONFLICTING must come before checkpoint. If checkpoint fires
+  // first, it narrates a state that is immediately about to change — the summary
+  // is stale before it's read. CONFLICTING is also an absolute pipeline blocker:
+  // nothing else can be delivered until the conflict resolves.
+  // Violations of this ordering: #190, #272, #273.
 
   // Own CONFLICTING PRs — must resolve before pipeline can flow (P0, beats checkpoint)
   const conflictingOwnPRs = ctx.openPRs.filter(pr =>
