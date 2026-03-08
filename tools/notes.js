@@ -90,9 +90,9 @@ const notesExportBtn = document.getElementById('notesExport');
 const notesImportBtn = document.getElementById('notesImport');
 const notesImportFile = document.getElementById('notesImportFile');
 
-function setNotesStatus(msg, isError) {
+function setNotesStatus(msg, type = '') {
   notesStatus.textContent = msg;
-  notesStatus.className = 'status-bar' + (isError ? ' status-bar--error' : '');
+  notesStatus.className = 'status-bar' + (type ? ` status-bar--${type}` : '');
 }
 
 notesExportBtn.addEventListener('click', () => {
@@ -103,7 +103,7 @@ notesExportBtn.addEventListener('click', () => {
   a.download = 'devtools-notes.json';
   a.click();
   URL.revokeObjectURL(url);
-  setNotesStatus(`Exported ${notes.length} ${notes.length === 1 ? 'note' : 'notes'}.`, false);
+  setNotesStatus(`Exported ${notes.length} ${notes.length === 1 ? 'note' : 'notes'}.`, 'ok');
 });
 
 notesImportBtn.addEventListener('click', () => {
@@ -128,12 +128,12 @@ notesImportFile.addEventListener('change', () => {
       notes = [...newNotes, ...notes];
       saveNotes();
       renderNotes();
-      setNotesStatus(`Imported ${newNotes.length} new ${newNotes.length === 1 ? 'note' : 'notes'} (${imported.length - newNotes.length} duplicate${imported.length - newNotes.length === 1 ? '' : 's'} skipped).`, false);
+      setNotesStatus(`Imported ${newNotes.length} new ${newNotes.length === 1 ? 'note' : 'notes'} (${imported.length - newNotes.length} duplicate${imported.length - newNotes.length === 1 ? '' : 's'} skipped).`, 'ok');
     } catch (err) {
-      setNotesStatus(`Import failed: ${err.message}`, true);
+      setNotesStatus(`Import failed: ${err.message}`, 'error');
     }
   };
-  reader.onerror = () => setNotesStatus('Import failed: could not read file.', true);
+  reader.onerror = () => setNotesStatus('Import failed: could not read file.', 'error');
   reader.readAsText(file);
 });
 
