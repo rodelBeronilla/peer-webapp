@@ -23,7 +23,7 @@ import { join, resolve } from 'path';
 // ─── Configuration ──────────────────────────────────────────────────────────
 
 const CONFIG = {
-  claudeUiUrl: 'http://localhost:4200',
+  claudeUiUrl: 'http://localhost:3000',
   projectDir: resolve(import.meta.dirname),
   repo: 'rodelBeronilla/peer-webapp',
   cooldownMs: 30_000,
@@ -262,13 +262,16 @@ function getLabels() {
  */
 function getCIStatus(prNumber) {
   try {
-    const raw = gh(`pr checks ${prNumber} -R ${CONFIG.repo} --json name,state,conclusion`);
+    const raw = gh(`pr checks ${prNumber} -R ${CONFIG.repo} --json name,state`);
     const checks = JSON.parse(raw);
     if (!Array.isArray(checks) || checks.length === 0) return 'unknown';
-    if (checks.some(c => c.state === 'FAILURE' || c.conclusion === 'failure')) return 'failure';
-    if (checks.some(c => c.state === 'PENDING' || c.state === 'IN_PROGRESS')) return 'pending';
+    if (checks.some(c => c.state === 'FAILURE')) return 'failure';
+    if (checks.some(c => c.state === 'PENDING' || c.state === 'IN_PROGRESS' || c.state === 'QUEUED')) return 'pending';
     return 'success';
-  } catch { return 'unknown'; }
+  } catch (err) {
+    log(`getCIStatus(#${prNumber}) error: ${err.message}`, 'warn');
+    return 'unknown';
+  }
 }
 
 /**
@@ -288,8 +291,8 @@ function isPRStale(prData, thresholdMs = 48 * 60 * 60 * 1000) {
 
 // ─── GitHub state summary ───────────────────────────────────────────────────
 
-function buildGitHubContext() {
-  log('Reading GitHub state...');
+function buildGitHubContext(agentName = '') {
+  log(`${agentName ? `[${agentName}] ` : ''}Reading GitHub state...`);
 
   const openIssues = getOpenIssues();
   const openPRs = getOpenPRs();
@@ -412,6 +415,22 @@ function formatGitHubContext(ctx) {
   return sections.join('\n');
 }
 
+// ─── Work-item lock (prevents both agents from picking the same item) ──────
+
+const activeWork = new Map();
+
+function claimWork(agentKey, type, id) {
+  for (const [key, work] of activeWork) {
+    if (key !== agentKey && work.type === type && work.id === id) return false;
+  }
+  activeWork.set(agentKey, { type, id });
+  return true;
+}
+
+function releaseWork(agentKey) {
+  activeWork.delete(agentKey);
+}
+
 // ─── Determine what action the agent should take ────────────────────────────
 
 function decideAction(agentKey, ctx, turnCount = 0) {
@@ -424,21 +443,31 @@ function decideAction(agentKey, ctx, turnCount = 0) {
       (pr.labels || []).some(l => l.name === peerLabel) &&
       pr.reviewDecision !== 'APPROVED'
     )
-    .sort((a, b) => a.number - b.number); // lower number = older
-  if (peerPRs.length > 0) {
-    return { type: 'review-pr', pr: peerPRs[0] };
+    .sort((a, b) => a.number - b.number);
+  for (const pr of peerPRs) {
+    if (claimWork(agentKey, 'pr', pr.number)) {
+      return { type: 'review-pr', pr };
+    }
   }
 
-  // Priority 2: Merge approved PRs — but only if CI is passing
-  const approvedPRs = ctx.openPRs.filter(pr => pr.reviewDecision === 'APPROVED');
-  for (const pr of approvedPRs) {
+  // Priority 2: Merge reviewed PRs with passing CI
+  // GitHub doesn't count bot APPROVED reviews in reviewDecision, so check for peer reviews directly
+  const mergeablePRs = ctx.openPRs.filter(pr => {
+    if (pr.reviewDecision === 'APPROVED') return true;
+    const reviews = pr.reviews || [];
+    return reviews.some(r => r.state === 'APPROVED' || r.state === 'COMMENTED');
+  });
+  for (const pr of mergeablePRs) {
+    if (!claimWork(agentKey, 'merge', pr.number)) continue;
     const ci = getCIStatus(pr.number);
     if (ci === 'failure') {
-      log(`PR #${pr.number} approved but CI failing — skipping merge`);
+      log(`[${agent.name}] PR #${pr.number} reviewed but CI failing — skipping merge`);
+      releaseWork(agentKey);
       continue;
     }
     if (ci === 'pending') {
-      log(`PR #${pr.number} approved but CI pending — skipping merge for now`);
+      log(`[${agent.name}] PR #${pr.number} reviewed but CI pending — skipping`);
+      releaseWork(agentKey);
       continue;
     }
     return { type: 'merge-pr', pr, ciStatus: ci };
@@ -473,8 +502,10 @@ function decideAction(agentKey, ctx, turnCount = 0) {
     (i.assignees || []).length === 0 &&
     !(i.labels || []).some(l => l.name === 'status:blocked')
   );
-  if (unassigned.length > 0) {
-    return { type: 'implement-issue', issue: unassigned[0] };
+  for (const issue of unassigned) {
+    if (claimWork(agentKey, 'issue', issue.number)) {
+      return { type: 'implement-issue', issue };
+    }
   }
 
   // Priority 6: Respond to peer's unanswered discussion (when nothing else to do)
@@ -661,6 +692,8 @@ async function spawnWorker(task, agentKey = null) {
 
     spawnBody.env = env;
   }
+  const bodySize = JSON.stringify(spawnBody).length;
+  log(`Spawning worker (body: ${(bodySize / 1024).toFixed(1)}kb)...`);
   const { ok, id } = await apiPost('/api/worker/spawn', spawnBody);
   if (!ok) throw new Error('Worker spawn rejected');
   log(`Worker ${id} spawned${agentKey ? ` (as ${AGENTS[agentKey].name})` : ''}`);
@@ -1011,14 +1044,79 @@ function bootstrapGitHub() {
   }
 }
 
-// ─── Main loop ──────────────────────────────────────────────────────────────
+// ─── Agent loop (runs independently per agent) ─────────────────────────────
+
+async function agentLoop(agentKey) {
+  const agent = AGENTS[agentKey];
+  let consecutiveFailures = 0;
+  let turnCount = 0;
+
+  log(`[${agent.name}] Starting autonomous loop`);
+
+  while (true) {
+    turnCount++;
+
+    log(`\n[${agent.name}] ${'─'.repeat(50)}`);
+    log(`[${agent.name}] Turn ${turnCount}`);
+    log(`[${agent.name}] ${'─'.repeat(50)}`);
+
+    let action = null;
+    let cooldown = COOLDOWNS.productive;
+
+    try {
+      const ctx = buildGitHubContext(agent.name);
+      const ghContextStr = formatGitHubContext(ctx);
+
+      action = decideAction(agentKey, ctx, turnCount);
+      log(`[${agent.name}] Action: ${action.type}${action.pr ? ` (PR #${action.pr.number})` : ''}${action.issue ? ` (Issue #${action.issue.number})` : ''}${action.discussion ? ` (Discussion #${action.discussion.number})` : ''}`);
+
+      const rlmContext = await invokeRLM(agent.name, action, ctx);
+      const prompt = buildPrompt(agentKey, action, ghContextStr, rlmContext);
+      const workerId = await spawnWorker(prompt, agentKey);
+      const result = await pollWorker(workerId);
+      releaseWork(agentKey);
+
+      if (!result) {
+        log(`[${agent.name}] Worker timed out`, 'error');
+        consecutiveFailures++;
+        cooldown = COOLDOWNS.failure;
+      } else if (result.exitCode !== 0) {
+        log(`[${agent.name}] Worker failed (exit ${result.exitCode})`, 'error');
+        consecutiveFailures++;
+        cooldown = COOLDOWNS.failure;
+      } else {
+        log(`[${agent.name}] Turn completed successfully`);
+        consecutiveFailures = 0;
+        if (action.type === 'create-issues') cooldown = COOLDOWNS.idle;
+        if (action.type === 'discuss') cooldown = COOLDOWNS.discuss;
+        if (action.stale) cooldown = COOLDOWNS.stale;
+      }
+
+    } catch (err) {
+      log(`[${agent.name}] Turn failed: ${err.message}`, 'error');
+      releaseWork(agentKey);
+      consecutiveFailures++;
+      cooldown = COOLDOWNS.failure;
+    }
+
+    if (consecutiveFailures >= CONFIG.maxConsecutiveFailures) {
+      log(`[${agent.name}] Circuit breaker: pausing 5 minutes`, 'error');
+      await sleep(300_000);
+      consecutiveFailures = 0;
+    }
+
+    log(`[${agent.name}] Cooling down ${cooldown / 1000}s... (${action?.type || 'unknown'})`);
+    await sleep(cooldown);
+  }
+}
+
+// ─── Main ───────────────────────────────────────────────────────────────────
 
 async function main() {
-  log('=== Peer Webapp Coordinator (GitHub-native) starting ===');
+  log('=== Peer Webapp Coordinator (Concurrent) starting ===');
   log(`Repo: ${CONFIG.repo}`);
   log(`claude-ui: ${CONFIG.claudeUiUrl}`);
 
-  // Wait for claude-ui
   log('Waiting for claude-ui...');
   let retries = 0;
   while (!(await checkHealth())) {
@@ -1030,93 +1128,19 @@ async function main() {
   }
   log('claude-ui connected');
 
-  // Switch project
   try {
     await apiPost('/api/projects/switch', { path: CONFIG.projectDir });
   } catch {}
 
-  // Bootstrap GitHub labels/issues
   bootstrapGitHub();
 
-  // Ensure on main
   try { git('checkout main'); git('pull origin main'); } catch {}
 
-  // Main loop
-  let consecutiveFailures = 0;
-  let turnCount = 0;
-
-  while (true) {
-    const agentKey = turnCount % 2 === 0 ? 'alpha' : 'beta';
-    const agent = AGENTS[agentKey];
-    turnCount++;
-
-    log(`\n${'═'.repeat(60)}`);
-    log(`Turn ${turnCount} — ${agent.name}`);
-    log('═'.repeat(60));
-
-    let action = null;
-    let cooldown = COOLDOWNS.productive;
-
-    try {
-      // Ensure we're on main and up to date
-      try {
-        git('checkout main');
-        git('pull origin main');
-      } catch {}
-
-      // 1. Read GitHub state
-      const ctx = buildGitHubContext();
-      const ghContextStr = formatGitHubContext(ctx);
-
-      // 2. Decide action
-      action = decideAction(agentKey, ctx, turnCount);
-      log(`Action: ${action.type}${action.pr ? ` (PR #${action.pr.number})` : ''}${action.issue ? ` (Issue #${action.issue.number})` : ''}${action.discussion ? ` (Discussion #${action.discussion.number})` : ''}`);
-
-      // 3. RLM analysis (action-specific query)
-      const rlmContext = await invokeRLM(agent.name, action, ctx);
-
-      // 4. Build prompt
-      const prompt = buildPrompt(agentKey, action, ghContextStr, rlmContext);
-
-      // 5. Spawn worker (with agent identity)
-      const workerId = await spawnWorker(prompt, agentKey);
-
-      // 6. Wait
-      const result = await pollWorker(workerId);
-
-      if (!result) {
-        log(`${agent.name} timed out`, 'error');
-        consecutiveFailures++;
-        cooldown = COOLDOWNS.failure;
-      } else if (result.exitCode !== 0) {
-        log(`${agent.name} failed (exit ${result.exitCode})`, 'error');
-        consecutiveFailures++;
-        cooldown = COOLDOWNS.failure;
-      } else {
-        log(`${agent.name} completed`);
-        consecutiveFailures = 0;
-        // Idle turns cool down longer to avoid churn
-        if (action.type === 'create-issues') cooldown = COOLDOWNS.idle;
-        if (action.type === 'discuss') cooldown = COOLDOWNS.discuss;
-        if (action.stale) cooldown = COOLDOWNS.stale;
-      }
-
-    } catch (err) {
-      log(`Turn failed: ${err.message}`, 'error');
-      consecutiveFailures++;
-      cooldown = COOLDOWNS.failure;
-    }
-
-    // Circuit breaker
-    if (consecutiveFailures >= CONFIG.maxConsecutiveFailures) {
-      log(`Circuit breaker: pausing 5 minutes`, 'error');
-      await sleep(300_000);
-      consecutiveFailures = 0;
-    }
-
-    log(`Cooling down ${cooldown / 1000}s... (${action?.type || 'unknown'})`);
-    await sleep(cooldown);
-  }
+  log('Launching Alpha and Beta concurrently...');
+  const alphaLoop = agentLoop('alpha');
+  await sleep(5_000);
+  const betaLoop = agentLoop('beta');
+  await Promise.all([alphaLoop, betaLoop]);
 }
 
 main().catch(err => { log(`Fatal: ${err.message}`, 'error'); process.exit(1); });
