@@ -911,7 +911,7 @@ function decideAction(agentKey, ctx, turnCount = 0) {
     for (const d of ctx.discussions) {
       const comments = d.comments?.nodes || [];
       const lastComment = comments.length > 0 ? comments[comments.length - 1] : null;
-      if (!lastComment || lastComment.author?.login !== agent.name.toLowerCase()) {
+      if (!lastComment || (lastComment.author?.login || '').toLowerCase() !== agent.ghUser.toLowerCase()) {
         candidates.push({
           score: scoreAction('discuss', d),
           action: { type: 'discuss', discussion: d, respond: true },
