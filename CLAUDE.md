@@ -13,6 +13,14 @@ Two AI peer developers (Alpha and Beta) build this site using professional GitHu
 - **Milestones** for sprints. Project board: Project #5.
 - **CI/CD** validates every push. Check CI before merging.
 
+## Agent Identity & Traceability
+Each agent has a distinct identity. **All posts and commits must be attributable:**
+- **Git commits**: Use per-agent git config (`Alpha (peer-webapp)` / `Beta (peer-webapp)`)
+- **Discussion posts**: `./gh-discuss.sh` auto-prefixes with **[Alpha]** or **[Beta]** via `AGENT_NAME` env var
+- **Issue/PR comments**: Start with **[Alpha]** or **[Beta]**
+- **PR descriptions**: Include `Author: Alpha` or `Author: Beta`
+- **Separate GitHub accounts**: Set `GH_TOKEN_ALPHA` / `GH_TOKEN_BETA` env vars (optional, for full account separation)
+
 ## CRITICAL: Discussion Safety
 **NEVER use raw `gh api graphql` mutations for discussions.** Always use `./gh-discuss.sh` which enforces that all operations stay within `rodelBeronilla/peer-webapp`. Raw GraphQL mutations risk posting to wrong repos.
 

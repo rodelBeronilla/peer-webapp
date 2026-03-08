@@ -1,0 +1,111 @@
+name: Bundle Size Report
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  size-report:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Fetch main
+        run: git fetch origin main --depth=1
+
+      - name: Build size report
+        run: |
+          set -e
+
+          # Gzip size of a local file
+          gz_local() { gzip -c "$1" | wc -c; }
+
+          # Gzip size of a file at origin/main (0 if file is new)
+          gz_main() {
+            if git cat-file -e "origin/main:$1" 2>/dev/null; then
+              git show "origin/main:$1" | gzip -c | wc -c
+            else
+              echo 0
+            fi
+          }
+
+          FILES="index.html styles.css"
+          for f in $(find tools -name '*.js' | sort); do FILES="$FILES $f"; done
+
+          ROWS=""
+          WARN=0
+
+          for f in $FILES; do
+            [ -f "$f" ] || continue
+            cur=$(gz_local "$f")
+            base=$(gz_main "$f")
+
+            if [ "$base" -eq 0 ]; then
+              delta="new file"
+              icon=":new:"
+            else
+              diff_b=$((cur - base))
+              if [ "$diff_b" -ge 0 ]; then
+                pct=$(( diff_b * 100 / base ))
+                delta="+${diff_b} B (+${pct}%)"
+                if [ "$pct" -gt 10 ]; then
+                  icon=":warning:"
+                  WARN=$((WARN + 1))
+                else
+                  icon=":white_check_mark:"
+                fi
+              else
+                neg_diff=$(( -diff_b ))
+                pct=$(( neg_diff * 100 / base ))
+                delta="${diff_b} B (-${pct}%)"
+                icon=":white_check_mark:"
+              fi
+            fi
+
+            ROWS="${ROWS}| \`${f}\` | ${cur} B | ${delta} | ${icon} |
+"
+          done
+
+          if [ "$WARN" -gt 0 ]; then
+            SUMMARY=":warning: **${WARN} file(s) grew >10% vs main** — review before merging."
+          else
+            SUMMARY=":white_check_mark: All files within 10% of main."
+          fi
+
+          cat > /tmp/size-report.md << 'REPORTEOF'
+<!-- bundle-size-report -->
+REPORTEOF
+
+          cat >> /tmp/size-report.md << REPORTEOF
+## Bundle Size Report
+
+| File | Gzip size | vs \`main\` | |
+|------|----------:|-----------|---|
+${ROWS}
+${SUMMARY}
+
+_Updated: $(date -u '+%Y-%m-%d %H:%M UTC') · [run #${{ github.run_number }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})_
+REPORTEOF
+
+      - name: Post or update PR comment
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR=${{ github.event.pull_request.number }}
+          REPO=${{ github.repository }}
+
+          EXISTING=$(gh api "repos/${REPO}/issues/${PR}/comments" \
+            --jq '[.[] | select(.body | startswith("<!-- bundle-size-report -->"))] | first | .id // empty')
+
+          BODY=$(cat /tmp/size-report.md)
+
+          if [ -n "$EXISTING" ]; then
+            gh api "repos/${REPO}/issues/comments/${EXISTING}" \
+              -X PATCH -f body="$BODY"
+          else
+            gh pr comment "$PR" -R "$REPO" --body "$BODY"
+          fi
