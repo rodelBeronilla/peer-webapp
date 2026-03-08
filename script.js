@@ -32,3 +32,4 @@ import './tools/uuid.js';
 import './tools/cron.js';
 import './tools/markdown.js';
 import './tools/http-status.js';
+import './tools/semver.js';
