@@ -2,16 +2,43 @@
 
 import { escapeHtml } from './utils.js';
 
-const regexPattern   = document.getElementById('regexPattern');
-const regexFlags     = document.getElementById('regexFlags');
-const regexText      = document.getElementById('regexText');
-const regexStatus    = document.getElementById('regexStatus');
+const regexPattern    = document.getElementById('regexPattern');
+const regexFlags      = document.getElementById('regexFlags');
+const regexText       = document.getElementById('regexText');
+const regexStatus     = document.getElementById('regexStatus');
 const regexMatchCount = document.getElementById('regexMatchCount');
-const matchListBody  = document.getElementById('matchListBody');
+const matchListBody   = document.getElementById('matchListBody');
+const regexHighlight  = document.getElementById('regexHighlight');
+const regexHighlightPane = document.getElementById('regexHighlightPane');
 
 function setRegexStatus(msg, type = '') {
   regexStatus.textContent = msg;
   regexStatus.className = 'status-bar' + (type ? ` status-bar--${type}` : '');
+}
+
+function clearHighlight() {
+  regexHighlight.innerHTML = '';
+  regexHighlightPane.hidden = true;
+}
+
+function buildHighlight(text, matches) {
+  let html = '';
+  let cursor = 0;
+  matches.forEach((m, i) => {
+    const start = m.index;
+    const end   = start + m[0].length;
+    // Append unmatched text before this match
+    if (start > cursor) {
+      html += escapeHtml(text.slice(cursor, start));
+    }
+    // Skip zero-length matches (e.g. /a*/g on non-a chars) to avoid empty marks
+    if (m[0].length > 0) {
+      html += `<mark class="hl-${i % 4}">${escapeHtml(m[0])}</mark>`;
+    }
+    cursor = Math.max(cursor, end);
+  });
+  html += escapeHtml(text.slice(cursor));
+  return html;
 }
 
 function runRegex() {
@@ -24,6 +51,7 @@ function runRegex() {
     matchListBody.innerHTML = '<p class="match-empty">Enter a pattern and test string to see matches.</p>';
     setRegexStatus('');
     regexText.classList.remove('has-matches', 'no-matches');
+    clearHighlight();
     return;
   }
 
@@ -36,6 +64,7 @@ function runRegex() {
     matchListBody.innerHTML = `<p class="match-empty match-empty--error">${escapeHtml(String(err))}</p>`;
     setRegexStatus(String(err), 'error');
     regexText.classList.remove('has-matches', 'no-matches');
+    clearHighlight();
     return;
   }
 
@@ -43,6 +72,7 @@ function runRegex() {
     regexMatchCount.textContent = '';
     matchListBody.innerHTML = '<p class="match-empty">Enter a test string above.</p>';
     regexText.classList.remove('has-matches', 'no-matches');
+    clearHighlight();
     return;
   }
 
@@ -53,6 +83,7 @@ function runRegex() {
     matchListBody.innerHTML = '<p class="match-empty">No matches found.</p>';
     regexText.classList.remove('has-matches');
     regexText.classList.add('no-matches');
+    clearHighlight();
     return;
   }
 
@@ -97,6 +128,10 @@ function runRegex() {
 
   matchListBody.innerHTML = '';
   matchListBody.appendChild(frag);
+
+  // Inline highlight
+  regexHighlight.innerHTML = buildHighlight(text, matches);
+  regexHighlightPane.hidden = false;
 }
 
 let regexDebounce;
