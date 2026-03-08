@@ -185,12 +185,13 @@ body {
   background: var(--color-bg);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
-  outline: none;
   transition: border-color var(--transition), width var(--transition);
 }
 .nav__search::placeholder { color: var(--color-text-muted); }
 .nav__search:focus {
   border-color: var(--color-primary);
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
   width: 12rem;
 }
 
