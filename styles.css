@@ -3244,6 +3244,17 @@ main {
   font-style: italic;
 }
 
+.semver-field-value--muted {
+  color: var(--color-text-muted);
+}
+
+.semver-build-note {
+  font-family: inherit;
+  font-size: 0.8em;
+  font-style: italic;
+  color: var(--color-text-muted);
+}
+
 /* Compare inputs */
 
 .semver-compare-inputs {
