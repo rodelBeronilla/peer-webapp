@@ -91,11 +91,6 @@ const CATEGORIES = [
 
 // ── Render ────────────────────────────────────────────────────────────────────
 
-function categoryClass(code) {
-  const prefix = Math.floor(code / 100);
-  const cat = CATEGORIES.find(c => c.prefix === prefix);
-  return cat ? cat.className : '';
-}
 
 function render(query) {
   const q = query.trim().toLowerCase();

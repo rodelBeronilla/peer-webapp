@@ -65,7 +65,8 @@ function inline(raw) {
   s = s.replace(/\*([^*\n]+)\*/g, '<em>$1</em>');
   s = s.replace(/_([^_\n]+)_/g, '<em>$1</em>');
 
-  // Restore code spans
+  // Restore code spans — \x00 is used intentionally as a placeholder sentinel
+  // eslint-disable-next-line no-control-regex
   s = s.replace(/\x00(\d+)\x00/g, (_, i) => spans[+i]);
 
   return s;
