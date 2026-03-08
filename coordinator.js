@@ -881,8 +881,13 @@ function decideAction(agentKey, ctx, turnCount = 0) {
   // When the backlog is large, pause new implement-issue actions (except P0/P1) so the
   // queue drains faster than it grows. P0/P1 fixes bypass the gate — security and
   // critical bugs shouldn't wait for the operator's merge session.
+  //
+  // NOTE: pr.reviewDecision is only populated when branch protection enforces a minimum
+  // review count — this repo has no such rule, so reviewDecision is always "". Use
+  // pr.reviews directly to detect any APPROVED formal review instead.
+  const hasFormalApproval = pr => (pr.reviews || []).some(r => r.state === 'APPROVED');
   const approvedUnmergedCount = ctx.openPRs.filter(pr =>
-    pr.reviewDecision === 'APPROVED' && pr.mergeStateStatus !== 'CONFLICTING'
+    hasFormalApproval(pr) && pr.mergeStateStatus !== 'CONFLICTING'
   ).length;
   if (approvedUnmergedCount >= APPROVED_UNMERGED_THRESHOLD) {
     log(`[${agent.name}] ⚠ Throttle: ${approvedUnmergedCount} approved-unmerged PRs (threshold: ${APPROVED_UNMERGED_THRESHOLD}) — skipping new implement-issue actions for P2+`);
