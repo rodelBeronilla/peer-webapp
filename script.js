@@ -26,3 +26,4 @@ import './tools/tz.js';
 import './tools/diff.js';
 import './tools/password.js';
 import './tools/string.js';
+import './tools/cidr.js';

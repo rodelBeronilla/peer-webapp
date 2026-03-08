@@ -61,6 +61,7 @@
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="diff">Diff</a></li>
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="password">Password</a></li>
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="string">String</a></li>
+        <li><a href="#tools" class="nav__link nav-tool-link" data-tab="cidr">CIDR</a></li>
         <li><a href="#about" class="nav__link">About</a></li>
       </ul>
     </div>
@@ -138,6 +139,9 @@
         </button>
         <button class="tab" role="tab" aria-selected="false" aria-controls="panel-string" id="tab-string" data-panel="string" tabindex="-1">
           <span class="tab__icon" aria-hidden="true">Aa</span> String
+        </button>
+        <button class="tab" role="tab" aria-selected="false" aria-controls="panel-cidr" id="tab-cidr" data-panel="cidr" tabindex="-1">
+          <span class="tab__icon" aria-hidden="true">/24</span> CIDR
         </button>
       </div>
     </div>
@@ -2114,6 +2118,53 @@
               ></textarea>
               <p class="str-live-stats" id="strStats" aria-live="polite"></p>
             </div>
+          </div>
+        </div>
+      </section>
+
+
+      <!-- ═══════════════════════════════════
+           CIDR / IP Subnet Calculator
+           ═══════════════════════════════════ -->
+      <section
+        id="panel-cidr"
+        class="panel"
+        role="tabpanel"
+        aria-labelledby="tab-cidr"
+        hidden
+      >
+        <div class="tool">
+          <div class="tool__header">
+            <div>
+              <h2 class="tool__title">CIDR / IP Subnet Calculator</h2>
+              <p class="tool__desc">Enter a CIDR block (e.g. <code>192.168.1.0/24</code>) to see network address, broadcast, subnet mask, host range, and host count. Supports /0–/32 including /31 point-to-point and /32 single-host routes.</p>
+            </div>
+          </div>
+          <div class="tool__body">
+
+            <div class="tool__pane">
+              <div class="pane__header">
+                <span class="pane__label">CIDR Block</span>
+                <div class="pane__actions">
+                  <button class="btn btn--sm btn--ghost" id="cidrClear">Clear</button>
+                </div>
+              </div>
+              <input
+                class="code-area code-area--single"
+                type="text"
+                id="cidrInput"
+                placeholder="e.g. 192.168.1.0/24"
+                spellcheck="false"
+                autocomplete="off"
+                inputmode="text"
+                aria-label="CIDR block input"
+              />
+              <button class="btn" id="cidrCalc" style="margin-top:0.75rem">Calculate</button>
+              <div class="status-bar" id="cidrStatus" aria-live="polite" role="status"></div>
+            </div>
+
+            <div class="tool__pane" id="cidrResult" hidden></div>
+
           </div>
         </div>
       </section>
