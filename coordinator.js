@@ -719,7 +719,7 @@ function decideAction(agentKey, ctx, turnCount = 0) {
   //   - Checkpoint / self-reflect thresholds
   //   - Owner discussion responses
   //   - @mention responses
-  //   - Own CONFLICTING PRs (see inline comment for depth cap and ordering rationale)
+  //   - Own CONFLICTING PRs (absolute blocker — must resolve before pipeline can flow; see depth cap below)
   //
   // Phase 2: Scored candidates (highest score wins)
   //   Every candidate gets: BASE_SCORE[type] + PRIORITY_BONUS[label] + age_bonus + situational
@@ -761,7 +761,10 @@ function decideAction(agentKey, ctx, turnCount = 0) {
   // Depth cap: at depth >= 5 the automated loop is not converging. Stop dispatching
   // resolve-conflict, auto-file a human-visible escalation issue, and skip the PR.
   const ESCALATION_DEPTH_CAP = 5;
-  const ESCALATION_SENTINEL = '[Coordinator] escalation-depth:';
+  // Two distinct sentinels — warning (depth>=3) and cap (depth>=5) — so the cap's
+  // dedup check doesn't false-positive on an existing warning comment and fire silently.
+  const ESCALATION_WARNING_SENTINEL = '[Coordinator] escalation-warning:';
+  const ESCALATION_CAP_SENTINEL     = '[Coordinator] escalation-cap:';
   const conflictingOwnPRs = ctx.openPRs.filter(pr =>
     (pr.labels || []).some(l => l.name === agent.label) &&
     pr.mergeStateStatus === 'CONFLICTING'
@@ -777,10 +780,10 @@ function decideAction(agentKey, ctx, turnCount = 0) {
           const data = getPRComments(pr.number);
           const comments = data?.comments || [];
           const alreadyEscalated = comments.some(c =>
-            (c.body || '').includes(ESCALATION_SENTINEL)
+            (c.body || '').includes(ESCALATION_CAP_SENTINEL)
           );
           if (!alreadyEscalated) {
-            const commentBody = `${ESCALATION_SENTINEL}${depth}\n\nThis conflict has recurred ${depth} times (currently on branch \`${pr.headRefName}\`). Automated conflict resolution has reached the depth cap and will no longer retry. Manual intervention required.`;
+            const commentBody = `${ESCALATION_CAP_SENTINEL}${depth}\n\nThis conflict has recurred ${depth} times (currently on branch \`${pr.headRefName}\`). Automated conflict resolution has reached the depth cap and will no longer retry. Manual intervention required.`;
             gh(`pr comment ${pr.number} -R ${CONFIG.repo} --body ${JSON.stringify(commentBody)}`);
             log(`[${agent.name}] Posted escalation comment on PR #${pr.number} (depth=${depth})`);
             // Auto-file escalation issue tagged type:escalation so it is visible to humans
@@ -801,10 +804,10 @@ function decideAction(agentKey, ctx, turnCount = 0) {
           const data = getPRComments(pr.number);
           const comments = data?.comments || [];
           const alreadyEscalated = comments.some(c =>
-            (c.body || '').includes(ESCALATION_SENTINEL)
+            (c.body || '').includes(ESCALATION_WARNING_SENTINEL)
           );
           if (!alreadyEscalated) {
-            const commentBody = `${ESCALATION_SENTINEL}${depth}\n\nThis conflict has recurred ${depth} times (currently on branch \`${pr.headRefName}\`). Automated conflict resolution is not converging — escalation comment posted. Will cap at depth ${ESCALATION_DEPTH_CAP}.`;
+            const commentBody = `${ESCALATION_WARNING_SENTINEL}${depth}\n\nThis conflict has recurred ${depth} times (currently on branch \`${pr.headRefName}\`). Automated conflict resolution is not converging — escalation comment posted. Will cap at depth ${ESCALATION_DEPTH_CAP}.`;
             gh(`pr comment ${pr.number} -R ${CONFIG.repo} --body ${JSON.stringify(commentBody)}`);
             log(`[${agent.name}] Posted escalation comment on PR #${pr.number} (depth=${depth})`);
           }
