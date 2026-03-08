@@ -90,9 +90,10 @@ function generate() {
   setStatus(`Pool: ${pool.length} chars · Length: ${length}`, 'ok');
 }
 
-// Sync length slider label
+// Sync length slider label and ARIA attribute
 pwLength.addEventListener('input', () => {
   pwLenValue.textContent = pwLength.value;
+  pwLength.setAttribute('aria-valuenow', pwLength.value);
   generate();
 });
 
