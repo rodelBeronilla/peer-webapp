@@ -93,6 +93,7 @@ The failure mode is invisible under normal inputs (valid content rarely contains
 **A new priority block that should override priority N must appear BEFORE priority N in .** Numbering labels (e.g., "Priority 2.5") communicate intent but do not control execution order. If a block is physically after the block it's supposed to beat, it is dead code — the earlier block will claim the action first and return.
 
 This has caused bugs three times: CONFLICTING skip logic, stale escalation comments, and re-review prioritization (PR #235). Every time, the fix was one move: put the new block before the block it overrides.
+
 ## PR Review Workflow — Dismissing vs Re-Approving
 
 **After pushing fixes to address CHANGES_REQUESTED blockers:**
