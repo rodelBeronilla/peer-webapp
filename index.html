@@ -581,6 +581,77 @@
             </div>
           </div>
         </div>
+
+        <!-- URL Parser / Builder -->
+        <div class="tool">
+          <div class="tool__header">
+            <div>
+              <h2 class="tool__title">URL Parser / Builder</h2>
+              <p class="tool__desc">Paste a URL to decompose it, or edit any field to reconstruct in real time. Query parameters are fully editable.</p>
+            </div>
+          </div>
+          <div class="tool__body">
+            <div class="url-parser-input-wrap">
+              <div class="pane__header">
+                <span class="pane__label">Full URL</span>
+                <div class="pane__actions">
+                  <button class="btn btn--sm btn--ghost" id="urlParserCopy">Copy URL</button>
+                  <button class="btn btn--sm btn--ghost" id="urlParserClear">Clear</button>
+                </div>
+              </div>
+              <textarea
+                class="code-area code-area--single"
+                id="urlParserInput"
+                placeholder="https://example.com:8080/path/to/resource?foo=bar&baz=qux#section"
+                spellcheck="false"
+                autocomplete="off"
+                rows="1"
+                aria-label="Full URL to parse"
+              ></textarea>
+              <div class="status-bar" id="urlParserStatus" aria-live="polite" role="status"></div>
+            </div>
+
+            <div class="url-parts" id="urlParts">
+              <div class="url-part-row">
+                <label class="url-part-label" for="urlParserScheme">Scheme</label>
+                <input type="text" class="url-part-input" id="urlParserScheme" placeholder="https" spellcheck="false" autocomplete="off" aria-label="URL scheme">
+                <button class="btn btn--sm btn--ghost copy-url-part" data-target="urlParserScheme" aria-label="Copy scheme">Copy</button>
+              </div>
+              <div class="url-part-row">
+                <label class="url-part-label" for="urlParserHost">Host</label>
+                <input type="text" class="url-part-input" id="urlParserHost" placeholder="example.com" spellcheck="false" autocomplete="off" aria-label="URL hostname">
+                <button class="btn btn--sm btn--ghost copy-url-part" data-target="urlParserHost" aria-label="Copy host">Copy</button>
+              </div>
+              <div class="url-part-row">
+                <label class="url-part-label" for="urlParserPort">Port</label>
+                <input type="text" class="url-part-input url-part-input--short" id="urlParserPort" placeholder="(default)" spellcheck="false" autocomplete="off" aria-label="URL port">
+                <button class="btn btn--sm btn--ghost copy-url-part" data-target="urlParserPort" aria-label="Copy port">Copy</button>
+              </div>
+              <div class="url-part-row">
+                <label class="url-part-label" for="urlParserPath">Path</label>
+                <input type="text" class="url-part-input" id="urlParserPath" placeholder="/" spellcheck="false" autocomplete="off" aria-label="URL path">
+                <button class="btn btn--sm btn--ghost copy-url-part" data-target="urlParserPath" aria-label="Copy path">Copy</button>
+              </div>
+              <div class="url-part-row">
+                <label class="url-part-label" for="urlParserFragment">Fragment</label>
+                <input type="text" class="url-part-input" id="urlParserFragment" placeholder="(none)" spellcheck="false" autocomplete="off" aria-label="URL fragment (hash)">
+                <button class="btn btn--sm btn--ghost copy-url-part" data-target="urlParserFragment" aria-label="Copy fragment">Copy</button>
+              </div>
+            </div>
+
+            <div class="url-params-section">
+              <div class="pane__header">
+                <span class="pane__label">Query Parameters</span>
+                <div class="pane__actions">
+                  <button class="btn btn--sm btn--ghost" id="urlAddParam">+ Add param</button>
+                </div>
+              </div>
+              <div id="urlParamsList" class="url-params-list" role="list" aria-label="Query parameters">
+                <p class="match-empty" id="urlParamsEmpty">No query parameters.</p>
+              </div>
+            </div>
+          </div>
+        </div>
       </section>
 
       <!-- ═══════════════════════════════
