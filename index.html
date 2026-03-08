@@ -52,6 +52,7 @@
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="jwt">JWT</a></li>
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="timestamp">Timestamp</a></li>
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="base">Base</a></li>
+        <li><a href="#tools" class="nav__link nav-tool-link" data-tab="hash">Hash</a></li>
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="htmlentity">HTML Entity</a></li>
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="chmod">Chmod</a></li>
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="charmap">Char Map</a></li>
@@ -59,6 +60,8 @@
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="tz">Time Zone</a></li>
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="diff">Diff</a></li>
         <li><a href="#tools" class="nav__link nav-tool-link" data-tab="password">Password</a></li>
+        <li><a href="#tools" class="nav__link nav-tool-link" data-tab="string">String</a></li>
+        <li><a href="#tools" class="nav__link nav-tool-link" data-tab="cidr">CIDR</a></li>
         <li><a href="#about" class="nav__link">About</a></li>
       </ul>
     </div>
@@ -110,6 +113,9 @@
         <button class="tab" role="tab" aria-selected="false" aria-controls="panel-base" id="tab-base" data-panel="base" tabindex="-1">
           <span class="tab__icon" aria-hidden="true">01</span> Base
         </button>
+        <button class="tab" role="tab" aria-selected="false" aria-controls="panel-hash" id="tab-hash" data-panel="hash" tabindex="-1">
+          <span class="tab__icon" aria-hidden="true">#</span> Hash
+        </button>
         <button class="tab" role="tab" aria-selected="false" aria-controls="panel-htmlentity" id="tab-htmlentity" data-panel="htmlentity" tabindex="-1">
           <span class="tab__icon" aria-hidden="true">&amp;</span> HTML Entity
         </button>
@@ -130,6 +136,12 @@
         </button>
         <button class="tab" role="tab" aria-selected="false" aria-controls="panel-password" id="tab-password" data-panel="password" tabindex="-1">
           <span class="tab__icon" aria-hidden="true">🔑</span> Password
+        </button>
+        <button class="tab" role="tab" aria-selected="false" aria-controls="panel-string" id="tab-string" data-panel="string" tabindex="-1">
+          <span class="tab__icon" aria-hidden="true">Aa</span> String
+        </button>
+        <button class="tab" role="tab" aria-selected="false" aria-controls="panel-cidr" id="tab-cidr" data-panel="cidr" tabindex="-1">
+          <span class="tab__icon" aria-hidden="true">/24</span> CIDR
         </button>
       </div>
     </div>
@@ -291,6 +303,19 @@
                   <p class="match-empty">Enter a pattern and test string to see matches.</p>
                 </div>
               </div>
+            </div>
+
+            <!-- Inline highlight output -->
+            <div class="tool__pane tool__pane--full" id="regexHighlightPane" hidden>
+              <div class="pane__header">
+                <span class="pane__label">Highlighted</span>
+              </div>
+              <div
+                class="highlight-output"
+                id="regexHighlight"
+                aria-live="polite"
+                aria-label="Test string with matches highlighted"
+              ></div>
             </div>
           </div>
         </div>
@@ -713,8 +738,8 @@
         <div class="tool">
           <div class="tool__header">
             <div>
-              <h2 class="tool__title">JWT Decoder</h2>
-              <p class="tool__desc">Paste a JSON Web Token to decode its header and payload. Expiry and timestamps are shown in human-readable form. Signature is <strong>not</strong> verified.</p>
+              <h2 class="tool__title">JWT Decoder &amp; Verifier</h2>
+              <p class="tool__desc">Paste a JSON Web Token to decode its header and payload. Expiry and timestamps are shown in human-readable form. Signature verification supported for HS256/384/512 and RS256/384/512.</p>
             </div>
           </div>
           <div class="tool__body">
@@ -764,6 +789,44 @@
                 <span class="pane__label">Timestamps</span>
               </div>
               <pre class="code-preview" id="jwtExpiry" aria-label="JWT timestamp details" aria-live="polite" tabindex="0" hidden></pre>
+            </div>
+
+            <div class="tool__pane tool__pane--top" hidden id="jwtVerifyWrap">
+              <div class="pane__header">
+                <span class="pane__label">Verify Signature</span>
+              </div>
+              <p class="tool__desc" id="jwtVerifyAlgInfo"></p>
+
+              <div id="jwtVerifyHmacSection" hidden>
+                <label class="base-label" for="jwtVerifySecret">Secret Key</label>
+                <input
+                  class="base-input"
+                  type="text"
+                  id="jwtVerifySecret"
+                  placeholder="your-256-bit-secret"
+                  spellcheck="false"
+                  autocomplete="off"
+                  aria-label="HMAC secret key for JWT signature verification"
+                />
+              </div>
+
+              <div id="jwtVerifyRsaSection" hidden>
+                <label class="base-label" for="jwtVerifyPem">Public Key (PEM)</label>
+                <textarea
+                  class="code-area"
+                  id="jwtVerifyPem"
+                  placeholder="-----BEGIN PUBLIC KEY-----&#10;MIIBIjANBgkqh...&#10;-----END PUBLIC KEY-----"
+                  spellcheck="false"
+                  autocomplete="off"
+                  aria-label="RSA public key in PEM format for JWT signature verification"
+                  rows="5"
+                ></textarea>
+              </div>
+
+              <div class="pane__actions" id="jwtVerifyActions" hidden>
+                <button class="btn btn--sm" id="jwtVerifyBtn">Verify</button>
+              </div>
+              <div class="status-bar" id="jwtVerifyStatus" aria-live="polite" role="status"></div>
             </div>
           </div>
         </div>
@@ -955,6 +1018,370 @@
 
             <div class="status-bar" id="baseStatus" aria-live="polite" role="status"></div>
             <p class="base-bits" id="baseBits" aria-live="polite"></p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════════════════════════
+           SHA Hash Generator
+           ═══════════════════════════════ -->
+      <section
+        id="panel-hash"
+        class="panel"
+        role="tabpanel"
+        aria-labelledby="tab-hash"
+        hidden
+      >
+        <div class="tool">
+          <div class="tool__header">
+            <div>
+              <h2 class="tool__title">Hash &amp; HMAC</h2>
+              <p class="tool__desc">Compute SHA-256/384/512 hashes or HMAC digests for webhook signature debugging. Uses the browser's built-in Web Crypto API — nothing leaves your device.</p>
+            </div>
+          </div>
+          <div class="tool__body tool__body--split">
+
+            <div class="tool__pane">
+              <div class="pane__header">
+                <span class="pane__label">Input</span>
+                <div class="pane__actions">
+                  <button class="btn btn--sm btn--ghost" id="hashCasing" aria-pressed="false" title="Toggle output case">lower</button>
+                  <button class="btn btn--sm btn--ghost" id="hashClear">Clear</button>
+                </div>
+              </div>
+              <textarea
+                class="code-area"
+                id="hashInput"
+                placeholder="Type or paste text to hash…"
+                spellcheck="false"
+                autocomplete="off"
+                aria-label="Text to hash"
+              ></textarea>
+              <div class="status-bar" id="hashStatus" aria-live="polite" role="status"></div>
+            </div>
+
+            <div class="tool__pane">
+              <div class="pane__header">
+                <span class="pane__label">Hashes</span>
+              </div>
+              <div class="base-grid" role="group" aria-label="Hash outputs">
+
+                <div class="hash-group">
+                  <div class="base-row">
+                    <label class="base-label" for="hashOut256">SHA-256</label>
+                    <input
+                      type="text"
+                      id="hashOut256"
+                      class="base-input"
+                      readonly
+                      spellcheck="false"
+                      aria-label="SHA-256 hash output"
+                    >
+                    <div class="hash-row-btns">
+                      <button class="btn btn--sm btn--ghost" id="hashCopy256" disabled>Copy</button>
+                      <button class="btn btn--sm btn--ghost" id="hashCompareToggle256" aria-expanded="false" aria-controls="hashCompareRow256">Compare</button>
+                    </div>
+                  </div>
+                  <div class="hash-compare-row" id="hashCompareRow256" hidden>
+                    <span class="base-label" aria-hidden="true"></span>
+                    <input
+                      type="text"
+                      id="hashExpected256"
+                      class="base-input"
+                      placeholder="Paste expected SHA-256…"
+                      spellcheck="false"
+                      autocomplete="off"
+                      aria-label="Expected SHA-256 hash to compare"
+                    >
+                    <span class="hash-match" id="hashMatch256" aria-live="polite"></span>
+                  </div>
+                </div>
+
+                <div class="hash-group">
+                  <div class="base-row">
+                    <label class="base-label" for="hashOut384">SHA-384</label>
+                    <input
+                      type="text"
+                      id="hashOut384"
+                      class="base-input"
+                      readonly
+                      spellcheck="false"
+                      aria-label="SHA-384 hash output"
+                    >
+                    <div class="hash-row-btns">
+                      <button class="btn btn--sm btn--ghost" id="hashCopy384" disabled>Copy</button>
+                      <button class="btn btn--sm btn--ghost" id="hashCompareToggle384" aria-expanded="false" aria-controls="hashCompareRow384">Compare</button>
+                    </div>
+                  </div>
+                  <div class="hash-compare-row" id="hashCompareRow384" hidden>
+                    <span class="base-label" aria-hidden="true"></span>
+                    <input
+                      type="text"
+                      id="hashExpected384"
+                      class="base-input"
+                      placeholder="Paste expected SHA-384…"
+                      spellcheck="false"
+                      autocomplete="off"
+                      aria-label="Expected SHA-384 hash to compare"
+                    >
+                    <span class="hash-match" id="hashMatch384" aria-live="polite"></span>
+                  </div>
+                </div>
+
+                <div class="hash-group">
+                  <div class="base-row">
+                    <label class="base-label" for="hashOut512">SHA-512</label>
+                    <input
+                      type="text"
+                      id="hashOut512"
+                      class="base-input"
+                      readonly
+                      spellcheck="false"
+                      aria-label="SHA-512 hash output"
+                    >
+                    <div class="hash-row-btns">
+                      <button class="btn btn--sm btn--ghost" id="hashCopy512" disabled>Copy</button>
+                      <button class="btn btn--sm btn--ghost" id="hashCompareToggle512" aria-expanded="false" aria-controls="hashCompareRow512">Compare</button>
+                    </div>
+                  </div>
+                  <div class="hash-compare-row" id="hashCompareRow512" hidden>
+                    <span class="base-label" aria-hidden="true"></span>
+                    <input
+                      type="text"
+                      id="hashExpected512"
+                      class="base-input"
+                      placeholder="Paste expected SHA-512…"
+                      spellcheck="false"
+                      autocomplete="off"
+                      aria-label="Expected SHA-512 hash to compare"
+                    >
+                    <span class="hash-match" id="hashMatch512" aria-live="polite"></span>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+          </div>
+
+          <!-- File Hash section -->
+          <div class="tool__divider"><span>File Hash</span></div>
+          <div class="tool__body tool__body--split">
+
+            <div class="tool__pane">
+              <div class="pane__header">
+                <span class="pane__label">File</span>
+                <div class="pane__actions">
+                  <button class="btn btn--sm btn--ghost" id="fileHashClear">Clear</button>
+                </div>
+              </div>
+              <div
+                class="file-drop-zone"
+                id="fileDropZone"
+                role="button"
+                tabindex="0"
+                aria-label="Drop a file here or click to browse"
+              >
+                <input
+                  type="file"
+                  id="fileHashInput"
+                  class="file-drop-zone__input"
+                  aria-hidden="true"
+                  tabindex="-1"
+                >
+                <span class="file-drop-zone__icon" aria-hidden="true">⬆</span>
+                <span class="file-drop-zone__label">Drop file here or <span class="file-drop-zone__browse">browse</span></span>
+                <span class="file-drop-zone__hint">SHA-256, SHA-384, SHA-512 — nothing leaves your device</span>
+              </div>
+              <div class="status-bar" id="fileHashStatus" aria-live="polite" role="status"></div>
+            </div>
+
+            <div class="tool__pane">
+              <div class="pane__header">
+                <span class="pane__label">File Hashes</span>
+              </div>
+              <div class="base-grid" role="group" aria-label="File hash outputs">
+
+                <div class="hash-group">
+                  <div class="base-row">
+                    <label class="base-label" for="fileHashOut256">SHA-256</label>
+                    <input
+                      type="text"
+                      id="fileHashOut256"
+                      class="base-input"
+                      readonly
+                      spellcheck="false"
+                      aria-label="File SHA-256 hash output"
+                    >
+                    <div class="hash-row-btns">
+                      <button class="btn btn--sm btn--ghost" id="fileHashCopy256" disabled>Copy</button>
+                      <button class="btn btn--sm btn--ghost" id="fileHashCompareToggle256" aria-expanded="false" aria-controls="fileHashCompareRow256">Compare</button>
+                    </div>
+                  </div>
+                  <div class="hash-compare-row" id="fileHashCompareRow256" hidden>
+                    <span class="base-label" aria-hidden="true"></span>
+                    <input
+                      type="text"
+                      id="fileHashExpected256"
+                      class="base-input"
+                      placeholder="Paste expected SHA-256…"
+                      spellcheck="false"
+                      autocomplete="off"
+                      aria-label="Expected file SHA-256 hash to compare"
+                    >
+                    <span class="hash-match" id="fileHashMatch256" aria-live="polite"></span>
+                  </div>
+                </div>
+
+                <div class="hash-group">
+                  <div class="base-row">
+                    <label class="base-label" for="fileHashOut384">SHA-384</label>
+                    <input
+                      type="text"
+                      id="fileHashOut384"
+                      class="base-input"
+                      readonly
+                      spellcheck="false"
+                      aria-label="File SHA-384 hash output"
+                    >
+                    <div class="hash-row-btns">
+                      <button class="btn btn--sm btn--ghost" id="fileHashCopy384" disabled>Copy</button>
+                      <button class="btn btn--sm btn--ghost" id="fileHashCompareToggle384" aria-expanded="false" aria-controls="fileHashCompareRow384">Compare</button>
+                    </div>
+                  </div>
+                  <div class="hash-compare-row" id="fileHashCompareRow384" hidden>
+                    <span class="base-label" aria-hidden="true"></span>
+                    <input
+                      type="text"
+                      id="fileHashExpected384"
+                      class="base-input"
+                      placeholder="Paste expected SHA-384…"
+                      spellcheck="false"
+                      autocomplete="off"
+                      aria-label="Expected file SHA-384 hash to compare"
+                    >
+                    <span class="hash-match" id="fileHashMatch384" aria-live="polite"></span>
+                  </div>
+                </div>
+
+                <div class="hash-group">
+                  <div class="base-row">
+                    <label class="base-label" for="fileHashOut512">SHA-512</label>
+                    <input
+                      type="text"
+                      id="fileHashOut512"
+                      class="base-input"
+                      readonly
+                      spellcheck="false"
+                      aria-label="File SHA-512 hash output"
+                    >
+                    <div class="hash-row-btns">
+                      <button class="btn btn--sm btn--ghost" id="fileHashCopy512" disabled>Copy</button>
+                      <button class="btn btn--sm btn--ghost" id="fileHashCompareToggle512" aria-expanded="false" aria-controls="fileHashCompareRow512">Compare</button>
+                    </div>
+                  </div>
+                  <div class="hash-compare-row" id="fileHashCompareRow512" hidden>
+                    <span class="base-label" aria-hidden="true"></span>
+                    <input
+                      type="text"
+                      id="fileHashExpected512"
+                      class="base-input"
+                      placeholder="Paste expected SHA-512…"
+                      spellcheck="false"
+                      autocomplete="off"
+                      aria-label="Expected file SHA-512 hash to compare"
+                    >
+                    <span class="hash-match" id="fileHashMatch512" aria-live="polite"></span>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+          </div>
+
+          <!-- HMAC section -->
+          <div class="tool__divider"><span>HMAC</span></div>
+          <div class="tool__body tool__body--split">
+
+            <div class="tool__pane">
+              <div class="pane__header">
+                <span class="pane__label">Secret Key</span>
+                <div class="pane__actions">
+                  <button class="btn btn--sm btn--ghost" id="hmacClear">Clear</button>
+                </div>
+              </div>
+              <input
+                type="text"
+                class="base-input hmac-key-input"
+                id="hmacKey"
+                placeholder="Enter secret key…"
+                spellcheck="false"
+                autocomplete="off"
+                aria-label="HMAC secret key"
+              >
+              <div class="pane__header pane__header--mt">
+                <span class="pane__label">Message</span>
+              </div>
+              <textarea
+                class="code-area"
+                id="hmacMessage"
+                placeholder="Enter message to authenticate…"
+                spellcheck="false"
+                autocomplete="off"
+                aria-label="Message to authenticate"
+              ></textarea>
+              <div class="status-bar" id="hmacStatus" aria-live="polite" role="status"></div>
+            </div>
+
+            <div class="tool__pane">
+              <div class="pane__header">
+                <span class="pane__label">HMAC Digests</span>
+              </div>
+              <div class="base-grid" role="group" aria-label="HMAC digest outputs">
+
+                <div class="base-row">
+                  <label class="base-label" for="hmacOut256">SHA-256</label>
+                  <input
+                    type="text"
+                    id="hmacOut256"
+                    class="base-input"
+                    readonly
+                    spellcheck="false"
+                    aria-label="HMAC-SHA256 digest output"
+                  >
+                  <button class="btn btn--sm btn--ghost" id="hmacCopy256" disabled>Copy</button>
+                </div>
+
+                <div class="base-row">
+                  <label class="base-label" for="hmacOut384">SHA-384</label>
+                  <input
+                    type="text"
+                    id="hmacOut384"
+                    class="base-input"
+                    readonly
+                    spellcheck="false"
+                    aria-label="HMAC-SHA384 digest output"
+                  >
+                  <button class="btn btn--sm btn--ghost" id="hmacCopy384" disabled>Copy</button>
+                </div>
+
+                <div class="base-row">
+                  <label class="base-label" for="hmacOut512">SHA-512</label>
+                  <input
+                    type="text"
+                    id="hmacOut512"
+                    class="base-input"
+                    readonly
+                    spellcheck="false"
+                    aria-label="HMAC-SHA512 digest output"
+                  >
+                  <button class="btn btn--sm btn--ghost" id="hmacCopy512" disabled>Copy</button>
+                </div>
+
+              </div>
+            </div>
+
           </div>
         </div>
       </section>
@@ -1603,6 +2030,140 @@
             </div>
 
             <p class="pw-entropy" id="pwEntropy" aria-live="polite"></p>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════════════════════════
+           String Utilities
+           ═══════════════════════════════ -->
+      <section
+        id="panel-string"
+        class="panel"
+        role="tabpanel"
+        aria-labelledby="tab-string"
+        hidden
+      >
+        <div class="tool">
+          <div class="tool__header">
+            <div>
+              <h2 class="tool__title">String Utilities</h2>
+              <p class="tool__desc">Sort lines, deduplicate, convert case, and trim whitespace. Paste text, pick an operation, get the result instantly.</p>
+            </div>
+          </div>
+          <div class="tool__body tool__body--split">
+            <div class="tool__pane">
+              <div class="pane__header">
+                <span class="pane__label">Input</span>
+                <div class="pane__actions">
+                  <button class="btn btn--sm btn--ghost" id="strClear">Clear</button>
+                </div>
+              </div>
+              <textarea
+                class="code-area"
+                id="strInput"
+                placeholder="Paste or type text here…"
+                spellcheck="false"
+                autocomplete="off"
+                aria-label="String input"
+              ></textarea>
+              <p class="str-live-stats" id="strInputStats" aria-live="polite"></p>
+              <div class="status-bar" id="strStatus" aria-live="polite" role="status"></div>
+              <div class="str-ops" role="group" aria-label="String operations">
+                <div class="str-ops__group">
+                  <span class="str-ops__label">Sort</span>
+                  <div class="pane__actions">
+                    <button class="btn btn--sm" id="strSortAZ">A→Z</button>
+                    <button class="btn btn--sm btn--secondary" id="strSortZA">Z→A</button>
+                    <button class="btn btn--sm btn--ghost" id="strSortLen">Length</button>
+                  </div>
+                </div>
+                <div class="str-ops__group">
+                  <span class="str-ops__label">Case</span>
+                  <div class="pane__actions">
+                    <button class="btn btn--sm" id="strUpper">UPPER</button>
+                    <button class="btn btn--sm btn--secondary" id="strLower">lower</button>
+                    <button class="btn btn--sm btn--ghost" id="strTitle">Title</button>
+                    <button class="btn btn--sm btn--ghost" id="strCamel">camel</button>
+                    <button class="btn btn--sm btn--ghost" id="strSnake">snake</button>
+                    <button class="btn btn--sm btn--ghost" id="strKebab">kebab</button>
+                  </div>
+                </div>
+                <div class="str-ops__group">
+                  <span class="str-ops__label">Lines</span>
+                  <div class="pane__actions">
+                    <button class="btn btn--sm" id="strDedup">Deduplicate</button>
+                    <button class="btn btn--sm btn--secondary" id="strTrim">Trim</button>
+                    <button class="btn btn--sm btn--ghost" id="strRemoveBlanks">Remove Blanks</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="tool__pane">
+              <div class="pane__header">
+                <span class="pane__label">Output</span>
+                <div class="pane__actions">
+                  <button class="btn btn--sm btn--ghost" id="strCopy" disabled>Copy</button>
+                  <button class="btn btn--sm btn--ghost" id="strUseOutput" title="Load output back into input">↑ Use as Input</button>
+                </div>
+              </div>
+              <textarea
+                class="code-area"
+                id="strOutput"
+                placeholder="Result will appear here…"
+                readonly
+                spellcheck="false"
+                aria-label="String output"
+              ></textarea>
+              <p class="str-live-stats" id="strStats" aria-live="polite"></p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+
+      <!-- ═══════════════════════════════════
+           CIDR / IP Subnet Calculator
+           ═══════════════════════════════════ -->
+      <section
+        id="panel-cidr"
+        class="panel"
+        role="tabpanel"
+        aria-labelledby="tab-cidr"
+        hidden
+      >
+        <div class="tool">
+          <div class="tool__header">
+            <div>
+              <h2 class="tool__title">CIDR / IP Subnet Calculator</h2>
+              <p class="tool__desc">Enter a CIDR block (e.g. <code>192.168.1.0/24</code>) to see network address, broadcast, subnet mask, host range, and host count. Supports /0–/32 including /31 point-to-point and /32 single-host routes.</p>
+            </div>
+          </div>
+          <div class="tool__body">
+
+            <div class="tool__pane">
+              <div class="pane__header">
+                <span class="pane__label">CIDR Block</span>
+                <div class="pane__actions">
+                  <button class="btn btn--sm btn--ghost" id="cidrClear">Clear</button>
+                </div>
+              </div>
+              <input
+                class="code-area code-area--single"
+                type="text"
+                id="cidrInput"
+                placeholder="e.g. 192.168.1.0/24"
+                spellcheck="false"
+                autocomplete="off"
+                inputmode="text"
+                aria-label="CIDR block input"
+              />
+              <button class="btn" id="cidrCalc" style="margin-top:0.75rem">Calculate</button>
+              <div class="status-bar" id="cidrStatus" aria-live="polite" role="status"></div>
+            </div>
+
+            <div class="tool__pane" id="cidrResult" hidden></div>
 
           </div>
         </div>
