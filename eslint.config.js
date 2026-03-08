@@ -43,6 +43,7 @@ export default [
       'eqeqeq': ['error', 'always', { null: 'ignore' }],
       'no-console': 'off',        // console.log/warn/error are the coordinator's logging mechanism
       'no-empty': ['error', { allowEmptyCatch: true }], // bare catch {} is intentional for non-fatal failures
+      // no-implicit-globals omitted — no-op in ESM module scope (sourceType: 'module' makes top-level declarations module-scoped, not global)
     },
   },
 ];
