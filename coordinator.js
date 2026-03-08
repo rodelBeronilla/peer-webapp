@@ -716,10 +716,10 @@ function decideAction(agentKey, ctx, turnCount = 0) {
   // ── Impact-scored action selection ──────────────────────────────────────────
   //
   // Phase 1: Unconditional gates (system obligations that always win)
+  //   - Own CONFLICTING PRs (absolute blocker — pipeline cannot flow until resolved)
   //   - Checkpoint / self-reflect thresholds
   //   - Owner discussion responses
   //   - @mention responses
-  //   - Own CONFLICTING PRs (must fix to unblock pipeline)
   //
   // Phase 2: Scored candidates (highest score wins)
   //   Every candidate gets: BASE_SCORE[type] + PRIORITY_BONUS[label] + age_bonus + situational
