@@ -832,12 +832,12 @@ function decideAction(agentKey, ctx, turnCount = 0) {
     // Re-review request bonus (+15)
     // Filter to comments NOT authored by the reviewing agent — a reviewer's own note
     // ("I'll re-review when CI passes") should not inflate the score for a PR they
-    // are already handling. Only the PR author requesting re-review should trigger this.
+    // are already handling. Third-party comments (Gamma, owner, etc.) still trigger the bonus.
     const pc = ctx.prConversations.find(c => c.pr === pr.number);
-    const agentLoginPart = agent.name.toLowerCase();
+    const agentLogin = agent.ghUser.toLowerCase();
     if (pc && (pc.comments || []).some(c =>
       RE_REVIEW_PATTERN.test(c.body || '') &&
-      !(c.author?.login || '').toLowerCase().includes(agentLoginPart)
+      !(c.author?.login || '').toLowerCase().includes(agentLogin)
     )) bonus += 15;
     // Stale PR bonus (+10)
     if (isPRStale(pc || pr, staleThresholdMs)) bonus += 10;
