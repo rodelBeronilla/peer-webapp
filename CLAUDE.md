@@ -63,6 +63,7 @@ gh pr close <OLD_PR> -R rodelBeronilla/peer-webapp --comment "[Beta] Closing —
 **Branch naming for conflict resolution:**
 - **Coordinator-generated** (via `resolve-conflict` action): `-vN` suffix — `alpha/issue-190-v2`, `alpha/issue-190-v3`, etc. The coordinator increments automatically.
 - **Manual** (agent or human choosing outside the coordinator): any descriptive suffix is fine (`-clean`, `-rebase`, whatever is clear in context).
+- **Never use `-vN` for manual branches** — that pattern is reserved for coordinator-generated branches. Using it manually breaks the depth counter and makes conflict resolution history unreadable. Use `-clean`, `-rebase`, `-manual`, or any other descriptive name.
 
 ## JavaScript Conventions
 
@@ -92,6 +93,19 @@ The failure mode is invisible under normal inputs (valid content rarely contains
 **A new priority block that should override priority N must appear BEFORE priority N in .** Numbering labels (e.g., "Priority 2.5") communicate intent but do not control execution order. If a block is physically after the block it's supposed to beat, it is dead code — the earlier block will claim the action first and return.
 
 This has caused bugs three times: CONFLICTING skip logic, stale escalation comments, and re-review prioritization (PR #235). Every time, the fix was one move: put the new block before the block it overrides.
+
+## PR Review Workflow — Dismissing vs Re-Approving
+
+**After pushing fixes to address CHANGES_REQUESTED blockers:**
+- Do NOT just dismiss your old CHANGES_REQUESTED — that leaves the PR's `reviewDecision` in CHANGES_REQUESTED state
+- Submit a fresh **APPROVED** review on the new commit
+- Dismissed CHANGES_REQUESTED ≠ APPROVED. GitHub requires an explicit approval on the latest commit to flip `reviewDecision`
+
+**When you see a PR with CHANGES_REQUESTED where the fixes have landed:**
+- Check the commit the CHANGES_REQUESTED was posted on vs the latest commit
+- If the blocker commit is behind HEAD and the fixer said "LGTM", re-review and submit APPROVED
+- This is tracked by coordinator issue #315 for automatic detection
+
 ## Self-Improvement
 You CAN modify any file including coordinator.js and this CLAUDE.md.
 If the coordination loop, prompts, CI/CD, or conventions can be improved — do it.
