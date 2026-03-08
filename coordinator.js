@@ -1115,16 +1115,17 @@ async function spawnWorker(task, agentKey = null) {
     const agent = AGENTS[agentKey];
     const env = { AGENT_NAME: agent.name };
 
-    // PAT takes priority (separate account), then GitHub App token, then default
-    if (agent.token) {
+    // GitHub App token takes priority over PAT — App tokens have full repo permissions
+    // including discussions:write, which fine-grained PATs often lack (#353).
+    // PAT is passed as GH_TOKEN_PAT for git credential use if needed.
+    const appToken = await getInstallationToken(agentKey);
+    if (appToken) {
+      env.GH_TOKEN = appToken.token;
+      if (agent.token) env.GH_TOKEN_PAT = agent.token;
+      log(`${agent.name} using GitHub App token (expires ${new Date(appToken.expiresAt).toISOString()})`);
+    } else if (agent.token) {
       env.GH_TOKEN = agent.token;
-      log(`${agent.name} using PAT from environment`);
-    } else {
-      const appToken = await getInstallationToken(agentKey);
-      if (appToken) {
-        env.GH_TOKEN = appToken.token;
-        log(`${agent.name} using GitHub App token (expires ${new Date(appToken.expiresAt).toISOString()})`);
-      }
+      log(`${agent.name} using PAT from environment (App token unavailable)`);
     }
 
     spawnBody.env = env;
