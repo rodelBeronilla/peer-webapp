@@ -592,6 +592,27 @@ function decideAction(agentKey, ctx, turnCount = 0) {
     }
   }
 
+  // Priority 2.5: Peer PRs with explicit re-review requests.
+  // When a peer force-pushes their branch and comments "please re-review" (or similar),
+  // route to review before picking up new issues. This prevents the race where the
+  // reviewer's turn falls through to new issues while the updated PR sits unreviewed.
+  // Uses prConversations (already fetched in buildGitHubContext) — no extra API calls.
+  const RE_REVIEW_PATTERN = /\bre-?review\b/i;
+  const peerPRsWithReReviewRequest = ctx.openPRs.filter(pr => {
+    const isPeerPR = (pr.labels || []).some(l => l.name === peerLabel);
+    if (!isPeerPR) return false;
+    if (pr.reviewDecision === 'APPROVED') return false;
+    if (pr.mergeStateStatus === 'CONFLICTING') return false;
+    const pc = ctx.prConversations.find(c => c.pr === pr.number);
+    if (!pc) return false;
+    return (pc.comments || []).some(c => RE_REVIEW_PATTERN.test(c.body || ''));
+  }).sort((a, b) => a.number - b.number);
+  for (const pr of peerPRsWithReReviewRequest) {
+    if (claimWork(agentKey, 'pr', pr.number)) {
+      return { type: 'review-pr', pr };
+    }
+  }
+
   // Priority 3: Respond to comments on own PRs
   const ownPRsWithComments = ctx.prConversations.filter(pc => {
     const pr = ctx.openPRs.find(p => p.number === pc.pr);
