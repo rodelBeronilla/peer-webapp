@@ -21,3 +21,4 @@ import './tools/htmlentity.js';
 import './tools/chmod.js';
 import './tools/charmap.js';
 import './tools/cssspec.js';
+import './tools/csv.js';
