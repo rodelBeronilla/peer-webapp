@@ -15,8 +15,6 @@
 
     "media-feature-range-notation": null,
 
-    "no-descending-specificity": null,
-
     "value-keyword-case": [
       "lower",
       {

@@ -998,6 +998,7 @@ main {
   letter-spacing: 0.04em;
 }
 
+/* stylelint-disable-next-line no-descending-specificity -- intentional: contrast tool uses a smaller swatch variant; different component context from .color-picker-wrap:hover .color-swatch */
 .contrast-picker-wrap .color-swatch {
   width: 64px;
   height: 64px;
@@ -1221,10 +1222,12 @@ main {
 }
 .note-item:hover .note-item__delete,
 .note-item:focus-within .note-item__delete { opacity: 1; }
+/* stylelint-disable-next-line no-descending-specificity -- intentional: reveal-on-parent-hover pattern; .note-item:hover sets opacity, these rules set background/color — no property conflict */
 .note-item__delete:hover {
   background: rgba(220, 38, 38, 0.1);
   color: var(--color-danger);
 }
+/* stylelint-disable-next-line no-descending-specificity -- intentional: keyboard focus must reveal the button regardless of parent hover state */
 .note-item__delete:focus-visible {
   opacity: 1;
   outline: 2px solid var(--color-danger);
@@ -1357,10 +1360,12 @@ main {
 }
 .bookmark-item:hover .bookmark-item__delete,
 .bookmark-item:focus-within .bookmark-item__delete { opacity: 1; }
+/* stylelint-disable-next-line no-descending-specificity -- intentional: reveal-on-parent-hover pattern; .bookmark-item:hover sets opacity, these rules set background/color — no property conflict */
 .bookmark-item__delete:hover {
   background: rgba(220, 38, 38, 0.1);
   color: var(--color-danger);
 }
+/* stylelint-disable-next-line no-descending-specificity -- intentional: keyboard focus must reveal the button regardless of parent hover state */
 .bookmark-item__delete:focus-visible {
   opacity: 1;
   outline: 2px solid var(--color-danger);
@@ -2600,6 +2605,7 @@ main {
   background: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
 }
+/* stylelint-disable-next-line no-descending-specificity -- intentional: cidr-table and css-spec-table are separate components; their td selectors never match the same element */
 .cidr-table td {
   padding: 0.4rem 0.75rem;
   border-bottom: 1px solid var(--color-border);
@@ -3103,6 +3109,7 @@ main {
   margin: 1rem 0;
 }
 
+/* stylelint-disable-next-line no-descending-specificity -- intentional: .md-preview and .about are separate tool panels that never nest; no actual cascade conflict */
 .md-preview a {
   color: var(--color-primary);
   text-decoration: underline;
@@ -3227,12 +3234,14 @@ main {
   font-size: 0.9rem;
 }
 
+/* stylelint-disable no-descending-specificity -- intentional: semver-table and css-spec-table are separate components; their td selectors never match the same element */
 .semver-table th,
 .semver-table td {
   padding: 0.5rem 0.75rem;
   text-align: left;
   border-bottom: 1px solid var(--color-border);
 }
+/* stylelint-enable no-descending-specificity */
 
 .semver-table th {
   font-weight: 600;
