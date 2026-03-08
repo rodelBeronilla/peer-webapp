@@ -36,11 +36,12 @@ const CONFIG = {
 
 // Adaptive cooldowns by outcome (ms)
 const COOLDOWNS = {
-  productive: 10_000,   // useful work done — move fast
-  idle:       60_000,   // nothing to do (avoid churn)
-  failure:    30_000,   // something went wrong — retry sooner
-  stale:      10_000,   // stale PR detected — clear it fast
-  discuss:    30_000,   // discussion turn
+  productive:       10_000,   // useful work done — move fast
+  idle:             60_000,   // nothing to do (avoid churn)
+  failure:          30_000,   // something went wrong — retry sooner
+  stale:            10_000,   // stale PR detected — clear it fast
+  discuss:          30_000,   // discussion turn
+  'resolve-conflict': 15_000, // conflict resolved — give CI time to register the push
 };
 
 const AGENTS = {
@@ -207,7 +208,7 @@ function getOpenIssues() {
 }
 
 function getOpenPRs() {
-  return ghJson(`pr list -R ${CONFIG.repo} --state open --json number,title,labels,author,headRefName,body,reviewDecision,reviews,createdAt --limit 20`);
+  return ghJson(`pr list -R ${CONFIG.repo} --state open --json number,title,labels,author,headRefName,body,reviewDecision,reviews,createdAt,mergeStateStatus --limit 20`);
 }
 
 function getRecentClosedIssues(limit = 10) {
@@ -442,12 +443,26 @@ function decideAction(agentKey, ctx, turnCount = 0) {
   const agent = AGENTS[agentKey];
   const peerLabel = AGENTS[agentKey === 'alpha' ? 'beta' : 'alpha'].label;
 
+  // Priority 0: Own PR is CONFLICTING — must resolve before any other work.
+  // A CONFLICTING PR will never merge; dispatching review/merge tasks against it wastes turns.
+  const conflictingOwnPRs = ctx.openPRs.filter(pr =>
+    (pr.labels || []).some(l => l.name === agent.label) &&
+    pr.mergeStateStatus === 'CONFLICTING'
+  ).sort((a, b) => a.number - b.number);
+  for (const pr of conflictingOwnPRs) {
+    if (claimWork(agentKey, 'conflict', pr.number)) {
+      return { type: 'resolve-conflict', pr };
+    }
+  }
+
   // Priority 1: Merge PEER's reviewed PRs with passing CI (clear the backlog first)
   // Merging is fast and high-value — unblock the pipeline before doing new reviews
   const mergeablePRs = ctx.openPRs.filter(pr => {
     // Only merge peer's PRs, not your own
     const isPeerPR = (pr.labels || []).some(l => l.name === peerLabel);
     if (!isPeerPR) return false;
+    // Skip CONFLICTING peer PRs — they must rebase before merge is meaningful
+    if (pr.mergeStateStatus === 'CONFLICTING') return false;
     if (pr.reviewDecision === 'APPROVED') return true;
     // Check if THIS agent has already reviewed it (bot approvals don't show in reviewDecision)
     const reviews = pr.reviews || [];
@@ -473,10 +488,13 @@ function decideAction(agentKey, ctx, turnCount = 0) {
   }
 
   // Priority 2: Review peer's open PRs (oldest first — clear the stale backlog)
+  // Skip CONFLICTING peer PRs — reviewing a PR that can never merge is wasted effort;
+  // the peer needs to rebase before review is meaningful.
   const peerPRs = ctx.openPRs
     .filter(pr =>
       (pr.labels || []).some(l => l.name === peerLabel) &&
-      pr.reviewDecision !== 'APPROVED'
+      pr.reviewDecision !== 'APPROVED' &&
+      pr.mergeStateStatus !== 'CONFLICTING'
     )
     .sort((a, b) => a.number - b.number);
   for (const pr of peerPRs) {
@@ -672,6 +690,16 @@ function buildRLMQuery(agentName, action) {
         '(2) what the current codebase suggests about next steps,',
         '(3) what design patterns or refactors would improve the app,',
         '(4) what features would add the most user value based on the existing foundation.',
+      ].join(' ');
+
+    case 'resolve-conflict':
+      return [
+        base,
+        `${agentName}'s own PR #${action.pr.number}: "${action.pr.title}" (branch ${action.pr.headRefName}) has a CONFLICTING merge state — it cannot be merged as-is.`,
+        'Focus your analysis on: (1) which files on main have diverged from the branch and why,',
+        '(2) the safest rebase strategy (rebase onto main vs cherry-pick vs fresh branch),',
+        '(3) which files are most likely to conflict based on recent activity in main,',
+        '(4) the CONFLICTING state does NOT mean the feature is shipped — the linked issue must stay open until the PR merges into main.',
       ].join(' ');
 
     case 'create-issues':
@@ -1100,6 +1128,48 @@ PR #${action.pr.number}: "${action.pr.title}" has been approved.
 - In an existing thread: Connect this merge to an ongoing conversation.
 `;
 
+    case 'resolve-conflict':
+      return `${preamble}
+## Your Task: Resolve Merge Conflict on PR #${action.pr.number}
+
+Your PR #${action.pr.number}: "${action.pr.title}" is in a **CONFLICTING** merge state — it diverged from \`main\` and cannot be merged until the conflict is resolved.
+
+**CRITICAL: CONFLICTING ≠ shipped. Do NOT close the linked issue.** The feature has not landed. Only close the issue after the PR is merged into \`main\`.
+
+**Step 1 — Diagnose the conflict:**
+1. Fetch latest main: \`git fetch origin\`
+2. See what's diverged: \`git log origin/main..${action.pr.headRefName} --oneline\` and \`git log ${action.pr.headRefName}..origin/main --oneline\`
+3. Check which files conflict: \`git diff origin/main...origin/${action.pr.headRefName} --name-only\`
+
+**Step 2 — Resolve by rebasing onto current main:**
+\`\`\`bash
+git config user.name "${agent.gitName}"
+git config user.email "${agent.gitEmail}"
+git checkout -B ${action.pr.headRefName} origin/main
+
+# Re-apply your changes — new tool files first (no conflicts), then edits to index.html/script.js/styles.css
+# For index.html: check current main content first — do NOT blindly apply your old diff
+git diff origin/main...origin/${action.pr.headRefName} -- index.html
+\`\`\`
+
+**Step 3 — Force-push the resolved branch:**
+\`\`\`bash
+git add <files>
+git commit -m "type(scope): description"
+git push origin ${action.pr.headRefName} --force
+\`\`\`
+
+**Step 4 — If force-push is insufficient, close this PR and open a fresh one:**
+\`\`\`bash
+gh pr close ${action.pr.number} -R ${CONFIG.repo} --comment "[${agent.name}] Closing — replaced by PR #NEW (conflict resolution)"
+# Then create a new PR — do NOT close the linked issue; it stays open until the new PR merges
+\`\`\`
+
+**Step 5 — Verify CI passes** on the updated branch before considering this done.
+
+**Do NOT close the linked issue at any point in this workflow.** Closing a PR (even a conflicting one) does not ship the feature. The issue stays open until a PR is merged into \`main\`.
+`;
+
     case 'ping-pr':
       return `${preamble}
 ## Your Task: Re-engage ${agent.peer} on PR #${action.pr.number}
@@ -1392,6 +1462,7 @@ async function agentLoop(agentKey) {
         consecutiveFailures = 0;
         if (action.type === 'create-issues') cooldown = COOLDOWNS.idle;
         if (action.type === 'discuss') cooldown = COOLDOWNS.discuss;
+        if (action.type === 'resolve-conflict') cooldown = COOLDOWNS['resolve-conflict'];
         if (action.stale) cooldown = COOLDOWNS.stale;
       }
 
