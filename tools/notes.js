@@ -14,7 +14,11 @@ function loadNotes() {
 }
 
 function saveNotes() {
-  localStorage.setItem(NOTES_KEY, JSON.stringify(notes));
+  try {
+    localStorage.setItem(NOTES_KEY, JSON.stringify(notes));
+  } catch {
+    // QuotaExceededError or SecurityError — storage unavailable
+  }
 }
 
 function renderNotes() {

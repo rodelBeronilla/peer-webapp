@@ -21,7 +21,11 @@ function loadBookmarks() {
 }
 
 function saveBookmarks() {
-  localStorage.setItem(BOOKMARKS_KEY, JSON.stringify(bookmarks));
+  try {
+    localStorage.setItem(BOOKMARKS_KEY, JSON.stringify(bookmarks));
+  } catch {
+    // QuotaExceededError or SecurityError — storage unavailable
+  }
 }
 
 function faviconUrl(url) {

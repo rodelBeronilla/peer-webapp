@@ -72,7 +72,11 @@ function loadColorHistory() {
 }
 
 function saveColorHistory() {
-  localStorage.setItem(COLOR_HISTORY_KEY, JSON.stringify(colorHistory.slice(0, 24)));
+  try {
+    localStorage.setItem(COLOR_HISTORY_KEY, JSON.stringify(colorHistory.slice(0, 24)));
+  } catch {
+    // QuotaExceededError or SecurityError — storage unavailable
+  }
 }
 
 function renderColorHistory() {
