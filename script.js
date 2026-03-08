@@ -23,3 +23,4 @@ import './tools/charmap.js';
 import './tools/cssspec.js';
 import './tools/tz.js';
 import './tools/diff.js';
+import './tools/cidr.js';

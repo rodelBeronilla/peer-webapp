@@ -2205,3 +2205,46 @@ main {
   color: var(--color-text);
 }
 .diff-line--equal .diff-content { color: var(--color-text-muted); }
+
+/* ============================================
+   CIDR / IP Subnet Calculator
+   ============================================ */
+.cidr-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+.cidr-table th {
+  padding: 0.4rem 0.75rem;
+  text-align: left;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+}
+.cidr-table td {
+  padding: 0.4rem 0.75rem;
+  border-bottom: 1px solid var(--color-border);
+  vertical-align: middle;
+}
+.cidr-table tr:last-child td {
+  border-bottom: none;
+}
+.cidr-field-label {
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  width: 1%;
+}
+.cidr-field-value code {
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+}
+.cidr-note {
+  margin: 0.75rem 0 0;
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+  font-style: italic;
+}
