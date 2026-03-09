@@ -10,9 +10,9 @@ const BOOKMARKS_KEY  = 'peer-bookmarks';
 
 let bookmarks = [];
 
-function setBookmarkStatus(msg, isError) {
+function setBookmarkStatus(msg, type = '') {
   bookmarkStatus.textContent = msg;
-  bookmarkStatus.className = 'status-bar' + (isError ? ' status-bar--error' : '');
+  bookmarkStatus.className = 'status-bar' + (type ? ` status-bar--${type}` : '');
 }
 
 function loadBookmarks() {
@@ -119,20 +119,20 @@ function addBookmark(rawUrl, label) {
 
   // Basic URL validation
   try { new URL(url); } catch {
-    setBookmarkStatus('Invalid URL — please enter a valid address.', true);
+    setBookmarkStatus('Invalid URL — please enter a valid address.', 'error');
     return;
   }
 
   // Deduplicate by URL
   if (bookmarks.some(b => b.url === url)) {
-    setBookmarkStatus('That URL is already bookmarked.', true);
+    setBookmarkStatus('That URL is already bookmarked.', 'error');
     return;
   }
 
   bookmarks.unshift({ url, label: label.trim(), id: crypto.randomUUID() });
   saveBookmarks();
   renderBookmarks();
-  setBookmarkStatus('', false);
+  setBookmarkStatus('');
 }
 
 function deleteBookmark(id) {
@@ -171,7 +171,7 @@ bookmarksExportBtn.addEventListener('click', () => {
   a.download = 'devtools-bookmarks.json';
   a.click();
   URL.revokeObjectURL(url);
-  setBookmarkStatus(`Exported ${bookmarks.length} ${bookmarks.length === 1 ? 'bookmark' : 'bookmarks'}.`, false);
+  setBookmarkStatus(`Exported ${bookmarks.length} ${bookmarks.length === 1 ? 'bookmark' : 'bookmarks'}.`, 'ok');
 });
 
 bookmarksImportBtn.addEventListener('click', () => {
@@ -199,12 +199,12 @@ bookmarksImportFile.addEventListener('change', () => {
       saveBookmarks();
       renderBookmarks();
       const skipped = imported.length - newBookmarks.length;
-      setBookmarkStatus(`Imported ${newBookmarks.length} new ${newBookmarks.length === 1 ? 'bookmark' : 'bookmarks'} (${skipped} duplicate${skipped === 1 ? '' : 's'} skipped).`, false);
+      setBookmarkStatus(`Imported ${newBookmarks.length} new ${newBookmarks.length === 1 ? 'bookmark' : 'bookmarks'} (${skipped} duplicate${skipped === 1 ? '' : 's'} skipped).`, 'ok');
     } catch (err) {
-      setBookmarkStatus(`Import failed: ${err.message}`, true);
+      setBookmarkStatus(`Import failed: ${err.message}`, 'error');
     }
   };
-  reader.onerror = () => setBookmarkStatus('Import failed: could not read file.', true);
+  reader.onerror = () => setBookmarkStatus('Import failed: could not read file.', 'error');
   reader.readAsText(file);
 });
 

@@ -1891,35 +1891,45 @@ async function agentLoop(agentKey) {
       log(`[${agent.name}] Action: ${action.type}${action.pr ? ` (PR #${action.pr.number})` : ''}${action.issue ? ` (Issue #${action.issue.number})` : ''}${action.discussion ? ` (Discussion #${action.discussion.number})` : ''}`);
 
       const rlmContext = await invokeRLM(agent.name, action, ctx);
-      const prompt = buildPrompt(agentKey, action, ghContextStr, rlmContext);
-      const workerId = await spawnWorker(prompt, agentKey);
-      const result = await pollWorker(workerId);
-      releaseWork(agentKey);
 
-      if (!result) {
-        log(`[${agent.name}] Worker timed out`, 'error');
-        consecutiveFailures++;
-        cooldown = COOLDOWNS.failure;
-      } else if (result.exitCode !== 0) {
-        log(`[${agent.name}] Worker failed (exit ${result.exitCode})`, 'error');
-        consecutiveFailures++;
+      // Skip discussion/critique turns when RLM is unavailable — these actions are driven
+      // almost entirely by RLM retrieval context. Without it, the agent has nothing
+      // substantive to say and posts empty or near-empty content (#366).
+      const RLM_REQUIRED_ACTIONS = new Set(['discuss', 'critique-discussions', 'critique-pipeline', 'critique-sprint', 'critique-architecture']);
+      if (!rlmContext && RLM_REQUIRED_ACTIONS.has(action.type)) {
+        log(`[${agent.name}] Skipping ${action.type} — RLM unavailable, would produce content-free post (#366)`);
         cooldown = COOLDOWNS.failure;
       } else {
-        log(`[${agent.name}] Turn completed successfully`);
-        consecutiveFailures = 0;
-        const productiveSet = agent.isReviewOnly ? GAMMA_PRODUCTIVE_ACTIONS : PRODUCTIVE_ACTIONS;
-        if (productiveSet.has(action.type)) {
-          workSinceCheckpoint++;
-          workSinceReflect[agentKey]++;
-          log(`[${agent.name}] Work delivered: ${workSinceReflect[agentKey]} personal, ${workSinceCheckpoint} aggregate`);
+        const prompt = buildPrompt(agentKey, action, ghContextStr, rlmContext);
+        const workerId = await spawnWorker(prompt, agentKey);
+        const result = await pollWorker(workerId);
+        releaseWork(agentKey);
+
+        if (!result) {
+          log(`[${agent.name}] Worker timed out`, 'error');
+          consecutiveFailures++;
+          cooldown = COOLDOWNS.failure;
+        } else if (result.exitCode !== 0) {
+          log(`[${agent.name}] Worker failed (exit ${result.exitCode})`, 'error');
+          consecutiveFailures++;
+          cooldown = COOLDOWNS.failure;
+        } else {
+          log(`[${agent.name}] Turn completed successfully`);
+          consecutiveFailures = 0;
+          const productiveSet = agent.isReviewOnly ? GAMMA_PRODUCTIVE_ACTIONS : PRODUCTIVE_ACTIONS;
+          if (productiveSet.has(action.type)) {
+            workSinceCheckpoint++;
+            workSinceReflect[agentKey]++;
+            log(`[${agent.name}] Work delivered: ${workSinceReflect[agentKey]} personal, ${workSinceCheckpoint} aggregate`);
+          }
+          if (action.type === 'checkpoint') { workSinceCheckpoint = 0; workSinceReflect.alpha = 0; workSinceReflect.beta = 0; workSinceReflect.gamma = 0; }
+          if (action.type === 'self-reflect') { workSinceReflect[agentKey] = 0; }
+          if (action.type === 'create-issues') cooldown = COOLDOWNS.idle;
+          if (action.type === 'discuss') cooldown = COOLDOWNS.discuss;
+          if (action.type === 'resolve-conflict') cooldown = COOLDOWNS['resolve-conflict'];
+          if (COOLDOWNS[action.type]) cooldown = COOLDOWNS[action.type];
+          if (action.stale) cooldown = COOLDOWNS.stale;
         }
-        if (action.type === 'checkpoint') { workSinceCheckpoint = 0; workSinceReflect.alpha = 0; workSinceReflect.beta = 0; workSinceReflect.gamma = 0; }
-        if (action.type === 'self-reflect') { workSinceReflect[agentKey] = 0; }
-        if (action.type === 'create-issues') cooldown = COOLDOWNS.idle;
-        if (action.type === 'discuss') cooldown = COOLDOWNS.discuss;
-        if (action.type === 'resolve-conflict') cooldown = COOLDOWNS['resolve-conflict'];
-        if (COOLDOWNS[action.type]) cooldown = COOLDOWNS[action.type];
-        if (action.stale) cooldown = COOLDOWNS.stale;
       }
 
     } catch (err) {
