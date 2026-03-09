@@ -560,8 +560,8 @@ const CHECKPOINT_WORK_THRESHOLD  = 12;
 const SELF_REFLECT_WORK_THRESHOLD = 5;
 let workSinceCheckpoint = 0;
 const workSinceReflect = { alpha: 0, beta: 0, gamma: 0 };
-const PRODUCTIVE_ACTIONS = new Set(['implement-issue', 'merge-pr', 'resolve-conflict']);
-const GAMMA_PRODUCTIVE_ACTIONS = new Set(['review-pr', 'critique-architecture', 'critique-discussions', 'critique-pipeline', 'critique-sprint']);
+const PRODUCTIVE_ACTIONS = new Set(['implement-issue', 'merge-pr', 'resolve-conflict', 'review-pr', 'respond-pr', 'discuss']);
+const GAMMA_PRODUCTIVE_ACTIONS = new Set(['review-pr', 'critique-architecture', 'critique-discussions', 'critique-pipeline', 'critique-sprint', 'discuss']);
 
 // ─── Work-item lock (prevents both agents from picking the same item) ──────
 
