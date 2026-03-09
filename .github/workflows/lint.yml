@@ -32,3 +32,6 @@ jobs:
 
       - name: Run HTMLHint
         run: npx htmlhint --config .htmlhintrc index.html
+
+      - name: Run unit tests
+        run: npm run test:unit
